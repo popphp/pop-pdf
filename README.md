@@ -13,6 +13,13 @@ NOTE
 ----
 The PDF coordinate system starts with x, y (0, 0) at the bottom left.
 
+INSTALL
+-------
+
+Install `Pop Pdf` using Composer.
+
+    composer require popphp/pop-pdf
+
 QUICK USE
 ---------
 
