@@ -1,0 +1,29 @@
+{
+    "name": "popphp/pop-pdf",
+    "description": "Pop PDF Component",
+    "keywords": [
+        "php pdf library",
+        "php pdf processing",
+        "pop pdf"
+    ],
+    "homepage": "http://github.com/popphp/pop-pdf",
+    "license": "New BSD",
+    "authors": [
+        {
+            "name": "Nick Sagona",
+            "email": "dev@nolainteractive.com",
+            "homepage": "http://www.nolainteractive.com/"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "suggest": {
+        "ext-gd": "For the image parser"
+    },
+    "autoload": {
+        "psr-4": {
+            "Pop\\": "src/"
+        }
+    }
+}
