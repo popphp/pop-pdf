@@ -23,14 +23,14 @@ Install `Pop Pdf` using Composer.
 QUICK USE
 ---------
 
-    use Pop\Pdf\Pdf;
+```php
+use Pop\Pdf\Pdf;
     
-    $pdf = new Pdf('doc.pdf');
-    $pdf->addPage(Pdf::SIZE_LETTER);
-    $pdf->draw()->setFillColor(255, 0, 0)->rectangle(100, 400, 200, 100);
+$pdf = new Pdf('doc.pdf');
+$pdf->addPage(Pdf::SIZE_LETTER);
+$pdf->draw()->setFillColor(255, 0, 0)->rectangle(100, 400, 200, 100);
 
-    $pdf->type()->embedFont('myfont.tff')->size(24)->xy(100, 300)->text('Hello World!');
+$pdf->type()->embedFont('myfont.tff')->size(24)->xy(100, 300)->text('Hello World!');
 
-    $pdf->addImage('image.jpg', 100, 100);
-
-
+$pdf->addImage('image.jpg', 100, 100);
+```
