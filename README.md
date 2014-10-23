@@ -68,7 +68,16 @@ $pdf->type()->paragraph($longString, 75, 12);
 SEARCHING A PDF
 ---------------
 ```php
-// Search a PDF for text. Will return false in not found,
+// Search the current page for text. Will return true or false.
+$pdf = new Pdf('doc.pdf');
+$pdf->setPage(3);
+if ($pdf->searchPage('some keywords')) {
+    echo 'Found on this page.'
+} else {
+    echo 'Not found!';
+}
+
+// Search the entire PDF for text. Will return false in not found,
 // or an array of pages that the keywords are found on.
 $pdf = new Pdf('doc.pdf');
 $results = $pdf->searchAll('some keywords');
