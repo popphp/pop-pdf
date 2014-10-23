@@ -52,18 +52,19 @@ $pdf->draw()->setFillColor(255, 0, 0)
 
 $pdf->draw()->circle(100, 200, 50); // Will use the previously set fill color
 
-$pdf->type()->embedFont('myfont.tff')->size(20)->xy(100, 300); // Set the base text parameters then
-$pdf->type()->text('Hello World! Line 1.')->y(280)             // add lines of text, only changing
-            ->text('Hello World! Line 2.')->y(260)             // the Y as needed.
+// Set the base text parameters then add lines of text,
+// only changing the Y as needed.
+$pdf->type()->embedFont('myfont.tff')->size(20)->xy(100, 300);
+$pdf->type()->text('Hello World! Line 1.')->y(280)
+            ->text('Hello World! Line 2.')->y(260)
             ->text('Hello World! Line 3.')->y(240);
 
 // Add a paragraph of text, setting the wrap length and line height.
 $pdf->type()->size(12);
 $pdf->type()->paragraph($longString, 75, 12);
 
-// Search a PDF for text
+// Search a PDF for text. Will return false in not found,
+// or an array of pages that the keywords are found on.
 $pdf = new Pdf('doc.pdf');
-$results = $pdf->searchAll('some keywords'); // Will return false in not found, or an array
-                                             // of pages that the keywords are found on.
-
+$results = $pdf->searchAll('some keywords'); 
 ```
