@@ -50,7 +50,8 @@ $pdf->addPage(Pdf::SIZE_LETTER);
 $pdf->draw()->setFillColor(255, 0, 0)
             ->rectangle(100, 400, 200, 100);
 
-$pdf->draw()->circle(100, 200, 50); // Will use the previously set fill color
+// Will use the previously set fill color.
+$pdf->draw()->circle(100, 200, 50);
 
 // Set the base text parameters then add lines of text,
 // only changing the Y as needed.
@@ -62,9 +63,19 @@ $pdf->type()->text('Hello World! Line 1.')->y(280)
 // Add a paragraph of text, setting the wrap length and line height.
 $pdf->type()->size(12);
 $pdf->type()->paragraph($longString, 75, 12);
+```
 
+SEARCHING A PDF
+---------------
+```php
 // Search a PDF for text. Will return false in not found,
 // or an array of pages that the keywords are found on.
 $pdf = new Pdf('doc.pdf');
-$results = $pdf->searchAll('some keywords'); 
+$results = $pdf->searchAll('some keywords');
+
+// You can extract the text from a PDF as well.
+// This will return and array of pages, each containing
+// an array of all the text found on that page.
+$pdf = new Pdf('doc.pdf');
+$text = $pdf->extractText();
 ```
