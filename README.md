@@ -64,7 +64,7 @@ $pdf->draw()->circle(100, 200, 50);
 
 // Set the base text parameters then add lines of text,
 // only changing the Y as needed.
-$pdf->type()->embedFont('myfont.tff')->size(20)->xy(100, 300);
+$pdf->type()->embedFont('myfont.ttf')->size(20)->xy(100, 300);
 $pdf->type()->text('Hello World! Line 1.')->y(280)
             ->text('Hello World! Line 2.')->y(260)
             ->text('Hello World! Line 3.')->y(240);
