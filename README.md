@@ -41,6 +41,15 @@ There are 3 available manipulation objects. They are:
  - Effect
  - Type
 
+You can call them from the PDF object, and they will return themselves to
+facilitate chaining together multiple method calls, so:
+
+```php
+$pdf->draw();   // Will return a Draw\Pdf Object
+$pdf->effect(); // Will return an Effect\Pdf Object
+$pdf->type();   // Will return an Type\Pdf Object
+```
+
 ```php
 use Pop\Pdf\Pdf;
 
