@@ -29,7 +29,7 @@ use Pop\Pdf\Pdf;
 $pdf = new Pdf('doc.pdf');
 $pdf->addPage(Pdf::SIZE_LETTER);
 $pdf->addImage('image.jpg', 100, 100);
-$pdf->addUrl(100, 100, 320, 240);
+$pdf->addUrl(100, 100, 320, 240, 'http://www.popphp.org/');
 $pdf->output();
 ```
 
