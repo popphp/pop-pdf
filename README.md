@@ -92,7 +92,7 @@ $pdf = new Pdf('doc.pdf');
 $results = $pdf->searchAll('some keywords');
 
 // You can extract the text from a PDF as well.
-// This will return and array of pages, each containing
+// This will return an array of pages, each containing
 // an array of all the text found on that page.
 $pdf = new Pdf('doc.pdf');
 $text = $pdf->extractText();
