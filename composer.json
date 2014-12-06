@@ -1,13 +1,16 @@
 {
     "name": "popphp/pop-pdf",
-    "description": "PHP PDF library for generating and importing PDF documents.",
+    "description": "PHP PDF library for generating and importing PDF documents. A component of the Pop PHP Framework",
     "keywords": [
         "pdf",
         "create pdf",
         "import pdf",
         "pdf generation",
         "php pdf library",
-        "php pdf processing"
+        "php pdf processing",
+        "php",
+        "pop",
+        "pop php"
     ],
     "homepage": "http://github.com/popphp/pop-pdf",
     "license": "New BSD",
