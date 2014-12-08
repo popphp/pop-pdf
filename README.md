@@ -1,6 +1,6 @@
 Pop PDF
 =======
-Part of the Pop PHP Framework (http://github.com/popphp/popphp2)
+Part of the Pop PHP Framework (http://github.com/popphp/popphp)
 
 OVERVIEW
 --------
