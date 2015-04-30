@@ -19,7 +19,6 @@ QUICK USE
 Add a standard font and some text:
 
 ```php
-
 use Pop\Pdf\Pdf;
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Font;
@@ -35,13 +34,11 @@ $doc->addPage($page);
 
 $pdf = new Pdf();
 $pdf->outputToHttp($doc);
-
 ```
 
 Embed a font and add some text:
 
 ```php
-
 use Pop\Pdf\Pdf;
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Font;
@@ -59,13 +56,11 @@ $doc->addPage($page);
 
 $pdf = new Pdf();
 $pdf->outputToHttp($doc);
-
 ```
 
 Embed an image:
 
 ```php
-
 use Pop\Pdf\Pdf;
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Page;
@@ -79,5 +74,4 @@ $doc->addPage($page);
 
 $pdf = new Pdf();
 $pdf->outputToHttp($doc);
-
 ```
