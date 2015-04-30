@@ -67,8 +67,35 @@ use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Page\Image;
 
 $doc = new Document();
+
 $page = new Page(Page::LETTER);
 $page->addImage(new Image('/path/to/some/image.jpg'), 100, 600);
+
+$doc->addPage($page);
+
+$pdf = new Pdf();
+$pdf->outputToHttp($doc);
+```
+
+Draw a rectangle:
+
+```php
+use Pop\Pdf\Pdf;
+use Pop\Pdf\Document;
+use Pop\Pdf\Document\Page;
+use Pop\Pdf\Document\Page\Path;
+use Pop\Pdf\Document\Page\Color;
+
+$doc = new Document();
+
+$path = new Path(Path::FILL_STROKE);
+$path->setFillColor(new Color\Rgb(155, 20, 20))
+     ->setStrokeColor(new Color\Rgb(81, 125, 153))
+     ->setStroke(5)
+     ->drawRectangle(50, 400, 320, 240);
+
+$page = new Page(Page::LETTER);
+$page->addPath($path);
 
 $doc->addPage($page);
 
