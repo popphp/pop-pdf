@@ -534,12 +534,13 @@ class Path
     public function drawArc($x, $y, $start, $end, $w, $h = null)
     {
         $degrees = $end - $start;
-        $startX  = $x + ($w * cos($start));
-        $startY  = $y + ($h * sin(0 - $start));
-        $endX    = $x + ($w * cos($end));
-        $endY    = $y + ($h * sin($end));
+        $startX  = $x + ($w * cos(deg2rad($start)));
+        $startY  = $y + ($h * sin(deg2rad($start)));
+        $endX    = $x + ($w * cos(deg2rad($end)));
+        $endY    = $y + ($h * sin(deg2rad($end)));
         $this->drawLine($startX, $startY, $endX, $endY);
-        /*
+
+/*
         echo 'x: ' . $x . '<br />';
         echo 'y: ' . $y . '<br />';
         echo 'w: ' . $w . '<br />';
@@ -551,7 +552,15 @@ class Path
         echo 'start y: ' . $startY . '<br />';
         echo 'end x: ' . $endX . '<br />';
         echo 'end y: ' . $endY . '<br />';
-          */
+        echo 'bex x0:' . $x0 . '<br />';
+        echo 'bex y0:' . $y0 . '<br />';
+        echo 'bex x1:' . $x1 . '<br />';
+        echo 'bex y1:' . $y1 . '<br />';
+        echo 'bex x2:' . $x2 . '<br />';
+        echo 'bex y2:' . $y2 . '<br />';
+        echo 'bex x3:' . $x3 . '<br />';
+        echo 'bex y3:' . $y3 . '<br />';
+*/
 
         return $this;
     }
