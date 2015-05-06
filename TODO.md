@@ -1,7 +1,6 @@
 TO DO
 =====
 
-- Set origin point [DONE]
+- Path object: arc, chord, pie
 - Form fields
-- Bezier curves, arc, paths
 - Gradients

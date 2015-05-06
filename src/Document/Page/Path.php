@@ -533,6 +533,26 @@ class Path
      */
     public function drawArc($x, $y, $start, $end, $w, $h = null)
     {
+        $degrees = $end - $start;
+        $startX  = $x + ($w * cos($start));
+        $startY  = $y + ($h * sin(0 - $start));
+        $endX    = $x + ($w * cos($end));
+        $endY    = $y + ($h * sin($end));
+        $this->drawLine($startX, $startY, $endX, $endY);
+        /*
+        echo 'x: ' . $x . '<br />';
+        echo 'y: ' . $y . '<br />';
+        echo 'w: ' . $w . '<br />';
+        echo 'h: ' . $h . '<br />';
+        echo 'start: ' . $start . '<br />';
+        echo 'end: ' . $end . '<br />';
+        echo 'degrees: ' . $degrees . '<br />';
+        echo 'start x: ' . $startX . '<br />';
+        echo 'start y: ' . $startY . '<br />';
+        echo 'end x: ' . $endX . '<br />';
+        echo 'end y: ' . $endY . '<br />';
+          */
+
         return $this;
     }
 
