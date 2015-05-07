@@ -237,7 +237,7 @@ class Path
                 ['x3' => $bezierX2, 'y3' => $bezierY2],
                 ['x4' => $x2,       'y4' => $y2]
             ],
-            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{x3}] [{x4}] [{y4}] c\n" . $this->style . "\n"
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n" . $this->style . "\n"
         ];
 
         return $this;
@@ -265,7 +265,7 @@ class Path
                 ['x3' => $bezierX2, 'y3' => $bezierY2],
                 ['x4' => $x2,       'y4' => $y2]
             ],
-            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{x3}] [{x4}] [{y4}] c\nh\n" . $this->style . "\n"
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\nh\n" . $this->style . "\n"
         ];
 
         return $this;
