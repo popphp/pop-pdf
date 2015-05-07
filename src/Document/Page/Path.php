@@ -216,7 +216,7 @@ class Path
     }
 
     /**
-     * Draw an open path
+     * Draw an open bezier curve
      *
      * @param  int $x1
      * @param  int $y1
@@ -228,34 +228,23 @@ class Path
      * @param  int $bezierY2
      * @return Path
      */
-    public function drawOpenPath($x1, $y1, $x2, $y2, $bezierX1, $bezierY1, $bezierX2 = null, $bezierY2 = null)
+    public function drawOpenBezierCurve($x1, $y1, $x2, $y2, $bezierX1, $bezierY1, $bezierX2, $bezierY2)
     {
-        if ((null !== $bezierX2) && (null !== $bezierY2)) {
-            $this->streams[] = [
-                'points' => [
-                    ['x1' => $x1,       'y1' => $y1],
-                    ['x2' => $bezierX1, 'y2' => $bezierY1],
-                    ['x3' => $bezierX2, 'y3' => $bezierY2],
-                    ['x4' => $x2,       'y4' => $y2]
-                ],
-                'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{x3}] [{x4}] [{y4}] c\n" . $this->style . "\n"
-            ];
-        } else {
-            $this->streams[] = [
-                'points' => [
-                    ['x1' => $x1,       'y1' => $y1],
-                    ['x2' => $bezierX1, 'y2' => $bezierY1],
-                    ['x3' => $x2,       'y3' => $y2]
-                ],
-                'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] v\n" . $this->style . "\n"
-            ];
-        }
+        $this->streams[] = [
+            'points' => [
+                ['x1' => $x1,       'y1' => $y1],
+                ['x2' => $bezierX1, 'y2' => $bezierY1],
+                ['x3' => $bezierX2, 'y3' => $bezierY2],
+                ['x4' => $x2,       'y4' => $y2]
+            ],
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{x3}] [{x4}] [{y4}] c\n" . $this->style . "\n"
+        ];
 
         return $this;
     }
 
     /**
-     * Draw a closed path
+     * Draw a closed bezier curve
      *
      * @param  int $x1
      * @param  int $y1
@@ -267,28 +256,69 @@ class Path
      * @param  int $bezierY2
      * @return Path
      */
-    public function drawClosedPath($x1, $y1, $x2, $y2, $bezierX1, $bezierY1, $bezierX2 = null, $bezierY2 = null)
+    public function drawClosedBezierCurve($x1, $y1, $x2, $y2, $bezierX1, $bezierY1, $bezierX2, $bezierY2)
     {
-        if ((null !== $bezierX2) && (null !== $bezierY2)) {
-            $this->streams[] = [
-                'points' => [
-                    ['x1' => $x1,       'y1' => $y1],
-                    ['x2' => $bezierX1, 'y2' => $bezierY1],
-                    ['x3' => $bezierX2, 'y3' => $bezierY2],
-                    ['x4' => $x2,       'y4' => $y2]
-                ],
-                'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{x3}] [{x4}] [{y4}] c\nh\n" . $this->style . "\n"
-            ];
-        } else {
-            $this->streams[] = [
-                'points' => [
-                    ['x1' => $x1,       'y1' => $y1],
-                    ['x2' => $bezierX1, 'y2' => $bezierY1],
-                    ['x3' => $x2,       'y3' => $y2]
-                ],
-                'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] v\nh\n" . $this->style . "\n"
-            ];
-        }
+        $this->streams[] = [
+            'points' => [
+                ['x1' => $x1,       'y1' => $y1],
+                ['x2' => $bezierX1, 'y2' => $bezierY1],
+                ['x3' => $bezierX2, 'y3' => $bezierY2],
+                ['x4' => $x2,       'y4' => $y2]
+            ],
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{x3}] [{x4}] [{y4}] c\nh\n" . $this->style . "\n"
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Draw an open bezier curve, single control point
+     *
+     * @param  int  $x1
+     * @param  int  $y1
+     * @param  int  $x2
+     * @param  int  $y2
+     * @param  int  $bezierX
+     * @param  int  $bezierY
+     * @param  bool $first
+     * @return Path
+     */
+    public function drawOpenBezierCurveSingle($x1, $y1, $x2, $y2, $bezierX, $bezierY, $first = true)
+    {
+        $this->streams[] = [
+            'points' => [
+                ['x1' => $x1,      'y1' => $y1],
+                ['x2' => $bezierX, 'y2' => $bezierY],
+                ['x3' => $x2,      'y3' => $y2]
+            ],
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] " . (($first) ? "y" : "v") . "\n" . $this->style . "\n"
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Draw an open bezier curve, single control point
+     *
+     * @param  int  $x1
+     * @param  int  $y1
+     * @param  int  $x2
+     * @param  int  $y2
+     * @param  int  $bezierX
+     * @param  int  $bezierY
+     * @param  bool $first
+     * @return Path
+     */
+    public function drawClosedBezierCurveSingle($x1, $y1, $x2, $y2, $bezierX, $bezierY, $first = true)
+    {
+        $this->streams[] = [
+            'points' => [
+                ['x1' => $x1,      'y1' => $y1],
+                ['x2' => $bezierX, 'y2' => $bezierY],
+                ['x3' => $x2,      'y3' => $y2]
+            ],
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] " . (($first) ? "y" : "v") . "\nh\n" . $this->style . "\n"
+        ];
 
         return $this;
     }
@@ -534,12 +564,17 @@ class Path
     public function drawArc($x, $y, $start, $end, $w, $h = null)
     {
         $degrees = $end - $start;
-        $startX  = $x + ($w * cos(deg2rad($start)));
-        $startY  = $y + ($h * sin(deg2rad($start)));
-        $endX    = $x + ($w * cos(deg2rad($end)));
-        $endY    = $y + ($h * sin(deg2rad($end)));
-        $this->drawLine($startX, $startY, $endX, $endY);
+        $startX  = round($x + ($w * cos(deg2rad($start))));
+        $startY  = round($y + ($h * sin(deg2rad($start))));
+        $endX    = round($x + ($w * cos(deg2rad($end))));
+        $endY    = round($y + ($h * sin(deg2rad($end))));
 
+
+        //$this->drawLine($startX, $startY, $endX, $endY);
+        $this->drawOpenPath($endX, $endY, $startX, $startY, 370, 388, 470, 355);
+        //$this->drawOpenPath($endX, $endY, $startX, $startY, 195, 435, 398, 420);
+        $this->drawCircle(470, 355, 1);
+        $this->drawCircle(370, 388, 1);
 /*
         echo 'x: ' . $x . '<br />';
         echo 'y: ' . $y . '<br />';
@@ -552,16 +587,7 @@ class Path
         echo 'start y: ' . $startY . '<br />';
         echo 'end x: ' . $endX . '<br />';
         echo 'end y: ' . $endY . '<br />';
-        echo 'bex x0:' . $x0 . '<br />';
-        echo 'bex y0:' . $y0 . '<br />';
-        echo 'bex x1:' . $x1 . '<br />';
-        echo 'bex y1:' . $y1 . '<br />';
-        echo 'bex x2:' . $x2 . '<br />';
-        echo 'bex y2:' . $y2 . '<br />';
-        echo 'bex x3:' . $x3 . '<br />';
-        echo 'bex y3:' . $y3 . '<br />';
 */
-
         return $this;
     }
 
