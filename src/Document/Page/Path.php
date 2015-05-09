@@ -569,6 +569,9 @@ class Path
         $endX    = round($x + ($w * cos(deg2rad($end))));
         $endY    = round($y + ($h * sin(deg2rad($end))));
 
+        $x0 = cos(deg2rad($start) / 2);
+        $y0 = sin(deg2rad($start) / 2);
+
         //$t = deg2rad($end) - deg2rad($start);
         //$a = sin($t) * ((sqrt(4 + (3 * pow(tan($t / 2), 2))) - 1) / 3);
 
@@ -584,19 +587,14 @@ class Path
         //echo $q2X . '<br />';
         //echo $q2Y . '<br />';
 
-
         //$this->drawLine($startX, $startY, $endX, $endY);
-        //$this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, 456, 367, 412, 387);
-        //$this->drawCircle(456, 367, 1);
-        //$this->drawCircle(412, 387, 1);
+        $this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, 456, 367, 412, 387);
+        $this->drawCircle(456, 367, 1);
+        $this->drawCircle(412, 387, 1);
         //$this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, 353, 412, 180, 415);
         //$this->drawCircle(456, 367, 1);
         //$this->drawCircle(412, 387, 1);
-
-        //$this->drawLine($startX, $startY, $endX, $endY);
-        //$this->drawOpenPath($endX, $endY, $startX, $startY, 370, 388, 470, 355);
-        //$this->drawOpenPath($endX, $endY, $startX, $startY, 195, 435, 398, 420);
-
+/*
         echo 'x: ' . $x . '<br />';
         echo 'y: ' . $y . '<br />';
         echo 'w: ' . $w . '<br />';
@@ -608,7 +606,7 @@ class Path
         echo 'start y: ' . $startY . '<br />';
         echo 'end x: ' . $endX . '<br />';
         echo 'end y: ' . $endY . '<br />';
-
+*/
         return $this;
     }
 
