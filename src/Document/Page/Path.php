@@ -563,34 +563,95 @@ class Path
      */
     public function drawArc($x, $y, $start, $end, $w, $h = null)
     {
-        $degrees = $end - $start;
-        $startX  = round($x + ($w * cos(deg2rad($start))));
-        $startY  = round($y + ($h * sin(deg2rad($start))));
-        $endX    = round($x + ($w * cos(deg2rad($end))));
-        $endY    = round($y + ($h * sin(deg2rad($end))));
+        $degrees     = $end - $start;
+        $degreesHalf = $degrees / 2;
+        $startX      = round($x + ($w * cos(deg2rad($start))));
+        $startY      = round($y + ($h * sin(deg2rad($start))));
+        $endX        = round($x + ($w * cos(deg2rad($end))));
+        $endY        = round($y + ($h * sin(deg2rad($end))));
 
-        $x0 = cos(deg2rad($start) / 2);
-        $y0 = sin(deg2rad($start) / 2);
+        $t = deg2rad($end) - deg2rad($start);
+        $a = sin($t) * ((sqrt(4 + (3 * pow(tan($t / 2), 2))) - 1) / 3);
 
-        //$t = deg2rad($end) - deg2rad($start);
-        //$a = sin($t) * ((sqrt(4 + (3 * pow(tan($t / 2), 2))) - 1) / 3);
+        $bezX1 = $startX - (round($a * ($startX - $endX)));
+        $bezY1 = $startY + (round($a * ($endY - $startY)));
+        $bezX2 = $endX + (round($a * ($startX - $endX)));
+        $bezY2 = $endY - (round($a * ($endY - $startY)));
+
+        // CCW
+        //float xnew = p.x * c - p.y * s;
+        //float ynew = p.x * s + p.y * c;
+
+        // CW
+        //float xnew = p.x * c + p.y * s;
+        //float ynew = -p.x * s + p.y * c;
+
+        // CCW
+        //p'x = (cos(theta) * (px-ox)) - (sin(theta) * (py-oy)) + ox
+        //p'y = (sin(theta) * (px-ox)) + (cos(theta) * (py-oy)) + oy
+
+        // CW
+        //p'x = (cos(theta) * (px-ox)) + (sin(theta) * (py-oy)) + ox
+        //p'y = (0 - (sin(theta) * (px-ox))) + (cos(theta) * (py-oy)) + oy
+
+        //$dx1 = (cos(deg2rad($degreesHalf)) * ($bezX1 - $startX)) + (sin(deg2rad($degreesHalf)) * ($bezY1 - $startY)) + $startX;
+        //$dy1 = (0 - (sin(deg2rad($degreesHalf)) * ($bezX1 - $startX))) + (cos(deg2rad($degreesHalf)) * ($bezY1 - $startY)) + $startY;
+
+        //$dx2 = (cos(deg2rad($degreesHalf)) * ($bezX2 - $endX)) - (sin(deg2rad($degreesHalf)) * ($bezY2 - $endY)) + $endX;
+        //$dy2 = (sin(deg2rad($degreesHalf)) * ($bezX2 - $endX)) + (cos(deg2rad($degreesHalf)) * ($bezY2 - $endY)) + $endY;
+
+        //echo $dx1 . '<br />';
+        //echo $dy1 . '<br /><br />';
+        //echo $dx2 . '<br />';
+        //echo $dy2 . '<br /><br />';
 
         //echo $a . '<br /><br />';
+        //echo $bezX1 . '<br />';
+        //echo $bezY1 . '<br />';
+        //echo $bezX2 . '<br />';
+        //echo $bezY2 . '<br />';
 
-        //$q1X = $startX + ($a * deg2rad($start));
-        //$q1Y = $startY + ($a * deg2rad($start));
-        //$q2X = $endX - ($a * deg2rad($end));
-        //$q2Y = $endY - ($a * deg2rad($end));
+        $this->drawLine($x, $y, $startX, $startY);
+        $this->drawLine($x, $y, $endX, $endY);
+        $this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, $bezX1, $bezY1, $bezX2, $bezY2);
+        $this->drawCircle($bezX1, $bezY1, 1);
+        $this->drawCircle($bezX2, $bezY2, 1);
+/*
+        $q1X = $startX + ($a * deg2rad($start));
+        $q1Y = $startY + ($a * deg2rad($start));
+        $q2X = $endX - ($a * deg2rad($end));
+        $q2Y = $endY - ($a * deg2rad($end));
 
-        //echo $q1X . '<br />';
-        //echo $q1Y . '<br />';
-        //echo $q2X . '<br />';
-        //echo $q2Y . '<br />';
+        echo $q1X . '<br />';
+        echo $q1Y . '<br />';
+        echo $q2X . '<br />';
+        echo $q2Y . '<br />';
+
+        $coor1Bez1X = $x1;
+        $coor1Bez1Y = (round(0.55 * ($y2 - $y1))) + $y1;
+        $coor1Bez2X = $x1;
+        $coor1Bez2Y = (round(0.45 * ($y1 - $y4))) + $y4;
+
+        $coor2Bez1X = (round(0.45 * ($x2 - $x1))) + $x1;
+        $coor2Bez1Y = $y2;
+        $coor2Bez2X = (round(0.55 * ($x3 - $x2))) + $x2;
+        $coor2Bez2Y = $y2;
+
+        $coor3Bez1X = $x3;
+        $coor3Bez1Y = (round(0.55 * ($y2 - $y3))) + $y3;
+        $coor3Bez2X = $x3;
+        $coor3Bez2Y = (round(0.45 * ($y3 - $y4))) + $y4;
+
+        $coor4Bez1X = (round(0.55 * ($x3 - $x4))) + $x4;
+        $coor4Bez1Y = $y4;
+        $coor4Bez2X = (round(0.45 * ($x4 - $x1))) + $x1;
+        $coor4Bez2Y = $y4;
+*/
 
         //$this->drawLine($startX, $startY, $endX, $endY);
-        $this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, 456, 367, 412, 387);
-        $this->drawCircle(456, 367, 1);
-        $this->drawCircle(412, 387, 1);
+        //$this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, 456, 367, 412, 387);
+        //$this->drawCircle(456, 367, 1);
+        //$this->drawCircle(412, 387, 1);
         //$this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, 353, 412, 180, 415);
         //$this->drawCircle(456, 367, 1);
         //$this->drawCircle(412, 387, 1);
@@ -607,6 +668,7 @@ class Path
         echo 'end x: ' . $endX . '<br />';
         echo 'end y: ' . $endY . '<br />';
 */
+
         return $this;
     }
 
