@@ -233,10 +233,10 @@ class Path
     {
         $this->streams[] = [
             'points' => [
-                ['x1' => $x1,       'y1' => $y1],
+                ['x1' => $x1, 'y1' => $y1],
                 ['x2' => $bezierX1, 'y2' => $bezierY1],
                 ['x3' => $bezierX2, 'y3' => $bezierY2],
-                ['x4' => $x2,       'y4' => $y2]
+                ['x4' => $x2, 'y4' => $y2]
             ],
             'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n" . $this->style . "\n"
         ];
@@ -467,6 +467,46 @@ class Path
     }
 
     /**
+     * Draw a polygon
+     *
+     * @param  array $points
+     * @throws Exception
+     * @return Path
+     */
+    public function drawPolygon($points)
+    {
+        $i = 1;
+        $polygon = null;
+
+        $stream = [
+            'points' => [],
+            'stream' => null
+        ];
+
+        foreach ($points as $coord) {
+            if (!isset($coord['x']) || !isset($coord['y'])) {
+                throw new Exception('Error: The array of points must contain arrays with an \'x\' and \'y\' values.');
+            }
+            $stream['points'][] = [
+                'x' . $i => $coord['x'],
+                'y' . $i => $coord['y']
+            ];
+
+            if ($i == 1) {
+                $stream['stream'] .= "[{x" . $i . "}] [{y" . $i . "}] m\n";
+            } else if ($i <= count($points)) {
+                $stream['stream'] .= "[{x" . $i . "}] [{y" . $i . "}] l\n";
+            }
+            $i++;
+        }
+
+        $stream['stream'] .= "h\n";
+        $this->streams[] = $stream;
+
+        return $this;
+    }
+
+    /**
      * Draw an ellipse
      *
      * @param  int $x
@@ -560,98 +600,16 @@ class Path
      * @param  int $end
      * @param  int $w
      * @param  int $h
-     * @throws Exception
      * @return Path
      */
     public function drawArc($x, $y, $start, $end, $w, $h = null)
     {
-        if (($start < 0) || ($end > 360)) {
-            throw new Exception('The start and end angles must be between 0 and 360.');
-        }
-        if ($start >= $end) {
-            throw new Exception('The start angle must be less than the end angle.');
-        }
-
         if (null === $h) {
             $h = $w;
         }
-
-        if (($end - $start) > 90) {
-            $degrees = [];
-            if ($start < 90) {
-                $degrees[] = [$start, 90];
-                $current = 90;
-            } else {
-                $current = $start;
-            }
-            while (($current + 90) < $end) {
-                $next = ($current + 90) - ($current % 90);
-                $degrees[] = [$current, $next];
-                $current = $next;
-            }
-            $degrees[] = [$current, $end];
-            foreach ($degrees as $deg) {
-                $this->calculateArc($x, $y, $deg[0], $deg[1], $w, $h);
-            }
-        } else if (($start < 180) && ($start > 90) &&  ($end > 180)) {
-            $degrees[] = [$start, 180];
-            $current = 180;
-            while (($current + 90) < $end) {
-                $next = ($current + 90) - ($current % 90);
-                $degrees[] = [$current, $next];
-                $current = $next;
-            }
-            $degrees[] = [$current, $end];
-            foreach ($degrees as $deg) {
-                $this->calculateArc($x, $y, $deg[0], $deg[1], $w, $h);
-            }
-        } else {
-            $this->calculateArc($x, $y, $start, $end, $w, $h);
-        }
+        $this->calculateArc($x, $y, $this->calculateDegrees($start, $end), $w, $h);
 
         return $this;
-    }
-
-    /**
-     * Draw an arc
-     *
-     * @param  int $x
-     * @param  int $y
-     * @param  int $start
-     * @param  int $end
-     * @param  int $w
-     * @param  int $h
-     * @return Path
-     */
-    protected function calculateArc($x, $y, $start, $end, $w, $h = null)
-    {
-        $startX = round($x + ($w * cos(deg2rad($start))));
-        $startY = round($y + ($h * sin(deg2rad($start))));
-        $endX   = round($x + ($w * cos(deg2rad($end))));
-        $endY   = round($y + ($h * sin(deg2rad($end))));
-        $n1     = acos(($startX - $x) / $w);
-        $n2     = acos(($endX - $x) / $w);
-        $t      = $n2 - $n1;
-        $a      = sin($t) * ((sqrt(4 + (3 * pow(tan($t / 2), 2))) - 1) / 3);
-
-        $e1x = 0 - ($w * sin($n1));
-        $e1y = $h * cos($n1);
-
-        $e2x = 0 - ($w * sin($n2));
-        $e2y = $h * cos($n2);
-
-        $q1X = round($startX + ($a * $e1x));
-        $q2X = round($endX - ($a * $e2x));
-
-        if ($end > 180) {
-            $q1Y = round($startY + ((0 - $a) * $e1y));
-            $q2Y = round($endY - ((0 - $a) * $e2y));
-        } else {
-            $q1Y = round($startY + ($a * $e1y));
-            $q2Y = round($endY - ($a * $e2y));
-        }
-
-        $this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, $q1X, $q1Y, $q2X, $q2Y);
     }
 
     /**
@@ -667,6 +625,11 @@ class Path
      */
     public function drawChord($x, $y, $start, $end, $w, $h = null)
     {
+        if (null === $h) {
+            $h = $w;
+        }
+        $this->calculateArc($x, $y, $this->calculateDegrees($start, $end), $w, $h, true);
+
         return $this;
     }
 
@@ -683,47 +646,157 @@ class Path
      */
     public function drawPie($x, $y, $start, $end, $w, $h = null)
     {
+        if (null === $h) {
+            $h = $w;
+        }
+        $this->calculateArc($x, $y, $this->calculateDegrees($start, $end), $w, $h, true, true);
+
         return $this;
     }
 
     /**
-     * Draw a polygon
+     * Calculate degrees
      *
-     * @param  array $points
+     * @param  int $start
+     * @param  int $end
      * @throws Exception
-     * @return Path
+     * @return array
      */
-    public function polygon($points)
+    protected function calculateDegrees($start, $end)
     {
-        $i = 1;
-        $polygon = null;
-
-        $stream = [
-            'points' => [],
-            'stream' => null
-        ];
-
-        foreach ($points as $coord) {
-            if (!isset($coord['x']) || !isset($coord['y'])) {
-                throw new Exception('Error: The array of points must contain arrays with an \'x\' and \'y\' values.');
-            }
-            $stream['points'][] = [
-                'x' . $i => $coord['x'],
-                'y' . $i => $coord['y']
-            ];
-
-            if ($i == 1) {
-                $stream['stream'] .= "[{x" . $i . "}] [{y" . $i . "}] m\n";
-            } else if ($i <= count($points)) {
-                $stream['stream'] .= "[{x" . $i . "}] [{y" . $i . "}] l\n";
-            }
-            $i++;
+        if (($start < 0) || ($end > 360)) {
+            throw new Exception('The start and end angles must be between 0 and 360.');
+        }
+        if ($start >= $end) {
+            throw new Exception('The start angle must be less than the end angle.');
         }
 
-        $stream['stream'] .= "h\n";
-        $this->streams[] = $stream;
+        if (($end - $start) > 90) {
+            $degrees = [];
+            if ($start < 90) {
+                $degrees[] = [$start, 90];
+                $current = 90;
+            } else {
+                $current = $start;
+            }
+            while (($current + 90) < $end) {
+                $next = ($current + 90) - ($current % 90);
+                $degrees[] = [$current, $next];
+                $current = $next;
+            }
+            $degrees[] = [$current, $end];
+        } else if (($start < 180) && ($start > 90) &&  ($end > 180)) {
+            $degrees[] = [$start, 180];
+            $current = 180;
+            while (($current + 90) < $end) {
+                $next = ($current + 90) - ($current % 90);
+                $degrees[] = [$current, $next];
+                $current = $next;
+            }
+            $degrees[] = [$current, $end];
+        } else {
+            $degrees[] = [$start, $end];
+        }
 
-        return $this;
+        return $degrees;
+    }
+
+    /**
+     * Calculate arc
+     *
+     * @param  int     $x
+     * @param  int     $y
+     * @param  array   $degrees
+     * @param  int     $w
+     * @param  int     $h
+     * @param  boolean $closed
+     * @param  boolean $pie
+     * @return void
+     */
+    protected function calculateArc($x, $y, array $degrees, $w, $h = null, $closed = false, $pie = false)
+    {
+        foreach ($degrees as $key => $value) {
+            $start  = $value[0];
+            $end    = $value[1];
+            $startX = round($x + ($w * cos(deg2rad($start))));
+            $startY = round($y + ($h * sin(deg2rad($start))));
+            $endX   = round($x + ($w * cos(deg2rad($end))));
+            $endY   = round($y + ($h * sin(deg2rad($end))));
+            $n1     = acos(($startX - $x) / $w);
+            $n2     = acos(($endX - $x) / $w);
+            $t      = $n2 - $n1;
+            $a      = sin($t) * ((sqrt(4 + (3 * pow(tan($t / 2), 2))) - 1) / 3);
+
+            $e1x = 0 - ($w * sin($n1));
+            $e1y = $h * cos($n1);
+
+            $e2x = 0 - ($w * sin($n2));
+            $e2y = $h * cos($n2);
+
+            $q1X = round($startX + ($a * $e1x));
+            $q2X = round($endX - ($a * $e2x));
+
+            if ($end > 180) {
+                $q1Y = round($startY + ((0 - $a) * $e1y));
+                $q2Y = round($endY - ((0 - $a) * $e2y));
+            } else {
+                $q1Y = round($startY + ($a * $e1y));
+                $q2Y = round($endY - ($a * $e2y));
+            }
+
+            if ($key == 0) {
+                $points = [
+                    ['x1' => $startX, 'y1' => $startY],
+                    ['x2' => $q1X,    'y2' => $q1Y],
+                    ['x3' => $q2X,    'y3' => $q2Y],
+                    ['x4' => $endX,   'y4' => $endY]
+                ];
+                $stream = "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n";
+                if (count($degrees) == 1) {
+                    if ($pie) {
+                        $points[] = ['x5' => $x,   'y5' => $y];
+                        $stream .= "\n[{x5}] [{y5}] l\n" . (($closed) ? "h" : null) . "\n" . $this->style . "\n";
+                    } else {
+                        $stream .= (($closed) ? "h" : null) . "\n" . $this->style . "\n";
+                    }
+                }
+
+                $this->streams[] = [
+                    'points' => $points,
+                    'stream' => $stream
+                ];
+            } else if ($key == (count($degrees) - 1)) {
+                if ($pie) {
+                    $this->streams[] = [
+                        'points' => [
+                            ['x2' => $q1X,  'y2' => $q1Y],
+                            ['x3' => $q2X,  'y3' => $q2Y],
+                            ['x4' => $endX, 'y4' => $endY],
+                            ['x5' => $x,    'y5' => $y]
+                        ],
+                        'stream' => "\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n[{x5}] [{y5}] l\nh\n" . $this->style . "\n"
+                    ];
+                } else {
+                    $this->streams[] = [
+                        'points' => [
+                            ['x2' => $q1X,  'y2' => $q1Y],
+                            ['x3' => $q2X,  'y3' => $q2Y],
+                            ['x4' => $endX, 'y4' => $endY]
+                        ],
+                        'stream' => "\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n" . (($closed) ? "h" : null) . "\n" . $this->style . "\n"
+                    ];
+                }
+            } else {
+                $this->streams[] = [
+                    'points' => [
+                        ['x2' => $q1X, 'y2' => $q1Y],
+                        ['x3' => $q2X, 'y3' => $q2Y],
+                        ['x4' => $endX, 'y4' => $endY]
+                    ],
+                    'stream' => "\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n"
+                ];
+            }
+        }
     }
 
 }
