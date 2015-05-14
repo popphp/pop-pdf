@@ -127,9 +127,9 @@ class Compiler extends AbstractCompiler
             if ($page->hasPaths()) {
                 $this->preparePaths($page->getPaths(), $pageObject);
             }
-            // Prepare field objects
-            if ($page->hasFields()) {
-                $this->prepareFields($page->getFields(), $pageObject);
+            // Prepare form objects
+            if ($page->hasForms()) {
+                $this->prepareForms($page->getForms(), $pageObject);
             }
 
             $pageObjects[$pageObject->getIndex()] = $pageObject;
@@ -345,36 +345,28 @@ class Compiler extends AbstractCompiler
     }
 
     /**
-     * Prepare the field objects
+     * Prepare the form objects
      *
-     * @param  array $fields
+     * @param  array $forms
      * @param  Object\PageObject $pageObject
      * @return void
      */
-    protected function prepareFields(array $fields, Object\PageObject $pageObject)
+    protected function prepareForms(array $forms, Object\PageObject $pageObject)
     {
         $i = $this->lastIndex() + 1;
-        $formIndex = $i;
 
-        $this->root->setFormIndex($formIndex);
-        $form = $formIndex . " 0 obj\n<<\n    /DA(/MF1 0 Tf 0 g)\n    /DR<</Font<</MF1 4 0 R>>>>\n    /Fields[[{field_refs}]]\n>>\nendobj\n";
-
-        $fieldIndices = [];
-        foreach ($fields as $key => $field) {
-            $fieldIndices[$key] = ++$i;
+        $formRefs = '';
+        foreach ($forms as $key => $value) {
+            $this->objects[$i] = Object\StreamObject::parse($value->getStream($i));
+            $formRefs .= $i . ' 0 R ';
+            foreach ($value->getFields() as $field) {
+                $i++;
+                $this->objects[$i] = Object\StreamObject::parse($field->getStream($i));
+            }
+            $i++;
         }
-
-        // Root AcroForm object
-        $this->objects[$formIndex] = Object\StreamObject::parse(
-            str_replace('[{field_refs}]', implode(' 0 R', $fieldIndices) . ' 0 R', $form)
-        );
-
-        foreach ($fields as $key => $field) {
-            $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
-            $this->objects[$i] = Object\StreamObject::parse($field['field']->getStream(
-                $fieldIndices[$key], $pageObject->getIndex(), $coordinates['x'], $coordinates['y'])
-            );
-        }
+        $formRefs = substr($formRefs, 0, -1);
+        $this->root->setFormReferences($formRefs);
     }
 
 }

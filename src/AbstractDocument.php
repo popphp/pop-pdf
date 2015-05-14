@@ -81,7 +81,7 @@ abstract class AbstractDocument
      * Compression property
      * @var boolean
      */
-    protected $compression = true;
+    protected $compression = false;
 
     /**
      * Document origin

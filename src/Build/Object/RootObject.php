@@ -47,12 +47,6 @@ class RootObject extends AbstractObject
     protected $parent = 2;
 
     /**
-     * PDF root form index
-     * @var array
-     */
-    protected $form = null;
-
-    /**
      * Constructor
      *
      * Instantiate a PDF root object.
@@ -126,12 +120,13 @@ class RootObject extends AbstractObject
     /**
      * Set the root object form index
      *
-     * @param  int $i
+     * @param  string $forms
      * @return RootObject
      */
-    public function setFormIndex($i)
+    public function setFormReferences($forms)
     {
-        $this->form = (int)$i;
+        $data = str_replace('[{form_index}]', '/AcroForm [' . $forms . ']', $this->data);
+        $this->setData($data);
         return $this;
     }
 
@@ -173,11 +168,7 @@ class RootObject extends AbstractObject
     public function __toString()
     {
         $root = '%PDF-' . $this->version . "\n" .
-            str_replace(['[{root_index}]', '[{parent_index}]'], [$this->index, $this->parent], $this->data);
-
-        $root = (null !== $this->form) ?
-            str_replace('[{form_index}]', '/AcroForm ' . $this->form . ' 0 R', $root) :
-            str_replace('[{form_index}]', '', $root);
+            str_replace(['[{root_index}]', '[{parent_index}]', '[{form_index}]'], [$this->index, $this->parent, ''], $this->data);
 
         return $root;
     }

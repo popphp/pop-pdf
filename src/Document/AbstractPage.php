@@ -145,10 +145,10 @@ abstract class AbstractPage implements PageInterface
     protected $paths = [];
 
     /**
-     * Fields array
+     * Forms array
      * @var array
      */
-    protected $fields = [];
+    protected $forms = [];
 
     /**
      * Set the page width
@@ -257,13 +257,13 @@ abstract class AbstractPage implements PageInterface
     }
 
     /**
-     * Get field objects
+     * Get form objects
      *
      * @return array
      */
-    public function getFields()
+    public function getForms()
     {
-        return $this->fields;
+        return $this->forms;
     }
 
     /**
@@ -307,13 +307,13 @@ abstract class AbstractPage implements PageInterface
     }
 
     /**
-     * Determine if the page has field objects
+     * Determine if the page has form objects
      *
      * @return boolean
      */
-    public function hasFields()
+    public function hasForms()
     {
-        return (count($this->fields) > 0);
+        return (count($this->forms) > 0);
     }
 
     /**
@@ -389,11 +389,11 @@ abstract class AbstractPage implements PageInterface
     abstract public function addPath(Page\Path $path);
 
     /**
-     * Add a field to the Pdf page
+     * Add a form to the Pdf page
      *
-     * @param  Annotation\AbstractAnnotation $field
+     * @param  Page\Form $form
      * @return Page
      */
-    abstract public function addField(Annotation\AbstractAnnotation $field);
+    abstract public function addForm(Page\Form $form);
 
 }

@@ -16,7 +16,6 @@
 namespace Pop\Pdf\Document;
 
 use Pop\Pdf\Document\Page\Annotation;
-use Pop\Pdf\Document\Page\Field;
 
 /**
  * Pdf page class
@@ -162,20 +161,14 @@ class Page extends AbstractPage
     }
 
     /**
-     * Add a field to the Pdf page
+     * Add a form to the Pdf page
      *
-     * @param  Annotation\AbstractAnnotation $field
-     * @param  int                           $x
-     * @param  int                           $y
+     * @param  Page\Form $form
      * @return Page
      */
-    public function addField(Annotation\AbstractAnnotation $field, $x = 0, $y = 0)
+    public function addForm(Page\Form $form)
     {
-        $this->fields[] = [
-            'field' => $field,
-            'x'     => (int)$x,
-            'y'     => (int)$y
-        ];
+        $this->forms[] = $form;
         return $this;
     }
 
