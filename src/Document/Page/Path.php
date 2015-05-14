@@ -14,6 +14,7 @@
  * @namespace
  */
 namespace Pop\Pdf\Document\Page;
+use Pop\Pdf\Exception;
 
 /**
  * Pdf page path class
@@ -559,119 +560,98 @@ class Path
      * @param  int $end
      * @param  int $w
      * @param  int $h
+     * @throws Exception
      * @return Path
      */
     public function drawArc($x, $y, $start, $end, $w, $h = null)
     {
-        $degrees     = $end - $start;
-        $degreesHalf = $degrees / 2;
-        $startX      = round($x + ($w * cos(deg2rad($start))));
-        $startY      = round($y + ($h * sin(deg2rad($start))));
-        $endX        = round($x + ($w * cos(deg2rad($end))));
-        $endY        = round($y + ($h * sin(deg2rad($end))));
+        if (($start < 0) || ($end > 360)) {
+            throw new Exception('The start and end angles must be between 0 and 360.');
+        }
+        if ($start >= $end) {
+            throw new Exception('The start angle must be less than the end angle.');
+        }
 
-        $t = deg2rad($end) - deg2rad($start);
-        $a = sin($t) * ((sqrt(4 + (3 * pow(tan($t / 2), 2))) - 1) / 3);
+        if (null === $h) {
+            $h = $w;
+        }
 
-        $bezX1 = $startX - (round($a * ($startX - $endX)));
-        $bezY1 = $startY + (round($a * ($endY - $startY)));
-        $bezX2 = $endX + (round($a * ($startX - $endX)));
-        $bezY2 = $endY - (round($a * ($endY - $startY)));
-
-        // CCW
-        //float xnew = p.x * c - p.y * s;
-        //float ynew = p.x * s + p.y * c;
-
-        // CW
-        //float xnew = p.x * c + p.y * s;
-        //float ynew = -p.x * s + p.y * c;
-
-        // CCW
-        //p'x = (cos(theta) * (px-ox)) - (sin(theta) * (py-oy)) + ox
-        //p'y = (sin(theta) * (px-ox)) + (cos(theta) * (py-oy)) + oy
-
-        // CW
-        //p'x = (cos(theta) * (px-ox)) + (sin(theta) * (py-oy)) + ox
-        //p'y = (0 - (sin(theta) * (px-ox))) + (cos(theta) * (py-oy)) + oy
-
-        //$dx1 = (cos(deg2rad($degreesHalf)) * ($bezX1 - $startX)) + (sin(deg2rad($degreesHalf)) * ($bezY1 - $startY)) + $startX;
-        //$dy1 = (0 - (sin(deg2rad($degreesHalf)) * ($bezX1 - $startX))) + (cos(deg2rad($degreesHalf)) * ($bezY1 - $startY)) + $startY;
-
-        //$dx2 = (cos(deg2rad($degreesHalf)) * ($bezX2 - $endX)) - (sin(deg2rad($degreesHalf)) * ($bezY2 - $endY)) + $endX;
-        //$dy2 = (sin(deg2rad($degreesHalf)) * ($bezX2 - $endX)) + (cos(deg2rad($degreesHalf)) * ($bezY2 - $endY)) + $endY;
-
-        //echo $dx1 . '<br />';
-        //echo $dy1 . '<br /><br />';
-        //echo $dx2 . '<br />';
-        //echo $dy2 . '<br /><br />';
-
-        //echo $a . '<br /><br />';
-        //echo $bezX1 . '<br />';
-        //echo $bezY1 . '<br />';
-        //echo $bezX2 . '<br />';
-        //echo $bezY2 . '<br />';
-
-        $this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, $bezX1, $bezY1, $bezX2, $bezY2);
-        $this->drawCircle($startX, $startY, 1);
-        $this->drawCircle($endX, $endY, 1);
-        $this->drawCircle(432, 362, 1);
-        $this->drawCircle(383, 371, 1);
-
-
-/*
-        $q1X = $startX + ($a * deg2rad($start));
-        $q1Y = $startY + ($a * deg2rad($start));
-        $q2X = $endX - ($a * deg2rad($end));
-        $q2Y = $endY - ($a * deg2rad($end));
-
-        echo $q1X . '<br />';
-        echo $q1Y . '<br />';
-        echo $q2X . '<br />';
-        echo $q2Y . '<br />';
-
-        $coor1Bez1X = $x1;
-        $coor1Bez1Y = (round(0.55 * ($y2 - $y1))) + $y1;
-        $coor1Bez2X = $x1;
-        $coor1Bez2Y = (round(0.45 * ($y1 - $y4))) + $y4;
-
-        $coor2Bez1X = (round(0.45 * ($x2 - $x1))) + $x1;
-        $coor2Bez1Y = $y2;
-        $coor2Bez2X = (round(0.55 * ($x3 - $x2))) + $x2;
-        $coor2Bez2Y = $y2;
-
-        $coor3Bez1X = $x3;
-        $coor3Bez1Y = (round(0.55 * ($y2 - $y3))) + $y3;
-        $coor3Bez2X = $x3;
-        $coor3Bez2Y = (round(0.45 * ($y3 - $y4))) + $y4;
-
-        $coor4Bez1X = (round(0.55 * ($x3 - $x4))) + $x4;
-        $coor4Bez1Y = $y4;
-        $coor4Bez2X = (round(0.45 * ($x4 - $x1))) + $x1;
-        $coor4Bez2Y = $y4;
-*/
-
-        //$this->drawLine($startX, $startY, $endX, $endY);
-        //$this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, 456, 367, 412, 387);
-        //$this->drawCircle(456, 367, 1);
-        //$this->drawCircle(412, 387, 1);
-        //$this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, 353, 412, 180, 415);
-        //$this->drawCircle(456, 367, 1);
-        //$this->drawCircle(412, 387, 1);
-/*
-        echo 'x: ' . $x . '<br />';
-        echo 'y: ' . $y . '<br />';
-        echo 'w: ' . $w . '<br />';
-        echo 'h: ' . $h . '<br />';
-        echo 'start: ' . $start . '<br />';
-        echo 'end: ' . $end . '<br />';
-        echo 'degrees: ' . $degrees . '<br />';
-        echo 'start x: ' . $startX . '<br />';
-        echo 'start y: ' . $startY . '<br />';
-        echo 'end x: ' . $endX . '<br />';
-        echo 'end y: ' . $endY . '<br />';
-*/
+        if (($end - $start) > 90) {
+            $degrees = [];
+            if ($start < 90) {
+                $degrees[] = [$start, 90];
+                $current = 90;
+            } else {
+                $current = $start;
+            }
+            while (($current + 90) < $end) {
+                $next = ($current + 90) - ($current % 90);
+                $degrees[] = [$current, $next];
+                $current = $next;
+            }
+            $degrees[] = [$current, $end];
+            foreach ($degrees as $deg) {
+                $this->calculateArc($x, $y, $deg[0], $deg[1], $w, $h);
+            }
+        } else if (($start < 180) && ($start > 90) &&  ($end > 180)) {
+            $degrees[] = [$start, 180];
+            $current = 180;
+            while (($current + 90) < $end) {
+                $next = ($current + 90) - ($current % 90);
+                $degrees[] = [$current, $next];
+                $current = $next;
+            }
+            $degrees[] = [$current, $end];
+            foreach ($degrees as $deg) {
+                $this->calculateArc($x, $y, $deg[0], $deg[1], $w, $h);
+            }
+        } else {
+            $this->calculateArc($x, $y, $start, $end, $w, $h);
+        }
 
         return $this;
+    }
+
+    /**
+     * Draw an arc
+     *
+     * @param  int $x
+     * @param  int $y
+     * @param  int $start
+     * @param  int $end
+     * @param  int $w
+     * @param  int $h
+     * @return Path
+     */
+    protected function calculateArc($x, $y, $start, $end, $w, $h = null)
+    {
+        $startX = round($x + ($w * cos(deg2rad($start))));
+        $startY = round($y + ($h * sin(deg2rad($start))));
+        $endX   = round($x + ($w * cos(deg2rad($end))));
+        $endY   = round($y + ($h * sin(deg2rad($end))));
+        $n1     = acos(($startX - $x) / $w);
+        $n2     = acos(($endX - $x) / $w);
+        $t      = $n2 - $n1;
+        $a      = sin($t) * ((sqrt(4 + (3 * pow(tan($t / 2), 2))) - 1) / 3);
+
+        $e1x = 0 - ($w * sin($n1));
+        $e1y = $h * cos($n1);
+
+        $e2x = 0 - ($w * sin($n2));
+        $e2y = $h * cos($n2);
+
+        $q1X = round($startX + ($a * $e1x));
+        $q2X = round($endX - ($a * $e2x));
+
+        if ($end > 180) {
+            $q1Y = round($startY + ((0 - $a) * $e1y));
+            $q2Y = round($endY - ((0 - $a) * $e2y));
+        } else {
+            $q1Y = round($startY + ($a * $e1y));
+            $q2Y = round($endY - ($a * $e2y));
+        }
+
+        $this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, $q1X, $q1Y, $q2X, $q2Y);
     }
 
     /**
