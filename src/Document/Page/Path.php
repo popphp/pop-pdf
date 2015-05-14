@@ -611,11 +611,13 @@ class Path
         //echo $bezX2 . '<br />';
         //echo $bezY2 . '<br />';
 
-        $this->drawLine($x, $y, $startX, $startY);
-        $this->drawLine($x, $y, $endX, $endY);
         $this->drawOpenCubicBezierCurve($startX, $startY, $endX, $endY, $bezX1, $bezY1, $bezX2, $bezY2);
-        $this->drawCircle($bezX1, $bezY1, 1);
-        $this->drawCircle($bezX2, $bezY2, 1);
+        $this->drawCircle($startX, $startY, 1);
+        $this->drawCircle($endX, $endY, 1);
+        $this->drawCircle(432, 362, 1);
+        $this->drawCircle(383, 371, 1);
+
+
 /*
         $q1X = $startX + ($a * deg2rad($start));
         $q1Y = $startY + ($a * deg2rad($start));
