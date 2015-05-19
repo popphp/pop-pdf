@@ -13,10 +13,10 @@
 /**
  * @namespace
  */
-namespace Pop\Pdf\Document\Page;
+namespace Pop\Pdf\Document;
 
 /**
- * Pdf page form class
+ * Pdf form class
  *
  * @category   Pop
  * @package    Pop_Pdf
@@ -45,6 +45,7 @@ class Form
      *
      * Instantiate a PDF form object.
      *
+     * @param  string $name
      * @return Form
      */
     public function __construct($name)

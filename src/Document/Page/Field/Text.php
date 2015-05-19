@@ -32,12 +32,22 @@ class Text extends AbstractField
      * Get the field stream
      *
      * @param  int $i
+     * @param  int $pageIndex
+     * @param  int $x
+     * @param  int $y
      * @return string
      */
-    public function getStream($i)
+    public function getStream($i, $pageIndex, $x, $y)
     {
         // Return the stream
-        return "{$i} 0 obj\n<<form field here>>\nendobj\n\n";
+        //return "{$i} 0 obj\n<<form field here>>\nendobj\n\n";
+
+        $name = (null !== $this->name) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')' : '';
+        $text = '/DA(/MF1 12 Tf 0 g)';
+
+        // Return the stream
+        return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Tx\n    /Rect [{$x} {$y} " .
+            (200 + $x) . " " . (20 + $y) . "]\n    /P {$pageIndex} 0 R\n    {$text}\n{$name}\n>>\nendobj\n\n";
     }
 
 }

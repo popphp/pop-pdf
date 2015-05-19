@@ -308,7 +308,7 @@ abstract class AbstractDocument
      * Get form objects
      *
      * @param string $name
-     * @return Page\Form
+     * @return Document\Form
      */
     public function getForm($name)
     {
@@ -328,10 +328,10 @@ abstract class AbstractDocument
     /**
      * Add form
      *
-     * @param  Page\Form $form
+     * @param  Document\Form $form
      * @return AbstractDocument
      */
-    public function addForm(Page\Form $form)
+    public function addForm(Document\Form $form)
     {
         $this->forms[$form->getName()] = $form;
         return $this;
