@@ -37,7 +37,7 @@ class Text extends AbstractField
     public function getStream($i)
     {
         // Return the stream
-        return "{$i} 0 obj\n<</DA(/MF1 0 Tf 0 g)/FT/Btn/T({$this->name})/TU({$this->name})/TM({$this->name})>>\nendobj\n\n";
+        return "{$i} 0 obj\n<<form field here>>\nendobj\n\n";
     }
 
 }

@@ -127,20 +127,24 @@ class Compiler extends AbstractCompiler
             if ($page->hasPaths()) {
                 $this->preparePaths($page->getPaths(), $pageObject);
             }
-            // Prepare form objects
-            if ($page->hasForms()) {
-                $this->prepareForms($page->getForms(), $pageObject);
+            // Prepare field objects
+            if ($page->hasFields()) {
+                $this->prepareFields($page->getFields(), $pageObject);
             }
 
             $pageObjects[$pageObject->getIndex()] = $pageObject;
         }
-
 
         // Prepare annotation objects, after the pages have been set
         foreach ($this->pages as $page) {
             if ($page->hasAnnotations()) {
                 $this->prepareAnnotations($page->getAnnotations(), $pageObjects[$page->getIndex()]);
             }
+        }
+
+        // If the document has forms
+        if ($document->hasForms()) {
+            $this->prepareForms();
         }
 
         $numObjs       = count($this->objects) + 1;
@@ -345,25 +349,38 @@ class Compiler extends AbstractCompiler
     }
 
     /**
-     * Prepare the form objects
+     * Prepare the field objects
      *
-     * @param  array $forms
+     * @param  array $fields
      * @param  Object\PageObject $pageObject
      * @return void
      */
-    protected function prepareForms(array $forms, Object\PageObject $pageObject)
+    protected function prepareFields(array $fields, Object\PageObject $pageObject)
     {
-        $i = $this->lastIndex() + 1;
-
-        $formRefs = '';
-        foreach ($forms as $key => $value) {
-            $this->objects[$i] = Object\StreamObject::parse($value->getStream($i));
-            $formRefs .= $i . ' 0 R ';
-            foreach ($value->getFields() as $field) {
-                $i++;
-                $this->objects[$i] = Object\StreamObject::parse($field->getStream($i));
+        foreach ($fields as $field) {
+            if (null !== $this->document->getForm($field['form'])) {
+                $i = $this->lastIndex() + 1;
+                $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
+                $this->document->getForm($field['form'])->addFieldIndex($i);
+                $this->objects[$i] = Object\StreamObject::parse(
+                    $field['field']->getStream($i, $pageObject->getIndex(), $coordinates['x'], $coordinates['y'])
+                );
             }
-            $i++;
+        }
+    }
+
+    /**
+     * Prepare the form objects
+     *
+     * @return void
+     */
+    protected function prepareForms()
+    {
+        $formRefs = '';
+        foreach ($this->document->getForms() as $form) {
+            $i = $this->lastIndex() + 1;
+            $this->objects[$i] = Object\StreamObject::parse($form->getStream($i));
+            $formRefs .= $i . ' 0 R ';
         }
         $formRefs = substr($formRefs, 0, -1);
         $this->root->setFormReferences($formRefs);

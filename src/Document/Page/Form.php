@@ -32,6 +32,12 @@ class Form
      * Form fields
      * @var array
      */
+    protected $name = null;
+
+    /**
+     * Form field indices
+     * @var array
+     */
     protected $fields = [];
 
     /**
@@ -41,31 +47,63 @@ class Form
      *
      * @return Form
      */
-    public function __construct()
+    public function __construct($name)
     {
-
+        $this->setName($name);
     }
 
     /**
-     * Add field
+     * Set form name
      *
-     * @param  Field\AbstractField $field
+     * @param  string $name
      * @return Form
      */
-    public function addField(Field\AbstractField $field)
+    public function setName($name)
     {
-        $this->fields[] = $field;
+        $this->name = $name;
         return $this;
     }
 
     /**
-     * Get fields
+     * Get the form name
+     *
+     * @return string
+     */
+    public function getName()
+    {
+        return $this->name;
+    }
+
+    /**
+     * Add field index
+     *
+     * @param  int $i
+     * @return Form
+     */
+    public function addFieldIndex($i)
+    {
+        $this->fields[] = (int)$i;
+        return $this;
+    }
+
+    /**
+     * Get field indices
      *
      * @return array
      */
-    public function getFields()
+    public function getFieldIndices()
     {
         return $this->fields;
+    }
+
+    /**
+     * Get number of fields
+     *
+     * @return array
+     */
+    public function getNumberOfFields()
+    {
+        return count($this->fields);
     }
 
     /**
@@ -77,12 +115,11 @@ class Form
     public function getStream($i)
     {
         // Return the stream
-        $stream = "{$i} 0 obj\n<</DA(/MF1 0 Tf 0 g)/DR<</Font<</MF1 4 0 R>>>>/Fields[";
+        $stream = "{$i} 0 obj\n<</Fields[";
 
         $fields = '';
-        foreach ($this->fields as $key => $value) {
-            $i++;
-            $fields .= $i . ' 0 R ';
+        foreach ($this->fields as $value) {
+            $fields .= $value . ' 0 R ';
         }
         $fields = substr($fields, 0, -1);
 

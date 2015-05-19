@@ -163,12 +163,20 @@ class Page extends AbstractPage
     /**
      * Add a form to the Pdf page
      *
-     * @param  Page\Form $form
+     * @param  Page\Field\AbstractField $field
+     * @param  string                   $form
+     * @param  int                      $x
+     * @param  int                      $y
      * @return Page
      */
-    public function addForm(Page\Form $form)
+    public function addField(Page\Field\AbstractField $field, $form, $x = 0, $y = 0)
     {
-        $this->forms[] = $form;
+        $this->fields[] = [
+            'field' => $field,
+            'form'  => $form,
+            'x'     => (int)$x,
+            'y'     => (int)$y
+        ];
         return $this;
     }
 

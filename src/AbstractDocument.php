@@ -66,6 +66,12 @@ abstract class AbstractDocument
     protected $fonts = [];
 
     /**
+     * Forms array
+     * @var array
+     */
+    protected $forms = [];
+
+    /**
      * Current page
      * @var int
      */
@@ -183,6 +189,16 @@ abstract class AbstractDocument
     }
 
     /**
+     * Determine if the document has page objects
+     *
+     * @return boolean
+     */
+    public function hasPages()
+    {
+        return (count($this->pages) > 0);
+    }
+
+    /**
      * Get the PDF font objects array
      *
      * @return array
@@ -205,6 +221,16 @@ abstract class AbstractDocument
             throw new Exception('Error: That font has not been added to the PDF document.');
         }
         return $this->fonts[$name];
+    }
+
+    /**
+     * Determine if the document has font objects
+     *
+     * @return boolean
+     */
+    public function hasFonts()
+    {
+        return (count($this->fonts) > 0);
     }
 
     /**
@@ -266,6 +292,49 @@ abstract class AbstractDocument
     public function getNumberOfFonts()
     {
         return count($this->fonts);
+    }
+
+    /**
+     * Get form objects
+     *
+     * @return array
+     */
+    public function getForms()
+    {
+        return $this->forms;
+    }
+
+    /**
+     * Get form objects
+     *
+     * @param string $name
+     * @return Page\Form
+     */
+    public function getForm($name)
+    {
+        return (isset($this->forms[$name])) ? $this->forms[$name] : null;
+    }
+
+    /**
+     * Determine if the document has form objects
+     *
+     * @return boolean
+     */
+    public function hasForms()
+    {
+        return (count($this->forms) > 0);
+    }
+
+    /**
+     * Add form
+     *
+     * @param  Page\Form $form
+     * @return AbstractDocument
+     */
+    public function addForm(Page\Form $form)
+    {
+        $this->forms[$form->getName()] = $form;
+        return $this;
     }
 
     /**
