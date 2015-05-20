@@ -161,15 +161,20 @@ class Choice extends AbstractField
         $value   = (null !== $this->value) ? "\n    /V " . $this->value . "\n" : null;
         $default = (null !== $this->defaultValue) ? "\n    /DV " . $this->defaultValue . "\n" : null;
 
-        $options = '';
-        foreach ($this->options as $option) {
-            $options .= '(' . $option . ') ';
+        if (count($this->options) > 0) {
+            $options = "    /Opt [ ";
+            foreach ($this->options as $option) {
+                $options .= '(' . $option . ') ';
+            }
+            $options .= " ]\n";
+        } else {
+            $options = null;
         }
 
         // Return the stream
         return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Ch\n    /Rect [{$x} {$y} " .
             ($this->width + $x) . " " . ($this->height + $y) . "]{$value}{$default}\n    /P {$pageIndex} 0 R\n" .
-            "    \n{$text}\n{$name}\n{$flags}\n    /Opt [ {$options} ]>>\nendobj\n\n";
+            "    \n{$text}\n{$name}\n{$flags}\n{$options}>>\nendobj\n\n";
     }
 
 }
