@@ -15,6 +15,8 @@
  */
 namespace Pop\Pdf\Document\Page\Field;
 
+use Pop\Pdf\Document\Page\Color;
+
 /**
  * Pdf page button field class
  *
@@ -29,9 +31,27 @@ class Choice extends AbstractField
 {
 
     /**
+     * Field options
+     * @var array
+     */
+    protected $options = [];
+
+    /**
+     * Add an option
+     *
+     * @param  string $option
+     * @return Choice
+     */
+    public function addOption($option)
+    {
+        $this->options[] = $option;
+        return $this;
+    }
+
+    /**
      * Set combo
      *
-     * @return Text
+     * @return Choice
      */
     public function setCombo()
     {
@@ -44,7 +64,7 @@ class Choice extends AbstractField
     /**
      * Set edit
      *
-     * @return Text
+     * @return Choice
      */
     public function setEdit()
     {
@@ -57,7 +77,7 @@ class Choice extends AbstractField
     /**
      * Set sort
      *
-     * @return Text
+     * @return Choice
      */
     public function setSort()
     {
@@ -70,7 +90,7 @@ class Choice extends AbstractField
     /**
      * Set multiselect
      *
-     * @return Text
+     * @return Choice
      */
     public function setMultiSelect()
     {
@@ -83,7 +103,7 @@ class Choice extends AbstractField
     /**
      * Set do not spell check
      *
-     * @return Text
+     * @return Choice
      */
     public function setDoNotSpellCheck()
     {
@@ -96,7 +116,7 @@ class Choice extends AbstractField
     /**
      * Set commit on select change
      *
-     * @return Text
+     * @return Choice
      */
     public function setCommitOnSelChange()
     {
@@ -104,6 +124,52 @@ class Choice extends AbstractField
             $this->flagBits[] = 27;
         }
         return $this;
+    }
+
+    /**
+     * Get the field stream
+     *
+     * @param  int    $i
+     * @param  int    $pageIndex
+     * @param  string $fontReference
+     * @param  int    $x
+     * @param  int    $y
+     * @return string
+     */
+    public function getStream($i, $pageIndex, $fontReference, $x, $y)
+    {
+        $color = '0 g';
+        if (null !== $this->fontColor) {
+            if ($this->fontColor instanceof Color\Rgb) {
+                $color = $this->fontColor . " rg";
+            } else if ($this->fontColor instanceof Color\Cmyk) {
+                $color = $this->fontColor . " k";
+            } else if ($this->fontColor instanceof Color\Gray) {
+                $color = $this->fontColor . " g";
+            }
+        }
+
+        if (null !== $fontReference) {
+            $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
+            $text          = '    /DA(' . $fontReference . ' ' . $this->size . ' Tf ' . $color . ')';
+        } else {
+            $text = null;
+        }
+
+        $name  = (null !== $this->name) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')/TM(' . $this->name . ')' : '';
+        $flags = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
+        $value   = (null !== $this->value) ? "\n    /V " . $this->value . "\n" : null;
+        $default = (null !== $this->defaultValue) ? "\n    /DV " . $this->defaultValue . "\n" : null;
+
+        $options = '';
+        foreach ($this->options as $option) {
+            $options .= '(' . $option . ') ';
+        }
+
+        // Return the stream
+        return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Ch\n    /Rect [{$x} {$y} " .
+            ($this->width + $x) . " " . ($this->height + $y) . "]{$value}{$default}\n    /P {$pageIndex} 0 R\n" .
+            "    \n{$text}\n{$name}\n{$flags}\n    /Opt [ {$options} ]>>\nendobj\n\n";
     }
 
 }

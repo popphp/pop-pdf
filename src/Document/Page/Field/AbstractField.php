@@ -31,6 +31,36 @@ abstract class AbstractField implements FieldInterface
 {
 
     /**
+     * Field name
+     * @var string
+     */
+    protected $name = null;
+
+    /**
+     * Text field width
+     * @var int
+     */
+    protected $width = null;
+
+    /**
+     * Text field height
+     * @var int
+     */
+    protected $height = null;
+
+    /**
+     * Field value
+     * @var string
+     */
+    protected $value = null;
+
+    /**
+     * Field default value
+     * @var string
+     */
+    protected $defaultValue = null;
+
+    /**
      * Text field font
      * @var string
      */
@@ -49,12 +79,6 @@ abstract class AbstractField implements FieldInterface
     protected $fontColor = null;
 
     /**
-     * Field name
-     * @var string
-     */
-    protected $name = null;
-
-    /**
      * Field flag bits
      * @var array
      */
@@ -70,11 +94,13 @@ abstract class AbstractField implements FieldInterface
      * @param  int    $size
      * @return AbstractField
      */
-    public function __construct($name, $font, $size = 12)
+    public function __construct($name, $font = null, $size = 12)
     {
         $this->setName($name);
-        $this->setFont($font);
         $this->setSize($size);
+        if (null !== $font) {
+            $this->setFont($font);
+        }
     }
 
     /**
@@ -88,6 +114,31 @@ abstract class AbstractField implements FieldInterface
         $this->name = $name;
         return $this;
     }
+
+    /**
+     * Set the field value
+     *
+     * @param  string $value
+     * @return AbstractField
+     */
+    public function setValue($value)
+    {
+        $this->value = $value;
+        return $this;
+    }
+
+    /**
+     * Set the field default value
+     *
+     * @param  string $value
+     * @return AbstractField
+     */
+    public function setDefaultValue($value)
+    {
+        $this->defaultValue = $value;
+        return $this;
+    }
+
     /**
      * Set the font
      *
@@ -201,6 +252,70 @@ abstract class AbstractField implements FieldInterface
     public function getName()
     {
         return $this->name;
+    }
+
+    /**
+     * Get the field value
+     *
+     * @return string
+     */
+    public function getValue()
+    {
+        return $this->value;
+    }
+
+    /**
+     * Get the field default value
+     *
+     * @return string
+     */
+    public function getDefaultValue()
+    {
+        return $this->defaultValue;
+    }
+
+    /**
+     * Set the field width
+     *
+     * @param  int $width
+     * @return Text
+     */
+    public function setWidth($width)
+    {
+        $this->width = (int)$width;
+        return $this;
+    }
+
+    /**
+     * Get the field width
+     *
+     * @return int
+     */
+    public function getWidth()
+    {
+        return $this->width;
+    }
+
+    /**
+     * Set the field height
+     *
+     * @param  int $height
+     * @return Text
+     */
+    public function setHeight($height)
+    {
+        $this->height = (int)$height;
+        return $this;
+    }
+
+    /**
+     * Get the field height
+     *
+     * @return int
+     */
+    public function getHeight()
+    {
+        return $this->height;
     }
 
     /**

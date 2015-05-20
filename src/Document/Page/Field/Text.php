@@ -31,62 +31,6 @@ class Text extends AbstractField
 {
 
     /**
-     * Text field width
-     * @var int
-     */
-    protected $width = null;
-
-    /**
-     * Text field height
-     * @var int
-     */
-    protected $height = null;
-
-    /**
-     * Set the field width
-     *
-     * @param  int $width
-     * @return Text
-     */
-    public function setWidth($width)
-    {
-        $this->width = (int)$width;
-        return $this;
-    }
-
-    /**
-     * Get the field width
-     *
-     * @return int
-     */
-    public function getWidth()
-    {
-        return $this->width;
-    }
-
-    /**
-     * Set the field height
-     *
-     * @param  int $height
-     * @return Text
-     */
-    public function setHeight($height)
-    {
-        $this->height = (int)$height;
-        return $this;
-    }
-
-    /**
-     * Get the field height
-     *
-     * @return int
-     */
-    public function getHeight()
-    {
-        return $this->height;
-    }
-
-    /**
      * Set multiline
      *
      * @return Text
@@ -189,8 +133,6 @@ class Text extends AbstractField
      */
     public function getStream($i, $pageIndex, $fontReference, $x, $y)
     {
-        $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
-
         $color = '0 g';
         if (null !== $this->fontColor) {
             if ($this->fontColor instanceof Color\Rgb) {
@@ -202,13 +144,21 @@ class Text extends AbstractField
             }
         }
 
-        $name  = (null !== $this->name) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')/TM(' . $this->name . ')' : '';
-        $text  = '/DA(' . $fontReference . ' ' . $this->size . ' Tf ' . $color . ')';
-        $flags = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
+        if (null !== $fontReference) {
+            $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
+            $text          = '    /DA(' . $fontReference . ' ' . $this->size . ' Tf ' . $color . ')';
+        } else {
+            $text = null;
+        }
+
+        $name    = (null !== $this->name) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')/TM(' . $this->name . ')' : '';
+        $flags   = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
+        $value   = (null !== $this->value) ? "\n    /V " . $this->value . "\n" : null;
+        $default = (null !== $this->defaultValue) ? "\n    /DV " . $this->defaultValue . "\n" : null;
 
         // Return the stream
         return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Tx\n    /Rect [{$x} {$y} " .
-            ($this->width + $x) . " " . ($this->height + $y) . "]\n    /P {$pageIndex} 0 R\n    {$text}\n{$name}\n{$flags}>>\nendobj\n\n";
+            ($this->width + $x) . " " . ($this->height + $y) . "]{$value}{$default}\n    /P {$pageIndex} 0 R\n{$text}\n{$name}\n{$flags}>>\nendobj\n\n";
     }
 
 }
