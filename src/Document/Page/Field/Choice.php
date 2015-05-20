@@ -28,4 +28,82 @@ namespace Pop\Pdf\Document\Page\Field;
 class Choice extends AbstractField
 {
 
+    /**
+     * Set combo
+     *
+     * @return Text
+     */
+    public function setCombo()
+    {
+        if (!in_array(18, $this->flagBits)) {
+            $this->flagBits[] = 18;
+        }
+        return $this;
+    }
+
+    /**
+     * Set edit
+     *
+     * @return Text
+     */
+    public function setEdit()
+    {
+        if (!in_array(19, $this->flagBits)) {
+            $this->flagBits[] = 19;
+        }
+        return $this;
+    }
+
+    /**
+     * Set sort
+     *
+     * @return Text
+     */
+    public function setSort()
+    {
+        if (!in_array(20, $this->flagBits)) {
+            $this->flagBits[] = 20;
+        }
+        return $this;
+    }
+
+    /**
+     * Set multiselect
+     *
+     * @return Text
+     */
+    public function setMultiSelect()
+    {
+        if (!in_array(22, $this->flagBits)) {
+            $this->flagBits[] = 22;
+        }
+        return $this;
+    }
+
+    /**
+     * Set do not spell check
+     *
+     * @return Text
+     */
+    public function setDoNotSpellCheck()
+    {
+        if (!in_array(23, $this->flagBits)) {
+            $this->flagBits[] = 23;
+        }
+        return $this;
+    }
+
+    /**
+     * Set commit on select change
+     *
+     * @return Text
+     */
+    public function setCommitOnSelChange()
+    {
+        if (!in_array(27, $this->flagBits)) {
+            $this->flagBits[] = 27;
+        }
+        return $this;
+    }
+
 }

@@ -15,6 +15,8 @@
  */
 namespace Pop\Pdf\Document\Page\Field;
 
+use Pop\Pdf\Document\Page\Color;
+
 /**
  * Pdf abstract form field class
  *
@@ -29,22 +31,50 @@ abstract class AbstractField implements FieldInterface
 {
 
     /**
+     * Text field font
+     * @var string
+     */
+    protected $font = null;
+
+    /**
+     * Text field font size
+     * @var int
+     */
+    protected $size = 12;
+
+    /**
+     * Field font color
+     * @var Color\ColorInterface
+     */
+    protected $fontColor = null;
+
+    /**
      * Field name
      * @var string
      */
     protected $name = null;
 
     /**
+     * Field flag bits
+     * @var array
+     */
+    protected $flagBits = [];
+
+    /**
      * Constructor
      *
-     * Instantiate a PDF field object.
+     * Instantiate a PDF text field object.
      *
      * @param  string $name
+     * @param  string $font
+     * @param  int    $size
      * @return AbstractField
      */
-    public function __construct($name)
+    public function __construct($name, $font, $size = 12)
     {
         $this->setName($name);
+        $this->setFont($font);
+        $this->setSize($size);
     }
 
     /**
@@ -58,6 +88,110 @@ abstract class AbstractField implements FieldInterface
         $this->name = $name;
         return $this;
     }
+    /**
+     * Set the font
+     *
+     * @param  string $font
+     * @return Text
+     */
+    public function setFont($font)
+    {
+        $this->font = $font;
+        return $this;
+    }
+
+    /**
+     * Get the font
+     *
+     * @return string
+     */
+    public function getFont()
+    {
+        return $this->font;
+    }
+
+    /**
+     * Set the font size
+     *
+     * @param  int $size
+     * @return Text
+     */
+    public function setSize($size)
+    {
+        $this->size = (int)$size;
+        return $this;
+    }
+
+    /**
+     * Get the font size
+     *
+     * @return int
+     */
+    public function getSize()
+    {
+        return $this->size;
+    }
+
+    /**
+     * Set the font color
+     *
+     * @param  Color\ColorInterface $color
+     * @return Text
+     */
+    public function setFontColor(Color\ColorInterface $color)
+    {
+        $this->fontColor = $color;
+        return $this;
+    }
+
+    /**
+     * Get the field font color
+     *
+     * @return Color\ColorInterface
+     */
+    public function getFontColor()
+    {
+        return $this->fontColor;
+    }
+
+    /**
+     * Set read-only
+     *
+     * @return AbstractField
+     */
+    public function setReadOnly()
+    {
+        if (!in_array(1, $this->flagBits)) {
+            $this->flagBits[] = 1;
+        }
+        return $this;
+    }
+
+    /**
+     * Set required
+     *
+     * @return AbstractField
+     */
+    public function setRequired()
+    {
+        if (!in_array(2, $this->flagBits)) {
+            $this->flagBits[] = 2;
+        }
+        return $this;
+    }
+
+    /**
+     * Set no export
+     *
+     * @return AbstractField
+     */
+    public function setNoExport()
+    {
+        if (!in_array(3, $this->flagBits)) {
+            $this->flagBits[] = 3;
+        }
+        return $this;
+    }
 
     /**
      * Get the field name
@@ -67,6 +201,22 @@ abstract class AbstractField implements FieldInterface
     public function getName()
     {
         return $this->name;
+    }
+
+    /**
+     * Get the field name
+     *
+     * @return int
+     */
+    protected function getFlags()
+    {
+        $flags = '';
+
+        for ($i = 1; $i <= 32; $i++) {
+            $flags = ((in_array($i, $this->flagBits)) ? '1' : '0') . $flags;
+        }
+
+        return bindec($flags);
     }
 
 }

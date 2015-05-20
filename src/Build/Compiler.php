@@ -260,6 +260,7 @@ class Compiler extends AbstractCompiler
      *
      * @param  array $text
      * @param  Object\PageObject $pageObject
+     * @throws Exception
      * @return void
      */
     protected function prepareText(array $text, Object\PageObject $pageObject)
@@ -272,6 +273,9 @@ class Compiler extends AbstractCompiler
             $contentObject = $this->objects[$pageObject->getCurrentContentIndex()];
         }
         foreach ($text as $txt) {
+            if (!isset($this->fontReferences[$txt['font']])) {
+                throw new Exception('Error: The font \'' . $txt['font'] . '\' has not been added to the document.');
+            }
             $coordinates = $this->getCoordinates($txt['x'], $txt['y'], $pageObject);
             $contentObject->appendStream(
                 $txt['text']->getStream($this->fontReferences[$txt['font']], $coordinates['x'], $coordinates['y'])
@@ -353,17 +357,22 @@ class Compiler extends AbstractCompiler
      *
      * @param  array $fields
      * @param  Object\PageObject $pageObject
+     * @throws Exception
      * @return void
      */
     protected function prepareFields(array $fields, Object\PageObject $pageObject)
     {
         foreach ($fields as $field) {
             if (null !== $this->document->getForm($field['form'])) {
+                if (!isset($this->fontReferences[$field['field']->getFont()])) {
+                    throw new Exception('Error: The font \'' . $field['field']->getFont() . '\' has not been added to the document.');
+                }
                 $i = $this->lastIndex() + 1;
+                $pageObject->addAnnotIndex($i);
                 $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
                 $this->document->getForm($field['form'])->addFieldIndex($i);
                 $this->objects[$i] = Object\StreamObject::parse(
-                    $field['field']->getStream($i, $pageObject->getIndex(), $coordinates['x'], $coordinates['y'])
+                    $field['field']->getStream($i, $pageObject->getIndex(), $this->fontReferences[$field['field']->getFont()], $coordinates['x'], $coordinates['y'])
                 );
             }
         }
