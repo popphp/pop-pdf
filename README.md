@@ -2,6 +2,8 @@ Pop PDF
 =======
 Part of the Pop PHP Framework (http://github.com/popphp/popphp)
 
+[![Build Status](https://travis-ci.org/popphp/pop-pdf.svg?branch=master)](https://travis-ci.org/popphp/pop-pdf)
+
 OVERVIEW
 --------
 Pop PDF is a component of the Pop PHP Framework 2. It is a powerful and robust PDF processing

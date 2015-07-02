@@ -127,7 +127,7 @@ class Document extends AbstractDocument
      * @throws Exception
      * @return Document
      */
-    public function orderPages($pages)
+    public function orderPages(array $pages)
     {
         $newOrder = [];
 

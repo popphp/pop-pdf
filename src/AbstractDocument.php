@@ -411,7 +411,7 @@ abstract class AbstractDocument
      * @throws Exception
      * @return AbstractDocument
      */
-    abstract public function orderPages($pages);
+    abstract public function orderPages(array $pages);
 
     /**
      * Delete a page from the PDF document
