@@ -5,6 +5,7 @@ namespace Pop\Pdf\Test;
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Font;
+use Pop\Pdf\Document\Form;
 
 class DocumentTest extends \PHPUnit_Framework_TestCase
 {
@@ -15,6 +16,20 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf('Pop\Pdf\Document', $doc);
     }
 
+    public function testSetOrigin()
+    {
+        $doc = new Document();
+        $doc->setOrigin(Document::ORIGIN_TOP_RIGHT);
+        $this->assertEquals(Document::ORIGIN_TOP_RIGHT, $doc->getOrigin());
+    }
+
+    public function testSetCompression()
+    {
+        $doc = new Document();
+        $doc->setCompression(true);
+        $this->assertTrue($doc->isCompressed());
+    }
+
     public function testAddPages()
     {
         $doc = new Document();
@@ -22,6 +37,16 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
         $doc->createPage(Page::LEGAL);
         $doc->copyPage(1);
         $this->assertEquals(4, $doc->getNumberOfPages());
+        $this->assertTrue($doc->hasPages());
+        $this->assertInstanceOf('Pop\Pdf\Document\Page', $doc->getPage(1));
+        $this->assertEquals(1008, $doc->getPage(3)->getHeight());
+    }
+
+    public function testGetPageException()
+    {
+        $this->setExpectedException('Pop\Pdf\Exception');
+        $doc  = new Document();
+        $page = $doc->getPage(1);
     }
 
     public function testCopyPageException()
@@ -111,6 +136,23 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
         $doc->embedFont(new Font('Arial'));
     }
 
+    public function testGetFont()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $this->assertTrue($doc->hasFonts());
+        $this->assertInstanceOf('Pop\Pdf\Document\Font', $doc->getFont('Arial'));
+        $this->assertContains('Arial', $doc->getAvailableFonts());
+        $this->assertTrue($doc->isFontAvailable('Arial'));
+    }
+
+    public function testGetFontException()
+    {
+        $this->setExpectedException('Pop\Pdf\Exception');
+        $doc = new Document();
+        $this->assertInstanceOf('Pop\Pdf\Document\Font', $doc->getFont('Arial'));
+    }
+
     public function testSetCurrentPage()
     {
         $doc = new Document();
@@ -141,6 +183,15 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
         $this->setExpectedException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->setCurrentFont('Arial');
+    }
+
+    public function testAddForm()
+    {
+        $doc = new Document();
+        $doc->addForm(new Form('contact'));
+        $this->assertTrue($doc->hasForms());
+        $this->assertEquals(1, count($doc->getForms()));
+        $this->assertInstanceOf('Pop\Pdf\Document\Form', $doc->getForm('contact'));
     }
 
 }
