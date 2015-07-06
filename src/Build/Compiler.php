@@ -333,17 +333,16 @@ class Compiler extends AbstractCompiler
             $i = $this->lastIndex() + 1;
             $pageObject->addAnnotIndex($i);
 
-            $targetCoordinates = $this->getCoordinates(
-                $annotation['annotation']->getXTarget(), $annotation['annotation']->getYTarget(), $pageObject
-            );
-
-            $annotation['annotation']->setXTarget($targetCoordinates['x']);
-            $annotation['annotation']->setYTarget($targetCoordinates['y']);
-
             $coordinates = $this->getCoordinates($annotation['x'], $annotation['y'], $pageObject);
             if ($annotation['annotation'] instanceof \Pop\Pdf\Document\Page\Annotation\Url) {
                 $stream = $annotation['annotation']->getStream($i, $coordinates['x'], $coordinates['y']);
             } else {
+                $targetCoordinates = $this->getCoordinates(
+                    $annotation['annotation']->getXTarget(), $annotation['annotation']->getYTarget(), $pageObject
+                );
+
+                $annotation['annotation']->setXTarget($targetCoordinates['x']);
+                $annotation['annotation']->setYTarget($targetCoordinates['y']);
                 $stream = $annotation['annotation']->getStream(
                     $i, $coordinates['x'], $coordinates['y'], $pageObject->getIndex(), $this->parent->getKids()
                 );

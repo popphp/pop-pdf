@@ -14,7 +14,6 @@
  * @namespace
  */
 namespace Pop\Pdf\Document\Page;
-use Pop\Pdf\Exception;
 
 /**
  * Pdf page path class
@@ -214,114 +213,6 @@ class Path
     public function getStyle()
     {
         return $this->style;
-    }
-
-    /**
-     * Draw an open cubic bezier curve
-     *
-     * @param  int $x1
-     * @param  int $y1
-     * @param  int $x2
-     * @param  int $y2
-     * @param  int $bezierX1
-     * @param  int $bezierY1
-     * @param  int $bezierX2
-     * @param  int $bezierY2
-     * @return Path
-     */
-    public function drawOpenCubicBezierCurve($x1, $y1, $x2, $y2, $bezierX1, $bezierY1, $bezierX2, $bezierY2)
-    {
-        $this->streams[] = [
-            'points' => [
-                ['x1' => $x1, 'y1' => $y1],
-                ['x2' => $bezierX1, 'y2' => $bezierY1],
-                ['x3' => $bezierX2, 'y3' => $bezierY2],
-                ['x4' => $x2, 'y4' => $y2]
-            ],
-            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n" . $this->style . "\n"
-        ];
-
-        return $this;
-    }
-
-    /**
-     * Draw a closed cubic bezier curve
-     *
-     * @param  int $x1
-     * @param  int $y1
-     * @param  int $x2
-     * @param  int $y2
-     * @param  int $bezierX1
-     * @param  int $bezierY1
-     * @param  int $bezierX2
-     * @param  int $bezierY2
-     * @return Path
-     */
-    public function drawClosedCubicBezierCurve($x1, $y1, $x2, $y2, $bezierX1, $bezierY1, $bezierX2, $bezierY2)
-    {
-        $this->streams[] = [
-            'points' => [
-                ['x1' => $x1,       'y1' => $y1],
-                ['x2' => $bezierX1, 'y2' => $bezierY1],
-                ['x3' => $bezierX2, 'y3' => $bezierY2],
-                ['x4' => $x2,       'y4' => $y2]
-            ],
-            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\nh\n" . $this->style . "\n"
-        ];
-
-        return $this;
-    }
-
-    /**
-     * Draw an open quadratic bezier curve, single control point
-     *
-     * @param  int  $x1
-     * @param  int  $y1
-     * @param  int  $x2
-     * @param  int  $y2
-     * @param  int  $bezierX
-     * @param  int  $bezierY
-     * @param  bool $first
-     * @return Path
-     */
-    public function drawOpenQuadraticBezierCurve($x1, $y1, $x2, $y2, $bezierX, $bezierY, $first = true)
-    {
-        $this->streams[] = [
-            'points' => [
-                ['x1' => $x1,      'y1' => $y1],
-                ['x2' => $bezierX, 'y2' => $bezierY],
-                ['x3' => $x2,      'y3' => $y2]
-            ],
-            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] " . (($first) ? "y" : "v") . "\n" . $this->style . "\n"
-        ];
-
-        return $this;
-    }
-
-    /**
-     * Draw an open quadratic bezier curve, single control point
-     *
-     * @param  int  $x1
-     * @param  int  $y1
-     * @param  int  $x2
-     * @param  int  $y2
-     * @param  int  $bezierX
-     * @param  int  $bezierY
-     * @param  bool $first
-     * @return Path
-     */
-    public function drawClosedQuadraticBezierCurve($x1, $y1, $x2, $y2, $bezierX, $bezierY, $first = true)
-    {
-        $this->streams[] = [
-            'points' => [
-                ['x1' => $x1,      'y1' => $y1],
-                ['x2' => $bezierX, 'y2' => $bezierY],
-                ['x3' => $x2,      'y3' => $y2]
-            ],
-            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] " . (($first) ? "y" : "v") . "\nh\n" . $this->style . "\n"
-        ];
-
-        return $this;
     }
 
     /**
@@ -655,6 +546,114 @@ class Path
     }
 
     /**
+     * Draw an open cubic bezier curve
+     *
+     * @param  int $x1
+     * @param  int $y1
+     * @param  int $x2
+     * @param  int $y2
+     * @param  int $bezierX1
+     * @param  int $bezierY1
+     * @param  int $bezierX2
+     * @param  int $bezierY2
+     * @return Path
+     */
+    public function drawOpenCubicBezierCurve($x1, $y1, $x2, $y2, $bezierX1, $bezierY1, $bezierX2, $bezierY2)
+    {
+        $this->streams[] = [
+            'points' => [
+                ['x1' => $x1, 'y1' => $y1],
+                ['x2' => $bezierX1, 'y2' => $bezierY1],
+                ['x3' => $bezierX2, 'y3' => $bezierY2],
+                ['x4' => $x2, 'y4' => $y2]
+            ],
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n" . $this->style . "\n"
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Draw a closed cubic bezier curve
+     *
+     * @param  int $x1
+     * @param  int $y1
+     * @param  int $x2
+     * @param  int $y2
+     * @param  int $bezierX1
+     * @param  int $bezierY1
+     * @param  int $bezierX2
+     * @param  int $bezierY2
+     * @return Path
+     */
+    public function drawClosedCubicBezierCurve($x1, $y1, $x2, $y2, $bezierX1, $bezierY1, $bezierX2, $bezierY2)
+    {
+        $this->streams[] = [
+            'points' => [
+                ['x1' => $x1,       'y1' => $y1],
+                ['x2' => $bezierX1, 'y2' => $bezierY1],
+                ['x3' => $bezierX2, 'y3' => $bezierY2],
+                ['x4' => $x2,       'y4' => $y2]
+            ],
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\nh\n" . $this->style . "\n"
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Draw an open quadratic bezier curve, single control point
+     *
+     * @param  int  $x1
+     * @param  int  $y1
+     * @param  int  $x2
+     * @param  int  $y2
+     * @param  int  $bezierX
+     * @param  int  $bezierY
+     * @param  bool $first
+     * @return Path
+     */
+    public function drawOpenQuadraticBezierCurve($x1, $y1, $x2, $y2, $bezierX, $bezierY, $first = true)
+    {
+        $this->streams[] = [
+            'points' => [
+                ['x1' => $x1,      'y1' => $y1],
+                ['x2' => $bezierX, 'y2' => $bezierY],
+                ['x3' => $x2,      'y3' => $y2]
+            ],
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] " . (($first) ? "y" : "v") . "\n" . $this->style . "\n"
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Draw an open quadratic bezier curve, single control point
+     *
+     * @param  int  $x1
+     * @param  int  $y1
+     * @param  int  $x2
+     * @param  int  $y2
+     * @param  int  $bezierX
+     * @param  int  $bezierY
+     * @param  bool $first
+     * @return Path
+     */
+    public function drawClosedQuadraticBezierCurve($x1, $y1, $x2, $y2, $bezierX, $bezierY, $first = true)
+    {
+        $this->streams[] = [
+            'points' => [
+                ['x1' => $x1,      'y1' => $y1],
+                ['x2' => $bezierX, 'y2' => $bezierY],
+                ['x3' => $x2,      'y3' => $y2]
+            ],
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] " . (($first) ? "y" : "v") . "\nh\n" . $this->style . "\n"
+        ];
+
+        return $this;
+    }
+
+    /**
      * Calculate degrees
      *
      * @param  int $start
@@ -685,7 +684,7 @@ class Path
                 $current = $next;
             }
             $degrees[] = [$current, $end];
-        } else if (($start < 180) && ($start > 90) &&  ($end > 180)) {
+        } else if (($start < 180) && ($start > 90) && ($end > 180)) {
             $degrees[] = [$start, 180];
             $current = 180;
             while (($current + 90) < $end) {
