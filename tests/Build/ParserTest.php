@@ -1,6 +1,6 @@
 <?php
 
-namespace Pop\Pdf\Test\Document;
+namespace Pop\Pdf\Test\Build;
 
 use Pop\Pdf\Build\Parser;
 
