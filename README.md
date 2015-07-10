@@ -109,20 +109,21 @@ $pdf->outputToHttp($doc);
 
 The standard fonts that are available by default with a PDF document are:
 
-|------------------------|--------------------------|
-|* Arial                 |* Helvetica-Oblique       |
-|* Arial,Italic          |* Helvetica-Bold          |
-|* Arial,Bold            |* Helvetica-BoldOblique   |
-|* Arial,BoldItalic      |* Symbol                  |
-|* Courier               |* Times-Roman             |
-|* CourierNew            |* Times-Bold              |
-|* Courier-Oblique       |* Times-Italic            |
-|* CourierNew,Italic     |* Times-BoldItalic        |
-|* Courier-Bold          |* TimesNewRoman           |
-|* CourierNew,Bold       |* TimesNewRoman,Italic    |
-|* Courier-BoldOblique   |* TimesNewRoman,Bold      |
-|* CourierNew,BoldItalic |* TimesNewRoman,BoldItalic|
-|* Helvetica             |* ZapfDingbats            |
+Fonts                   | More Fonts
+------------------------|--------------------------
+* Arial                 |* Helvetica-Oblique       
+* Arial,Italic          |* Helvetica-Bold          
+* Arial,Bold            |* Helvetica-BoldOblique   
+* Arial,BoldItalic      |* Symbol                  
+* Courier               |* Times-Roman             
+* CourierNew            |* Times-Bold              
+* Courier-Oblique       |* Times-Italic            
+* CourierNew,Italic     |* Times-BoldItalic        
+* Courier-Bold          |* TimesNewRoman           
+* CourierNew,Bold       |* TimesNewRoman,Italic    
+* Courier-BoldOblique   |* TimesNewRoman,Bold      
+* CourierNew,BoldItalic |* TimesNewRoman,BoldItalic
+* Helvetica             |* ZapfDingbats            
 
 ```php
 use Pop\Pdf\Pdf;
