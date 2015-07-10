@@ -17,7 +17,7 @@ Install `Pop PDF` using Composer.
 
     composer require popphp/pop-pdf
 
-### NOTE
+##### A Note About Document Origin
 The PDF coordinate system starts with x, y origin (0, 0) at the bottom left. This can be changed by the
 user if the user prefers to set the origin to a different point for the purpose of the application.
 See the [Set Origin](#set-origin) section for more details on that.
@@ -25,7 +25,15 @@ See the [Set Origin](#set-origin) section for more details on that.
 BASIC USAGE
 -----------
 
-Add a standard font and some text:
+* [Add a standard font](#Add-a-standard-font-and-add-some-text)
+* [Embed a font and add some text](#embed-a-font-and-add-some-text)
+* [Embed an image](#embed-an-image)
+* [Draw a rectangle](#draw-a-rectangle)
+* [Add a URL link](#add-a-url-link)
+* [Import from another PDF document](#Import-from-another-pdf-document)
+* [Set Origin](#set-origin)
+
+### Add a standard font and add some text
 
 ```php
 use Pop\Pdf\Pdf;
@@ -45,7 +53,7 @@ $pdf = new Pdf();
 $pdf->outputToHttp($doc);
 ```
 
-Embed a font and add some text:
+### Embed a font and add some text
 
 ```php
 use Pop\Pdf\Pdf;
@@ -67,7 +75,7 @@ $pdf = new Pdf();
 $pdf->outputToHttp($doc);
 ```
 
-Embed an image:
+### Embed an image
 
 ```php
 use Pop\Pdf\Pdf;
@@ -86,7 +94,7 @@ $pdf = new Pdf();
 $pdf->outputToHttp($doc);
 ```
 
-Draw a rectangle:
+### Draw a rectangle
 
 ```php
 use Pop\Pdf\Pdf;
@@ -109,6 +117,45 @@ $page->addPath($path);
 $doc->addPage($page);
 
 $pdf = new Pdf();
+$pdf->outputToHttp($doc);
+```
+
+### Add a URL link
+
+```php
+use Pop\Pdf\Pdf;
+use Pop\Pdf\Document;
+use Pop\Pdf\Document\Page;
+use Pop\Pdf\Document\Page\Annotation;
+
+$doc = new Document();
+
+$url = new Annotation\Url(120, 20, 'http://www.google.com/');
+
+$page = new Page(Page::LETTER);
+$page->addUrl($url, 50, 500);
+
+$doc->addPage($page);
+
+$pdf = new Pdf();
+$pdf->outputToHttp($doc);
+```
+
+### Import from another PDF document
+
+```php
+use Pop\Pdf\Pdf;
+use Pop\Pdf\Document;
+use Pop\Pdf\Document\Page;
+use Pop\Pdf\Document\Page\Image;
+
+// Import pages 2, 4 and 6 from a size page document
+$pdf = new Pdf();
+$doc = $pdf->importFromFile('/path/to/six-page-document.pdf', [2, 4, 6]);
+
+// Add an image to page 3 (formerly page 6) 
+$doc->getPage(3)->addImage(new Image('/path/to/some/image.jpg'), 100, 600);
+
 $pdf->outputToHttp($doc);
 ```
 
