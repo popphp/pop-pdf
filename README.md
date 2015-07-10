@@ -109,7 +109,7 @@ $pdf->outputToHttp($doc);
 
 The standard fonts that are available by default with a PDF document are:
 
-| Standard PDF Fonts                                             |
+|                 | Standard Pdf Fonts  |                        |
 |-----------------|---------------------|------------------------|
 |Arial            |CourierNew,Bold      |Times-Bold              |
 |Arial,Italic     |Courier-BoldOblique  |Times-Italic            |
