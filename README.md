@@ -85,6 +85,15 @@ $pdf->outputToHttp($doc);
 
 ### Embed a font and add some text
 
+You can embed an external font into a PDF documents. The font types that are supported are:
+
+* TrueType (ttf)
+* OpenType (otf)
+* Type1 (pfb)
+
+Most fonts of these types should work, but there are situations were the font may not be parsable,
+such as when a font's embeddable flag is set to false.
+
 ```php
 use Pop\Pdf\Pdf;
 use Pop\Pdf\Document;
@@ -187,7 +196,7 @@ use Pop\Pdf\Document;
 use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Page\Image;
 
-// Import pages 2, 4 and 6 from a size page document
+// Import pages 2, 4 and 6 from a six page document
 $pdf = new Pdf();
 $doc = $pdf->importFromFile('/path/to/six-page-document.pdf', [2, 4, 6]);
 
