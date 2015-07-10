@@ -34,6 +34,35 @@ See the [Set Origin](#set-origin) section for more details on that.
 
 ### Add a standard font and add some text
 
+The standard fonts that are available by default with a PDF document are:
+
+* Arial
+* Arial,Italic
+* Arial,Bold
+* Arial,BoldItalic
+* Courier
+* CourierNew
+* Courier-Oblique
+* CourierNew,Italic
+* Courier-Bold
+* CourierNew,Bold
+* Courier-BoldOblique
+* CourierNew,BoldItalic
+* Helvetica
+* Helvetica-Oblique
+* Helvetica-Bold
+* Helvetica-BoldOblique
+* Symbol
+* Times-Roman
+* Times-Bold
+* Times-Italic
+* Times-BoldItalic
+* TimesNewRoman
+* TimesNewRoman,Italic
+* TimesNewRoman,Bold
+* TimesNewRoman,BoldItalic
+* ZapfDingbats
+
 ```php
 use Pop\Pdf\Pdf;
 use Pop\Pdf\Document;
@@ -41,10 +70,10 @@ use Pop\Pdf\Document\Font;
 use Pop\Pdf\Document\Page;
 
 $doc = new Document();
-$doc->addFont(new Font(Font::ARIAL));
+$doc->addFont(new Font('Arial'));
 
 $page = new Page(Page::LETTER);
-$page->addText(new Page\Text('Hello World', 36), Font::ARIAL, 50, 600);
+$page->addText(new Page\Text('Hello World', 36), 'Arial', 50, 600);
 
 $doc->addPage($page);
 
