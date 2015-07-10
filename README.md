@@ -22,14 +22,14 @@ The PDF coordinate system starts with x, y origin (0, 0) at the bottom left. Thi
 user if the user prefers to set the origin to a different point for the purpose of the application.
 See the [Set Origin](#set-origin) section for more details on that.
 
-# BASIC USAGE
+## BASIC USAGE
 
 * [Add a standard font](#add-a-standard-font-and-add-some-text)
-* [Embed a font and add some text](#embed-a-font-and-add-some-text)
+* [Embed a font](#embed-a-font-and-add-some-text)
 * [Embed an image](#embed-an-image)
-* [Draw a rectangle](#draw-a-rectangle)
+* [Draw a Shape](#draw-a-shape)
 * [Add a URL link](#add-a-url-link)
-* [Import from another PDF document](#import-from-another-pdf-document)
+* [Import another PDF](#import-from-another-pdf-document)
 * [Set Origin](#set-origin)
 
 ### Add a standard font and add some text
@@ -99,7 +99,7 @@ $pdf->outputToHttp($doc);
 
 [Top](#basic-usage)
 
-### Draw a rectangle
+### Draw a shape
 
 ```php
 use Pop\Pdf\Pdf;
