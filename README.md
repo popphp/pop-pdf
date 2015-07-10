@@ -120,7 +120,6 @@ The standard fonts that are available by default with a PDF document are:
 |Courier-Oblique  |Helvetica-BoldOblique|TimesNewRoman,BoldItalic|
 |CourierNew,Italic|Symbol               |ZapfDingbats            |
 |Courier-Bold     |Times-Roman          |                        |
-|-----------------|---------------------|------------------------|        
 
 ```php
 use Pop\Pdf\Pdf;
