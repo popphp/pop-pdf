@@ -24,6 +24,7 @@ See the [Set Origin](#set-origin) section for more details on that.
 
 ## BASIC USAGE
 
+* [Create and add pages](#create-and-add-pages)
 * [Add a standard font](#add-a-standard-font-and-add-some-text)
 * [Embed a font](#embed-a-font-and-add-some-text)
 * [Embed an image](#embed-an-image)
@@ -31,6 +32,78 @@ See the [Set Origin](#set-origin) section for more details on that.
 * [Add a URL link](#add-a-url-link)
 * [Import another PDF](#import-from-another-pdf-document)
 * [Set Origin](#set-origin)
+
+### Create and add pages
+
+You can add a page based on pre-defined sizes or create one of a custom size. The predefined sizes are:
+
+* ENVELOPE_10 (297  x 684)
+* ENVELOPE_C5 (461  x 648)
+* ENVELOPE_DL (312  x 624)
+* FOLIO       (595  x 935)
+* EXECUTIVE   (522  x 756)
+* LETTER      (612  x 792)
+* LEGAL       (612  x 1008)
+* LEDGER      (1224 x 792)
+* TABLOID     (792  x 1224)
+* A0          (2384 x 3370)
+* A1          (1684 x 2384)
+* A2          (1191 x 1684)
+* A3          (842  x 1191)
+* A4          (595  x 842)
+* A5          (420  x 595)
+* A6          (297  x 420)
+* A7          (210  x 297)
+* A8          (148  x 210)
+* A9          (105  x 148)
+* B0          (2920 x 4127)
+* B1          (2064 x 2920)
+* B2          (1460 x 2064)
+* B3          (1032 x 1460)
+* B4          (729  x 1032)
+* B5          (516  x 729)
+* B6          (363  x 516)
+* B7          (258  x 363)
+* B8          (181  x 258)
+* B9          (127  x 181)
+* B10         (91   x 127)
+
+```php
+use Pop\Pdf\Pdf;
+use Pop\Pdf\Document;
+use Pop\Pdf\Document\Page;
+
+$doc = new Document();
+
+$letter = new Page(Page::LETTER);
+$custom = new Page(1000, 500);
+
+// Do some things to the pages, add text, images, etc.
+
+$doc->addPage($letter);
+$doc->addPage($custom);
+
+$pdf = new Pdf();
+$pdf->outputToHttp($doc);
+```
+
+Alternatively, you can use the document object as a page factory, which will automatically
+add the page to the document object:
+
+```php
+use Pop\Pdf\Pdf;
+use Pop\Pdf\Document;
+use Pop\Pdf\Document\Page;
+
+$doc = new Document();
+
+$legal = $doc->createPage(Page::LEGAL); 
+
+// Do some things to the pages, add text, images, etc.
+
+$pdf = new Pdf();
+$pdf->outputToHttp($doc);
+```
 
 ### Add a standard font and add some text
 
