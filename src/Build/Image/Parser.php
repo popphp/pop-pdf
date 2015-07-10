@@ -2,9 +2,7 @@
 /**
  * Pop PHP Framework (http://www.popphp.org/)
  *
- * @link       https://github.com/popphp/popphp
- * @category   Pop
- * @package    Pop_Pdf
+ * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
  * @copyright  Copyright (c) 2009-2015 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
@@ -31,21 +29,87 @@ class Parser
 {
 
     /**
-     * Image properties
+     * Image width
+     * @var int
      */
     protected $width           = 0;
+
+    /**
+     * Image height
+     * @var int
+     */
     protected $height          = 0;
+
+    /**
+     * Image mime
+     * @var string
+     */
     protected $mime            = null;
+
+    /**
+     * Image color mode
+     * @var mixed
+     */
     protected $colorMode       = null;
+
+    /**
+     * Number of channels in the image
+     * @var int
+     */
     protected $channels        = 0;
+
+    /**
+     * Image bit-depth
+     * @var int
+     */
     protected $depth           = 0;
+
+    /**
+     * Image basename
+     * @var string
+     */
     protected $basename        = null;
+
+    /**
+     * Image filename
+     * @var string
+     */
     protected $filename        = null;
+
+    /**
+     * Image extension
+     * @var string
+     */
     protected $extension       = null;
+
+    /**
+     * Image fullpath
+     * @var string
+     */
     protected $fullpath        = null;
+
+    /**
+     * Image total number of colors
+     * @var int
+     */
     protected $colorTotal      = 0;
+
+    /**
+     * Flag for if the image has an alpha channel
+     * @var boolean
+     */
     protected $alpha           = false;
+
+    /**
+     * Image data
+     * @var mixed
+     */
     protected $imageData       = null;
+
+    /**
+     * Image data length
+     * @var int
+     */
     protected $imageDataLength = null;
 
     /**

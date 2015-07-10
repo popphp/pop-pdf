@@ -1,6 +1,5 @@
 Pop PDF
 =======
-Part of the Pop PHP Framework (http://github.com/popphp/popphp)
 
 [![Build Status](https://travis-ci.org/popphp/pop-pdf.svg?branch=master)](https://travis-ci.org/popphp/pop-pdf)
 
@@ -11,12 +10,20 @@ component that's simple to use. With it, you can create PDF documents from scrat
 existing ones and add to or modify them. It supports embedding images, fonts and URLs, as well
 as a set of drawing, effect and type features.
 
-NOTE
-----
-The PDF coordinate system starts with x, y (0, 0) at the bottom left.
+INSTALL
+-------
 
-QUICK USE
----------
+Install `Pop PDF` using Composer.
+
+    composer require popphp/pop-pdf
+
+### NOTE
+The PDF coordinate system starts with x, y origin (0, 0) at the bottom left. This can be changed by the
+user if the user prefers to set the origin to a different point for the purpose of the application.
+See the [Set Origin](#set-origin) section for more details on that.
+
+BASIC USAGE
+-----------
 
 Add a standard font and some text:
 
@@ -103,4 +110,21 @@ $doc->addPage($page);
 
 $pdf = new Pdf();
 $pdf->outputToHttp($doc);
+```
+
+### Set Origin
+
+Options for setting the origin of the document are:
+
+* ORIGIN_TOP_LEFT
+* ORIGIN_TOP_RIGHT
+* ORIGIN_BOTTOM_LEFT
+* ORIGIN_BOTTOM_RIGHT
+* ORIGIN_CENTER
+
+```php
+use Pop\Pdf\Document;
+
+$doc = new Document();
+$doc->setOrigin(Document::ORIGIN_TOP_LEFT);
 ```
