@@ -22,15 +22,14 @@ The PDF coordinate system starts with x, y origin (0, 0) at the bottom left. Thi
 user if the user prefers to set the origin to a different point for the purpose of the application.
 See the [Set Origin](#set-origin) section for more details on that.
 
-BASIC USAGE
------------
+# BASIC USAGE
 
-* [Add a standard font](#Add-a-standard-font-and-add-some-text)
+* [Add a standard font](#add-a-standard-font-and-add-some-text)
 * [Embed a font and add some text](#embed-a-font-and-add-some-text)
 * [Embed an image](#embed-an-image)
 * [Draw a rectangle](#draw-a-rectangle)
 * [Add a URL link](#add-a-url-link)
-* [Import from another PDF document](#Import-from-another-pdf-document)
+* [Import from another PDF document](#import-from-another-pdf-document)
 * [Set Origin](#set-origin)
 
 ### Add a standard font and add some text
@@ -52,6 +51,8 @@ $doc->addPage($page);
 $pdf = new Pdf();
 $pdf->outputToHttp($doc);
 ```
+
+[Top](#basic-usage)
 
 ### Embed a font and add some text
 
@@ -75,6 +76,8 @@ $pdf = new Pdf();
 $pdf->outputToHttp($doc);
 ```
 
+[Top](#basic-usage)
+
 ### Embed an image
 
 ```php
@@ -93,6 +96,8 @@ $doc->addPage($page);
 $pdf = new Pdf();
 $pdf->outputToHttp($doc);
 ```
+
+[Top](#basic-usage)
 
 ### Draw a rectangle
 
@@ -120,6 +125,8 @@ $pdf = new Pdf();
 $pdf->outputToHttp($doc);
 ```
 
+[Top](#basic-usage)
+
 ### Add a URL link
 
 ```php
@@ -141,6 +148,8 @@ $pdf = new Pdf();
 $pdf->outputToHttp($doc);
 ```
 
+[Top](#basic-usage)
+
 ### Import from another PDF document
 
 ```php
@@ -159,6 +168,8 @@ $doc->getPage(3)->addImage(new Image('/path/to/some/image.jpg'), 100, 600);
 $pdf->outputToHttp($doc);
 ```
 
+[Top](#basic-usage)
+
 ### Set Origin
 
 Options for setting the origin of the document are:
@@ -175,3 +186,5 @@ use Pop\Pdf\Document;
 $doc = new Document();
 $doc->setOrigin(Document::ORIGIN_TOP_LEFT);
 ```
+
+[Top](#basic-usage)
