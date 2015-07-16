@@ -1,19 +1,22 @@
-Pop PDF
+pop-pdf
 =======
 
 [![Build Status](https://travis-ci.org/popphp/pop-pdf.svg?branch=master)](https://travis-ci.org/popphp/pop-pdf)
+[![Coverage Status](http://www.popphp.org/cc/coverage.php?comp=pop-pdf)](http://www.popphp.org/cc/pop-pdf/)
 
 OVERVIEW
 --------
-Pop PDF is a component of the Pop PHP Framework 2. It is a powerful and robust PDF processing
-component that's simple to use. With it, you can create PDF documents from scratch, or import
-existing ones and add to or modify them. It supports embedding images, fonts and URLs, as well
-as a set of drawing, effect and type features.
+Pop PDF is a powerful and robust PDF processing component that's simple to use. With it,
+you can create PDF documents from scratch, or import existing ones and add to or modify
+them. It supports embedding images, fonts and URLs, as well as a set of drawing, effect
+and type features.
+
+`pop-pdf` is a component of the [Pop PHP Framework](http://www.popphp.org/).
 
 INSTALL
 -------
 
-Install `Pop PDF` using Composer.
+Install `pop-pdf` using Composer.
 
     composer require popphp/pop-pdf
 
