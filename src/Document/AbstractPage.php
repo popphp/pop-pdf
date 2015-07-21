@@ -151,7 +151,7 @@ abstract class AbstractPage implements PageInterface
     /**
      * Set the page width
      *
-     * @param  mixed
+     * @param  mixed $width
      * @return Page
      */
     public function setWidth($width)
@@ -163,7 +163,7 @@ abstract class AbstractPage implements PageInterface
     /**
      * Set the page height
      *
-     * @param  mixed
+     * @param  mixed $height
      * @return Page
      */
     public function setHeight($height)
