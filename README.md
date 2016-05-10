@@ -2,7 +2,7 @@ pop-pdf
 =======
 
 [![Build Status](https://travis-ci.org/popphp/pop-pdf.svg?branch=master)](https://travis-ci.org/popphp/pop-pdf)
-[![Coverage Status](http://www.popphp.org/cc/coverage.php?comp=pop-pdf)](http://www.popphp.org/cc/pop-pdf/)
+[![Coverage Status](http://cc.popphp.org/coverage.php?comp=pop-pdf)](http://cc.popphp.org/pop-pdf/)
 
 OVERVIEW
 --------
@@ -82,7 +82,7 @@ use Pop\Pdf\Document\Page;
 
 $doc = new Document();
 
-$legal = $doc->createPage(Page::LEGAL); 
+$legal = $doc->createPage(Page::LEGAL);
 
 // Do some things to the pages, add text, images, etc.
 
@@ -243,7 +243,7 @@ use Pop\Pdf\Document\Page\Image;
 $pdf = new Pdf();
 $doc = $pdf->importFromFile('/path/to/six-page-document.pdf', [2, 4, 6]);
 
-// Add an image to page 3 (formerly page 6) 
+// Add an image to page 3 (formerly page 6)
 $doc->getPage(3)->addImage(new Image('/path/to/some/image.jpg'), 100, 600);
 
 $pdf->outputToHttp($doc);
