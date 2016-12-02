@@ -1,9 +1,6 @@
 pop-pdf
 =======
 
-[![Build Status](https://travis-ci.org/popphp/pop-pdf.svg?branch=master)](https://travis-ci.org/popphp/pop-pdf)
-[![Coverage Status](http://cc.popphp.org/coverage.php?comp=pop-pdf)](http://cc.popphp.org/pop-pdf/)
-
 OVERVIEW
 --------
 Pop PDF is a powerful and robust PDF processing component that's simple to use. With it,
