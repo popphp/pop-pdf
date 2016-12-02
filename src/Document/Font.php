@@ -19,11 +19,11 @@ use Pop\Pdf\Build\Font\Parser;
  * Pdf font class
  *
  * @category   Pop
- * @package    Pop_Pdf
+ * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
  * @copyright  Copyright (c) 2009-2016 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    2.1.0
+ * @version    3.0.0
  */
 class Font
 {

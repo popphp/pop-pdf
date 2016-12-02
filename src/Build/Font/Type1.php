@@ -17,11 +17,11 @@ namespace Pop\Pdf\Build\Font;
  * Type1 font class
  *
  * @category   Pop
- * @package    Pop_Pdf
+ * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
  * @copyright  Copyright (c) 2009-2016 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    2.1.0
+ * @version    3.0.0
  */
 class Type1 extends AbstractFont
 {
