@@ -42,7 +42,6 @@ class Os2 extends AbstractTable
      * Instantiate a OTF 'OS/2' table object.
      *
      * @param  \Pop\Pdf\Build\Font\TrueType $font
-     * @return Os2
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {

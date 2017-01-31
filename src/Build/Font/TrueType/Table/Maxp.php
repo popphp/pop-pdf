@@ -40,7 +40,6 @@ class Maxp extends AbstractTable
      * Instantiate a TTF 'maxp' table object.
      *
      * @param  \Pop\Pdf\Build\Font\TrueType $font
-     * @return Maxp
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {

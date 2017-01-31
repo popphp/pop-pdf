@@ -43,7 +43,6 @@ class Page extends AbstractPage
      * @param  mixed $height
      * @param  int   $i
      * @throws Exception
-     * @return Page
      */
     public function __construct($size, $height = null, $i = null)
     {

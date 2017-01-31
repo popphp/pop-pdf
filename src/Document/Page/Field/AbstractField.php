@@ -90,7 +90,6 @@ abstract class AbstractField implements FieldInterface
      * @param  string $name
      * @param  string $font
      * @param  int    $size
-     * @return AbstractField
      */
     public function __construct($name, $font = null, $size = 12)
     {

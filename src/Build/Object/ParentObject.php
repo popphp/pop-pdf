@@ -44,7 +44,6 @@ class ParentObject extends AbstractObject
      * Instantiate a PDF parent object.
      *
      * @param  int $index
-     * @return ParentObject
      */
     public function __construct($index = 2)
     {

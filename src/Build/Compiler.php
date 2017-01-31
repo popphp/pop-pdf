@@ -230,25 +230,33 @@ class Compiler extends AbstractCompiler
         } else {
             $contentObject = $this->objects[$pageObject->getCurrentContentIndex()];
         }
-        foreach ($images as $image) {
+        foreach ($images as $key => $image) {
             $coordinates = $this->getCoordinates($image['x'], $image['y'], $pageObject);
-            if (!array_key_exists($image['image']->getImage(), $imgs)) {
+            if (!array_key_exists($key, $imgs)) {
                 $i = $this->lastIndex() + 1;
-                $imageParser = new Image\Parser(
-                    $image['image']->getImage(), $coordinates['x'], $coordinates['y'],
-                    $image['image']->getResizeDimensions(), $image['image']->isPreserveResolution()
-                );
+                if ($image['image']->isStream()) {
+                    $imageParser = Image\Parser::createImageFromStream(
+                        $image['image']->getStream(), $coordinates['x'], $coordinates['y'],
+                        $image['image']->getResizeDimensions(), $image['image']->isPreserveResolution()
+                    );
+                } else {
+                    $imageParser = Image\Parser::createImageFromFile(
+                        $image['image']->getImage(), $coordinates['x'], $coordinates['y'],
+                        $image['image']->getResizeDimensions(), $image['image']->isPreserveResolution()
+                    );
+                }
+
                 $imageParser->setIndex($i);
                 $contentObject->appendStream($imageParser->getStream());
                 $pageObject->addXObjectReference($imageParser->getXObject());
                 foreach ($imageParser->getObjects() as $oi => $imageObject) {
                     $this->objects[$oi] = $imageObject;
                 }
-                $imgs[$image['image']->getImage()] = $imageParser;
+                $imgs[$key] = $imageParser;
             } else {
-                $imgs[$image['image']->getImage()]->setX($coordinates['x']);
-                $imgs[$image['image']->getImage()]->setY($coordinates['y']);
-                $contentObject->appendStream($imgs[$image['image']->getImage()]->getStream());
+                $imgs[$key]->setX($coordinates['x']);
+                $imgs[$key]->setY($coordinates['y']);
+                $contentObject->appendStream($imgs[$key]->getStream());
             }
         }
     }

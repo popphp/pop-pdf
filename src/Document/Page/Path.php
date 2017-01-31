@@ -72,7 +72,6 @@ class Path
      * Instantiate a PDF path object
      *
      * @param  string $style
-     * @return Path
      */
     public function __construct($style = Path::STROKE)
     {

@@ -59,7 +59,6 @@ class Cmyk extends AbstractColor
      * @param  mixed $m   0 - 100
      * @param  mixed $y   0 - 100
      * @param  mixed $k   0 - 100
-     * @return Cmyk
      */
     public function __construct($c, $m, $y, $k)
     {

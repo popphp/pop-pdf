@@ -49,7 +49,6 @@ class Document extends AbstractDocument
      *
      * @param  Page     $page
      * @param  Metadata $metadata
-     * @return Document
      */
     public function __construct(Page $page = null, Metadata $metadata = null)
     {

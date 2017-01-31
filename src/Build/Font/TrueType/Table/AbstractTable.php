@@ -44,7 +44,6 @@ abstract class AbstractTable extends \ArrayObject implements TableInterface
      * Instantiate an abstract object.
      *
      * @param  mixed $data
-     * @return AbstractTable
      */
     public function __construct($data = [])
     {

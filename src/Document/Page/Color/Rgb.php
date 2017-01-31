@@ -52,7 +52,6 @@ class Rgb extends AbstractColor
      * @param  mixed $r   0 - 255
      * @param  mixed $g   0 - 255
      * @param  mixed $b   0 - 255
-     * @return Rgb
      */
     public function __construct($r, $g, $b)
     {

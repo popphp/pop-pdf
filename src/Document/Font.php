@@ -106,7 +106,6 @@ class Font
      * Instantiate a PDF font.
      *
      * @param  string $font
-     * @return Font
      */
     public function __construct($font)
     {

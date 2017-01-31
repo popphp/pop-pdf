@@ -38,7 +38,6 @@ class Gray extends AbstractColor
      * Instantiate a PDF Gray Color object
      *
      * @param  mixed $gray   0 - 100
-     * @return Gray
      */
     public function __construct($gray)
     {

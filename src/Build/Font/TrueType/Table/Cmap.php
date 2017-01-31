@@ -41,7 +41,6 @@ class Cmap extends AbstractTable
      * Instantiate a TTF 'cmap' table object.
      *
      * @param  \Pop\Pdf\Build\Font\TrueType $font
-     * @return Cmap
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {

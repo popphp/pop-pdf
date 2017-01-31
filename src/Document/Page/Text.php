@@ -92,7 +92,6 @@ class Text
      *
      * @param  string $string
      * @param  string $size
-     * @return Text
      */
     public function __construct($string, $size)
     {

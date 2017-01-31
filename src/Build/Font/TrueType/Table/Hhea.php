@@ -42,7 +42,6 @@ class Hhea extends AbstractTable
      * Instantiate a TTF 'hhea' table object.
      *
      * @param  \Pop\Pdf\Build\Font\TrueType $font
-     * @return Hhea
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {

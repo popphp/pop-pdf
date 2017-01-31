@@ -40,7 +40,6 @@ class Hmtx extends AbstractTable
      * Instantiate a TTF 'hmtx' table object.
      *
      * @param  \Pop\Pdf\Build\Font\TrueType $font
-     * @return Hmtx
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {

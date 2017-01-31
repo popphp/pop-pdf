@@ -32,79 +32,85 @@ class Parser
      * Image width
      * @var int
      */
-    protected $width           = 0;
+    protected $width = 0;
 
     /**
      * Image height
      * @var int
      */
-    protected $height          = 0;
+    protected $height = 0;
 
     /**
      * Image mime
      * @var string
      */
-    protected $mime            = null;
+    protected $mime = null;
 
     /**
      * Image color mode
      * @var mixed
      */
-    protected $colorMode       = null;
+    protected $colorMode = null;
 
     /**
      * Number of channels in the image
      * @var int
      */
-    protected $channels        = 0;
+    protected $channels = 0;
 
     /**
      * Image bit-depth
      * @var int
      */
-    protected $depth           = 0;
+    protected $depth = 0;
 
     /**
      * Image basename
      * @var string
      */
-    protected $basename        = null;
+    protected $basename = null;
 
     /**
      * Image filename
      * @var string
      */
-    protected $filename        = null;
+    protected $filename = null;
 
     /**
      * Image extension
      * @var string
      */
-    protected $extension       = null;
+    protected $extension = null;
 
     /**
      * Image fullpath
      * @var string
      */
-    protected $fullpath        = null;
+    protected $fullpath = null;
+
+    /**
+     * Image stream
+     * @var string
+     */
+    protected $stream = null;
 
     /**
      * Image total number of colors
      * @var int
      */
-    protected $colorTotal      = 0;
+    protected $colorTotal = 0;
 
     /**
      * Flag for if the image has an alpha channel
      * @var boolean
      */
-    protected $alpha           = false;
+    protected $alpha = false;
 
     /**
      * Image data
      * @var mixed
      */
-    protected $imageData       = null;
+    protected $imageData = null;
 
     /**
      * Image data length
@@ -120,13 +126,13 @@ class Parser
 
     /**
      * Image X Coordinate
-     * @var array
+     * @var int
      */
     protected $x = 0;
 
     /**
      * Image Y Coordinate
-     * @var array
+     * @var int
      */
     protected $y = 0;
 
@@ -159,36 +165,65 @@ class Parser
      *
      * Instantiate a image parser object
      *
-     * @param  string  $imageFile
-     * @param  int     $x
-     * @param  int     $y
-     * @param  array   $resize
-     * @param  boolean $preserveResolution
-     * @throws Exception
-     * @return Parser
+     * @param  int $x
+     * @param  int $y
      */
-    public function __construct($imageFile, $x, $y, array $resize = null, $preserveResolution = false)
+    public function __construct($x, $y)
     {
-        $this->setImage($imageFile, $resize, $preserveResolution);
         $this->setX($x);
         $this->setY($y);
     }
 
     /**
-     * Set the image file
+     * Create image from file
+     *
+     * @param  string  $imageFile
+     * @param  int     $x
+     * @param  int     $y
+     * @param  array   $resize
+     * @param  boolean $preserveResolution
+     * @return Parser
+     */
+    public static function createImageFromFile($imageFile, $x, $y, array $resize = null, $preserveResolution = false)
+    {
+        $parser = new self($x, $y);
+        $parser->loadImageFromFile($imageFile, $resize, $preserveResolution);
+        return $parser;
+    }
+
+    /**
+     * Create image from stream
+     *
+     * @param  string  $imageStream
+     * @param  int     $x
+     * @param  int     $y
+     * @param  array   $resize
+     * @param  boolean $preserveResolution
+     * @return Parser
+     */
+    public static function createImageFromStream($imageStream, $x, $y, array $resize = null, $preserveResolution = false)
+    {
+        $parser = new self($x, $y);
+        $parser->loadImageFromStream($imageStream, $resize, $preserveResolution);
+        return $parser;
+    }
+
+    /**
+     * Load image from file
      *
      * @param  string $imageFile
      * @param  array   $resize
      * @param  boolean $preserveResolution
      * @return Parser
      */
-    public function setImage($imageFile, array $resize = null, $preserveResolution = false)
+    public function loadImageFromFile($imageFile, array $resize = null, $preserveResolution = false)
     {
         $parts           = pathinfo($imageFile);
         $this->fullpath  = realpath($imageFile);
         $this->basename  = $parts['basename'];
         $this->filename  = $parts['filename'];
         $this->extension = (isset($parts['extension']) && ($parts['extension'] != '')) ? $parts['extension'] : null;
+        $this->stream    = null;
 
         // Convert GIF image to PNG
         if (strtolower($this->extension) == 'gif') {
@@ -219,55 +254,72 @@ class Parser
         $this->imageData       = file_get_contents($this->fullpath);
         $this->imageDataLength = strlen($this->imageData);
 
-        if (substr(strtolower($this->extension), 0, 2) == 'jp') {
-            switch ($this->channels) {
-                case 1:
-                    $this->colorMode = 'Gray';
-                    break;
-                case 3:
-                    $this->colorMode = 'RGB';
-                    break;
-                case 4:
-                    $this->colorMode = 'CMYK';
-                    break;
-            }
-        } else if (strtolower($this->extension) == 'png') {
-            $colorType  = ord($this->imageData[25]);
-            switch ($colorType) {
-                case 0:
-                    $this->channels  = 1;
-                    $this->colorMode = 'Gray';
-                    break;
-                case 2:
-                    $this->channels  = 3;
-                    $this->colorMode = 'RGB';
-                    break;
-                case 3:
-                    $this->channels  = 3;
-                    $this->colorMode = 'Indexed';
-                    break;
-                case 4:
-                    $this->channels  = 1;
-                    $this->colorMode = 'Gray';
-                    $this->alpha     = true;
-                    break;
-                case 6:
-                    $this->channels  = 3;
-                    $this->colorMode = 'RGB';
-                    $this->alpha     = true;
-                    break;
-            }
+        $this->parseImageData();
+
+        return $this;
+    }
+
+    /**
+     * Load image from stream
+     *
+     * @param  string  $imageStream
+     * @param  array   $resize
+     * @param  boolean $preserveResolution
+     * @return Parser
+     */
+    public function loadImageFromStream($imageStream, array $resize = null, $preserveResolution = false)
+    {
+        $this->stream = $imageStream;
+        $imgSize      = getimagesizefromstring($this->stream);
+
+        $this->fullpath = null;
+
+        switch ($imgSize['mime']) {
+            case 'image/jpeg':
+                $this->basename  = 'image.jpg';
+                $this->filename  = 'image';
+                $this->extension = 'jpg';
+                break;
+            case 'image/gif':
+                $this->basename  = 'image.gif';
+                $this->filename  = 'image';
+                $this->extension = 'gif';
+                break;
+            case 'image/png':
+                $this->basename  = 'image.png';
+                $this->filename  = 'image';
+                $this->extension = 'png';
+                break;
         }
 
-        $this->createResource();
+        // Convert GIF image to PNG
+        if (strtolower($this->extension) == 'gif') {
+            $this->convertImage();
+        } else {
+            $this->mime = (strtolower($this->extension) == 'png') ? 'image/png' : 'image/jpeg';
+        }
 
-        // Image clean up if the image was converted or resized.
-        if ((null !== $this->convertedImage) && file_exists($this->convertedImage)) {
-            unlink($this->convertedImage);
+        // If resize dimensions are passed
+        if ((null !== $resize) && !($preserveResolution)) {
+            $this->resizeImage($resize);
         }
-        if ((null !== $this->resizedImage) && file_exists($this->resizedImage)) {
-            unlink($this->resizedImage);
+
+        // Set image properties.
+        if ((null !== $resize) && ($preserveResolution)) {
+            $this->width  = $resize['width'];
+            $this->height = $resize['height'];
+        } else {
+            $this->width  = $imgSize[0];
+            $this->height = $imgSize[1];
         }
+
+        $this->channels = (isset($imgSize['channels'])) ? $imgSize['channels'] : null;
+        $this->depth    = (isset($imgSize['bits'])) ? $imgSize['bits'] : null;
+
+        $this->imageData       = $this->stream;
+        $this->imageDataLength = strlen($this->imageData);
+
+        $this->parseImageData();
 
         return $this;
     }
@@ -390,6 +442,64 @@ class Parser
     }
 
     /**
+     * Parse image data
+     *
+     * @return void
+     */
+    protected function parseImageData()
+    {
+        if (substr(strtolower($this->extension), 0, 2) == 'jp') {
+            switch ($this->channels) {
+                case 1:
+                    $this->colorMode = 'Gray';
+                    break;
+                case 3:
+                    $this->colorMode = 'RGB';
+                    break;
+                case 4:
+                    $this->colorMode = 'CMYK';
+                    break;
+            }
+        } else if (strtolower($this->extension) == 'png') {
+            $colorType  = ord($this->imageData[25]);
+            switch ($colorType) {
+                case 0:
+                    $this->channels  = 1;
+                    $this->colorMode = 'Gray';
+                    break;
+                case 2:
+                    $this->channels  = 3;
+                    $this->colorMode = 'RGB';
+                    break;
+                case 3:
+                    $this->channels  = 3;
+                    $this->colorMode = 'Indexed';
+                    break;
+                case 4:
+                    $this->channels  = 1;
+                    $this->colorMode = 'Gray';
+                    $this->alpha     = true;
+                    break;
+                case 6:
+                    $this->channels  = 3;
+                    $this->colorMode = 'RGB';
+                    $this->alpha     = true;
+                    break;
+            }
+        }
+
+        $this->createResource();
+
+        // Image clean up if the image was converted or resized.
+        if ((null !== $this->convertedImage) && file_exists($this->convertedImage)) {
+            unlink($this->convertedImage);
+        }
+        if ((null !== $this->resizedImage) && file_exists($this->resizedImage)) {
+            unlink($this->resizedImage);
+        }
+    }
+
+    /**
      * Parse the PNG image data
      *
      * @throws Exception
@@ -493,7 +603,9 @@ class Parser
      */
     protected function createResource()
     {
-        if (file_exists($this->fullpath)) {
+        if (null !== $this->stream) {
+            $this->resource = imagecreatefromstring($this->stream);
+        } else if (file_exists($this->fullpath)) {
             switch ($this->mime) {
                 case 'image/gif':
                     $this->resource = imagecreatefromgif($this->fullpath);
@@ -519,7 +631,10 @@ class Parser
         $this->convertedImage = realpath(sys_get_temp_dir()) . DIRECTORY_SEPARATOR . $this->filename . '_' . time() . '.png';
 
         // Convert the GIF to PNG, save and clear the output buffer.
-        $resource = imagecreatefromgif($this->fullpath);
+
+        $resource = (null !== $this->stream) ?
+            imagecreatefromstring($this->stream) : imagecreatefromgif($this->fullpath);
+
         imageinterlace($resource, 0);
         imagepng($resource, $this->convertedImage);
 
@@ -529,7 +644,11 @@ class Parser
         $this->mime      = 'image/png';
 
         // Redefine the image object properties with the new values.
-        $this->fullpath = $this->convertedImage;
+        if (null !== $this->stream) {
+            $this->stream = file_get_contents($this->convertedImage);
+        } else {
+            $this->fullpath = $this->convertedImage;
+        }
         $this->basename = basename($this->convertedImage);
         $this->filename = basename($this->convertedImage, '.png');
     }
@@ -547,25 +666,36 @@ class Parser
         $this->resizedImage = realpath(sys_get_temp_dir()) . DIRECTORY_SEPARATOR . $this->filename . '_' . time() . '.' . $this->extension;
 
         // Get image properties.
-        $imgSize  = getimagesize($this->fullpath);
-        $width    = $imgSize[0];
-        $height   = $imgSize[1];
-        $output   = imagecreatetruecolor($resize['width'], $resize['height']);
-        $resource = ($this->mime == 'image/png') ?
-            imagecreatefrompng($this->fullpath) : imagecreatefromjpeg($this->fullpath);
+        if (null !== $this->stream) {
+            $imgSize  = getimagesizefromstring($this->stream);
+            $resource = imagecreatefromstring($this->stream);
+        } else {
+            $imgSize  = getimagesize($this->fullpath);
+            $resource = ($this->mime == 'image/png') ?
+                imagecreatefrompng($this->fullpath) : imagecreatefromjpeg($this->fullpath);
+        }
+
+        $width  = $imgSize[0];
+        $height = $imgSize[1];
+        $output = imagecreatetruecolor($resize['width'], $resize['height']);
 
         imagecopyresampled($output, $resource, 0, 0, 0, 0, $resize['width'], $resize['height'], $width, $height);
 
         if ($this->mime == 'image/png') {
             imagepng($output, $this->resizedImage, 1);
+            $this->filename = basename($this->resizedImage, '.png');
         } else {
             imagejpeg($output, $this->resizedImage, 90);
+            $this->filename = basename($this->resizedImage, '.jpg');
         }
 
-        // Redefine the image object properties with the new values.
-        $this->fullpath = $this->resizedImage;
         $this->basename = basename($this->resizedImage);
-        $this->filename = basename($this->resizedImage, '.png');
+
+        if (null !== $this->stream) {
+            $this->stream = file_get_contents($this->resizedImage);
+        } else {
+            $this->fullpath = $this->resizedImage;
+        }
     }
 
     /**

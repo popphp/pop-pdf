@@ -33,6 +33,12 @@ class Image
     protected $image = null;
 
     /**
+     * Image stream
+     * @var string
+     */
+    protected $stream = null;
+
+    /**
      * Image width
      * @var int
      */
@@ -57,41 +63,78 @@ class Image
     protected $preserveResolution = false;
 
     /**
-     * Constructor
+     * Create PDF image object from file
      *
-     * Instantiate a PDF image object.
-     *
-     * @param  string $image
-     * @return Image
-     */
-    public function __construct($image)
-    {
-        $this->setImage($image);
-    }
-
-    /**
-     * Set the image file name
-     *
-     * @param  string $image
+     * @param  string $file
      * @throws Exception
      * @return Image
      */
-    public function setImage($image)
+    public static function createImageFromFile($file)
     {
-        if (!file_exists($image)) {
+        $image = new self();
+        $image->loadImageFromFile($file);
+        return $image;
+    }
+
+    /**
+     * Create PDF image object from data stream
+     *
+     * @param  string $stream
+     * @throws Exception
+     * @return Image
+     */
+    public static function createImageFromStream($stream)
+    {
+        $image = new self();
+        $image->loadImageFromStream($stream);
+        return $image;
+    }
+
+    /**
+     * Load image from file
+     *
+     * @param  string $file
+     * @throws Exception
+     * @return Image
+     */
+    public function loadImageFromFile($file)
+    {
+        if (!file_exists($file)) {
             throw new Exception('Error: That image file does not exist.');
         }
 
-        $parts     = pathinfo($image);
-        $extension = (isset($parts['extension']) && ($parts['extension'] != '')) ? strtolower($parts['extension']) : null;
+        $imgSize = getimagesize($file);
 
-        if ((substr($extension, 0, 2) != 'jp') && ($extension != 'gif') && ($extension != 'png')) {
+        if (!isset($imgSize['mime']) ||
+            (isset($imgSize['mime']) && ($imgSize['mime'] != 'image/jpeg') && ($imgSize['mime'] != 'image/gif') && ($imgSize['mime'] != 'image/png'))) {
             throw new Exception('Error: That image type is not supported. Only GIF, JPG and PNG image types are supported.');
         }
 
         // Set image properties.
-        $this->image  = $image;
-        $imgSize      = getimagesize($this->image);
+        $this->image  = $file;
+        $this->width  = $imgSize[0];
+        $this->height = $imgSize[1];
+
+        return $this;
+    }
+
+    /**
+     * Load image from stream
+     *
+     * @param  string $stream
+     * @throws Exception
+     * @return Image
+     */
+    public function loadImageFromStream($stream)
+    {
+        $imgSize = getimagesizefromstring($stream);
+
+        if (!isset($imgSize['mime']) ||
+            (isset($imgSize['mime']) && ($imgSize['mime'] != 'image/jpeg') && ($imgSize['mime'] != 'image/gif') && ($imgSize['mime'] != 'image/png'))) {
+            throw new Exception('Error: That image type is not supported. Only GIF, JPG and PNG image types are supported.');
+        }
+
+        $this->stream = $stream;
         $this->width  = $imgSize[0];
         $this->height = $imgSize[1];
 
@@ -171,13 +214,43 @@ class Image
     }
 
     /**
-     * Get the image file name
+     * Is image file
+     *
+     * @return boolean
+     */
+    public function isFile()
+    {
+        return ((null !== $this->image) && (null === $this->stream));
+    }
+
+    /**
+     * Is image stream
+     *
+     * @return boolean
+     */
+    public function isStream()
+    {
+        return ((null !== $this->stream) && (null === $this->image));
+    }
+
+    /**
+     * Get the image file
      *
      * @return string
      */
     public function getImage()
     {
         return $this->image;
+    }
+
+    /**
+     * Get the image stream
+     *
+     * @return string
+     */
+    public function getStream()
+    {
+        return $this->stream;
     }
 
     /**

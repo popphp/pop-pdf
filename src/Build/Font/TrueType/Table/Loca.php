@@ -40,7 +40,6 @@ class Loca extends AbstractTable
      * Instantiate a TTF 'loca' table object.
      *
      * @param  \Pop\Pdf\Build\Font\TrueType $font
-     * @return Loca
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {

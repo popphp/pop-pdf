@@ -32,7 +32,6 @@ class OpenType extends \Pop\Pdf\Build\Font\TrueType
      * Instantiate a OpenType font file object based on a pre-existing font file on disk.
      *
      * @param  string $font
-     * @return OpenType
      */
     public function __construct($font)
     {

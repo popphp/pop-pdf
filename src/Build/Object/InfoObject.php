@@ -45,7 +45,6 @@ class InfoObject extends AbstractObject
      *
      * @param  int $index
      * @param  \Pop\Pdf\Document\Metadata $metadata
-     * @return InfoObject
      */
     public function __construct($index = 3, \Pop\Pdf\Document\Metadata $metadata = null)
     {

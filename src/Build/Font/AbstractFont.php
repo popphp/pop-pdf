@@ -115,7 +115,6 @@ abstract class AbstractFont extends \ArrayObject
      *
      * @param  string $font
      * @throws Exception
-     * @return AbstractFont
      */
     public function __construct($font)
     {

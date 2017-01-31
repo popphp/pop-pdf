@@ -78,7 +78,6 @@ class Parser
      * @param  string  $fontFile
      * @param  boolean $compression
      * @throws Exception
-     * @return Parser
      */
     public function __construct($fontFile, $compression = false)
     {

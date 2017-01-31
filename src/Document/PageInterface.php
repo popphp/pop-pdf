@@ -32,7 +32,7 @@ interface PageInterface
      * Set the page width
      *
      * @param  mixed $width
-     * @return Page
+     * @return PageInterface
      */
     public function setWidth($width);
 
@@ -40,7 +40,7 @@ interface PageInterface
      * Set the page height
      *
      * @param  mixed $height
-     * @return Page
+     * @return PageInterface
      */
     public function setHeight($height);
 
@@ -48,7 +48,7 @@ interface PageInterface
      * Set the page index
      *
      * @param  int $i
-     * @return Page
+     * @return PageInterface
      */
     public function setIndex($i);
 
@@ -79,7 +79,7 @@ interface PageInterface
      * @param  Page\Image $image
      * @param  int        $x
      * @param  int        $y
-     * @return Page
+     * @return PageInterface
      */
     public function addImage(Page\Image $image, $x = 0, $y = 0);
 
@@ -90,7 +90,7 @@ interface PageInterface
      * @param  string    $font
      * @param  int       $x
      * @param  int       $y
-     * @return Page
+     * @return PageInterface
      */
     public function addText(Page\Text $text, $font, $x = 0, $y = 0);
 
@@ -100,7 +100,7 @@ interface PageInterface
      * @param  Annotation\AbstractAnnotation $annotation
      * @param  int                           $x
      * @param  int                           $y
-     * @return Page
+     * @return PageInterface
      */
     public function addAnnotation(Annotation\AbstractAnnotation $annotation, $x = 0, $y = 0);
 
@@ -110,7 +110,7 @@ interface PageInterface
      * @param  Annotation\Url $url
      * @param  int            $x
      * @param  int            $y
-     * @return Page
+     * @return PageInterface
      */
     public function addUrl(Annotation\Url $url, $x = 0, $y = 0);
 
@@ -120,7 +120,7 @@ interface PageInterface
      * @param  Annotation\Link $link
      * @param  int             $x
      * @param  int             $y
-     * @return Page
+     * @return PageInterface
      */
     public function addLink(Annotation\Link $link, $x = 0, $y = 0);
 
@@ -128,7 +128,7 @@ interface PageInterface
      * Add a path to the Pdf page
      *
      * @param  Page\Path $path
-     * @return Page
+     * @return PageInterface
      */
     public function addPath(Page\Path $path);
 

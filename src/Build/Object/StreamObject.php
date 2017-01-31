@@ -68,7 +68,6 @@ class StreamObject extends AbstractObject
      * Instantiate a PDF stream object.
      *
      * @param  int $index
-     * @return StreamObject
      */
     public function __construct($index = 5)
     {

@@ -50,7 +50,6 @@ class RootObject extends AbstractObject
      * Instantiate a PDF root object.
      *
      * @param  int $index
-     * @return RootObject
      */
     public function __construct($index = 1)
     {

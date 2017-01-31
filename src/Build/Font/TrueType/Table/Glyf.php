@@ -41,7 +41,6 @@ class Glyf extends AbstractTable
      * Instantiate a TTF 'glyf' table object.
      *
      * @param  \Pop\Pdf\Build\Font\TrueType $font
-     * @return Glyf
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {

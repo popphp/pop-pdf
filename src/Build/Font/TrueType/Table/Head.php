@@ -38,7 +38,6 @@ class Head extends AbstractTable
      * Instantiate a TTF 'head' table object.
      *
      * @param  \Pop\Pdf\Build\Font\TrueType $font
-     * @return Head
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {

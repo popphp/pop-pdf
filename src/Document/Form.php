@@ -44,7 +44,6 @@ class Form
      * Instantiate a PDF form object.
      *
      * @param  string $name
-     * @return Form
      */
     public function __construct($name)
     {

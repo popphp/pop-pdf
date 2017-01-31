@@ -41,7 +41,6 @@ class Post extends AbstractTable
      * Instantiate a TTF 'post' table object.
      *
      * @param  \Pop\Pdf\Build\Font\TrueType $font
-     * @return Post
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {
