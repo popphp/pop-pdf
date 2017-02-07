@@ -33,7 +33,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $doc->addForm(new Form('contact_form'));
 
         $page1 = new Page(Page::LETTER);
-        $page1->addImage(new Page\Image(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page1->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
         $page1->addText(new Page\Text('Hello World', 36), $doc->getCurrentFont(), 50, 400);
         $page1->addText(new Page\Text('Hello World', 12), 'Arial', 50, 350);
 
@@ -52,7 +52,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
 
         $page3 = new Page(Page::LETTER);
         $page3->addText(new Page\Text('Hello World', 12), 'Arial', 50, 350);
-        $page3->addImage(new Page\Image(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page3->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
         $page3->addPath($path);
 
         $doc->addPages([$page1, $page2, $page3]);
@@ -74,7 +74,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $doc->addForm(new Form('contact_form'));
 
         $page1 = new Page(Page::LETTER);
-        $page1->addImage(new Page\Image(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page1->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
         $page1->addText(new Page\Text('Hello World', 36), $doc->getCurrentFont(), 50, 400);
         $page1->addText(new Page\Text('Hello World', 12), 'Arial', 50, 350);
 
@@ -97,7 +97,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $doc->addForm(new Form('contact_form'));
 
         $page1 = new Page(Page::LETTER);
-        $page1->addImage(new Page\Image(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page1->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
         $page1->addText(new Page\Text('Hello World', 36), $doc->getCurrentFont(), 50, 400);
         $page1->addText(new Page\Text('Hello World', 12), 'Arial', 50, 350);
 
@@ -120,7 +120,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $doc->addForm(new Form('contact_form'));
 
         $page1 = new Page(Page::LETTER);
-        $page1->addImage(new Page\Image(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page1->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
         $page1->addText(new Page\Text('Hello World', 36), $doc->getCurrentFont(), 50, 400);
         $page1->addText(new Page\Text('Hello World', 12), 'Arial', 50, 350);
 
@@ -143,7 +143,7 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $doc->addForm(new Form('contact_form'));
 
         $page1 = new Page(Page::LETTER);
-        $page1->addImage(new Page\Image(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page1->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
         $page1->addText(new Page\Text('Hello World', 36), $doc->getCurrentFont(), 50, 400);
         $page1->addText(new Page\Text('Hello World', 12), 'Arial', 50, 350);
 

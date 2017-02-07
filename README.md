@@ -167,7 +167,7 @@ use Pop\Pdf\Document\Page\Image;
 $doc = new Document();
 
 $page = new Page(Page::LETTER);
-$page->addImage(new Image('/path/to/some/image.jpg'), 100, 600);
+$page->addImage(Image::createImageFromFile('/path/to/some/image.jpg'), 100, 600);
 
 $doc->addPage($page);
 
@@ -241,7 +241,7 @@ $pdf = new Pdf();
 $doc = $pdf->importFromFile('/path/to/six-page-document.pdf', [2, 4, 6]);
 
 // Add an image to page 3 (formerly page 6)
-$doc->getPage(3)->addImage(new Image('/path/to/some/image.jpg'), 100, 600);
+$doc->getPage(3)->addImage(Image::createImageFromFile('/path/to/some/image.jpg'), 100, 600);
 
 $pdf->outputToHttp($doc);
 ```

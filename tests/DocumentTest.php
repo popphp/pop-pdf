@@ -44,14 +44,14 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
 
     public function testGetPageException()
     {
-        $this->setExpectedException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Exception');
         $doc  = new Document();
         $page = $doc->getPage(1);
     }
 
     public function testCopyPageException()
     {
-        $this->setExpectedException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->createPage(Page::LEGAL);
         $doc->copyPage(3);
@@ -69,7 +69,7 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
 
     public function testOrderPagesBadCountException()
     {
-        $this->setExpectedException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->addPages([new Page(Page::LETTER), new Page(Page::LETTER)]);
         $doc->createPage(Page::LEGAL);
@@ -79,7 +79,7 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
 
     public function testOrderPagesPageNotExistException()
     {
-        $this->setExpectedException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->addPages([new Page(Page::LETTER), new Page(Page::LETTER)]);
         $doc->createPage(Page::LEGAL);
@@ -98,7 +98,7 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
 
     public function testDeletePageException()
     {
-        $this->setExpectedException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->addPages([new Page(Page::LETTER), new Page(Page::LETTER)]);
         $doc->createPage(Page::LEGAL);
@@ -115,7 +115,7 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
 
     public function testAddFontException()
     {
-        $this->setExpectedException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->addFont(new Font(__DIR__ . '/tmp/fonts/times.ttf'));
     }
@@ -131,7 +131,7 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
 
     public function testEmbedFontException()
     {
-        $this->setExpectedException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->embedFont(new Font('Arial'));
     }
@@ -148,7 +148,7 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
 
     public function testGetFontException()
     {
-        $this->setExpectedException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $this->assertInstanceOf('Pop\Pdf\Document\Font', $doc->getFont('Arial'));
     }
@@ -164,7 +164,7 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
 
     public function testSetCurrentPageException()
     {
-        $this->setExpectedException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->addPages([new Page(Page::LETTER), new Page(Page::LETTER)]);
         $doc->setCurrentPage(8);
@@ -180,7 +180,7 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
 
     public function testSetCurrentFontException()
     {
-        $this->setExpectedException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->setCurrentFont('Arial');
     }

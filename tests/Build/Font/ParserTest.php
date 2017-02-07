@@ -19,31 +19,31 @@ class ParserTest extends \PHPUnit_Framework_TestCase
 
     public function testConstructorDoesNotExistException()
     {
-        $this->setExpectedException('Pop\Pdf\Build\Font\Exception');
+        $this->expectException('Pop\Pdf\Build\Font\Exception');
         $font = new Parser('bad-font.ttf');
     }
 
     public function testConstructorNotExtensionException()
     {
-        $this->setExpectedException('Pop\Pdf\Build\Font\Exception');
+        $this->expectException('Pop\Pdf\Build\Font\Exception');
         $font = new Parser(__DIR__ . '/../../tmp/fonts/bad-font');
     }
 
     public function testConstructorNotAllowedException()
     {
-        $this->setExpectedException('Pop\Pdf\Build\Font\Exception');
+        $this->expectException('Pop\Pdf\Build\Font\Exception');
         $font = new Parser(__DIR__ . '/../../tmp/fonts/bad-font.bad');
     }
 
     public function testConstructorBadFontException()
     {
-        $this->setExpectedException('Pop\Pdf\Build\Font\Exception');
+        $this->expectException('Pop\Pdf\Build\Font\Exception');
         $font = new Parser('font.bad');
     }
 
     public function testConstructorNoAfmException()
     {
-        $this->setExpectedException('Pop\Pdf\Build\Font\Exception');
+        $this->expectException('Pop\Pdf\Build\Font\Exception');
         $pfb = new Parser(__DIR__ . '/../../tmp/fonts/cez.pfb');
     }
 
@@ -74,7 +74,7 @@ class ParserTest extends \PHPUnit_Framework_TestCase
 
     public function testParseNoIndicesSetException()
     {
-        $this->setExpectedException('Pop\Pdf\Build\Font\Exception');
+        $this->expectException('Pop\Pdf\Build\Font\Exception');
         $font = new Parser(__DIR__ . '/../../tmp/fonts/s050000l.pfb');
         $font->parse();
     }

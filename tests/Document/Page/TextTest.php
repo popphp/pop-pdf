@@ -62,7 +62,7 @@ class TextTest extends \PHPUnit_Framework_TestCase
 
     public function testSetRotationException()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $text = new Text('Hello World', 12);
         $text->setRotation(120);
     }
@@ -75,14 +75,14 @@ class TextTest extends \PHPUnit_Framework_TestCase
 
     public function testSetTextParamsException1()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $text = new Text('Hello World', 12);
         $text->setTextParams(10, 10, 10, 10, -120, 1);
     }
 
     public function testSetTextParamsException2()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $text = new Text('Hello World', 12);
         $text->setTextParams(10, 10, 10, 10, -45, 10);
     }

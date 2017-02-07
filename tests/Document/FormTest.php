@@ -9,7 +9,7 @@ class FontTest extends \PHPUnit_Framework_TestCase
 
     public function testSetFontException()
     {
-        $this->setExpectedException('Pop\Pdf\Document\Exception');
+        $this->expectException('Pop\Pdf\Document\Exception');
         $font = new Font('BAD_FONT');
     }
 

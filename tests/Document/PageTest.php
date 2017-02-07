@@ -15,7 +15,7 @@ class PageTest extends \PHPUnit_Framework_TestCase
 
     public function testConstructorBadSize()
     {
-        $this->setExpectedException('Pop\Pdf\Document\Exception');
+        $this->expectException('Pop\Pdf\Document\Exception');
         $page = new Page('BAD_SIZE');
     }
 

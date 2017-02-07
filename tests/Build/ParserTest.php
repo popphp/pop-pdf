@@ -17,7 +17,7 @@ class ParserTest extends \PHPUnit_Framework_TestCase
 
     public function testInitFileDoesNotExistException()
     {
-        $this->setExpectedException('Pop\Pdf\Build\Exception');
+        $this->expectException('Pop\Pdf\Build\Exception');
         $parser = new Parser();
         $parser->parse(__DIR__ . '/../tmp/bad.pdf');
     }

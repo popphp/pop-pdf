@@ -108,7 +108,7 @@ class PathTest extends \PHPUnit_Framework_TestCase
 
     public function testDrawPolygonException()
     {
-        $this->setExpectedException('Pop\Pdf\Document\Page\Exception');
+        $this->expectException('Pop\Pdf\Document\Page\Exception');
         $path = new Path();
         $path->drawPolygon([[]]);
     }
@@ -187,14 +187,14 @@ class PathTest extends \PHPUnit_Framework_TestCase
 
     public function testCalculateDegreesException1()
     {
-        $this->setExpectedException('Pop\Pdf\Document\Page\Exception');
+        $this->expectException('Pop\Pdf\Document\Page\Exception');
         $path = new Path();
         $path->drawArc(320, 240, -50, 100, 200);
     }
 
     public function testCalculateDegreesException2()
     {
-        $this->setExpectedException('Pop\Pdf\Document\Page\Exception');
+        $this->expectException('Pop\Pdf\Document\Page\Exception');
         $path = new Path();
         $path->drawArc(320, 240, 150, 100, 200);
     }

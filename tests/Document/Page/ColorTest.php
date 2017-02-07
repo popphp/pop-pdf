@@ -32,49 +32,49 @@ class ColorTest extends \PHPUnit_Framework_TestCase
 
     public function testSetROutOfRangeException()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $color = new Color\Rgb(300, 128, 0);
     }
 
     public function testSetGOutOfRangeException()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $color = new Color\Rgb(255, -10, 0);
     }
 
     public function testSetBOutOfRangeException()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $color = new Color\Rgb(255, 128, 400);
     }
 
     public function testSetCOutOfRangeException()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $color = new Color\Cmyk(1000, 75, 50, 0);
     }
 
     public function testSetMOutOfRangeException()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $color = new Color\Cmyk(100, 1000, 75, 50);
     }
 
     public function testSetYOutOfRangeException()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $color = new Color\Cmyk(100, 75, -10, 50);
     }
 
     public function testSetKOutOfRangeException()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $color = new Color\Cmyk(100, 75, 10, -50);
     }
 
     public function testSetGrayOutOfRangeException()
     {
-        $this->setExpectedException('OutOfRangeException');
+        $this->expectException('OutOfRangeException');
         $color = new Color\Gray(1000);
     }
 
