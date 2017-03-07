@@ -251,6 +251,51 @@ abstract class AbstractFont extends \ArrayObject
     }
 
     /**
+     * Get the widths for the glyphs
+     *
+     * @param  array $glyphs
+     * @return array
+     */
+    public function getWidthsForGlyphs(array $glyphs)
+    {
+        $widths = [];
+
+        foreach ($glyphs as $glyph) {
+            if (isset($this->allowed['glyphWidths'][$glyph])) {
+                $widths[] = $this->allowed['glyphWidths'][$glyph];
+            }
+        }
+
+        return $widths;
+    }
+
+    /**
+     * Attempt to get string width
+     *
+     * @param  string $string
+     * @param  mixed  $size
+     * @return mixed
+     */
+    public function getStringWidth($string, $size)
+    {
+        $width = null;
+
+        $drawingString = iconv('UTF-8', 'UTF-16BE//IGNORE', $string);
+        $characters    = [];
+
+        for ($i = 0; $i < strlen($drawingString); $i++) {
+            $characters[] = (ord($drawingString[$i++]) << 8 ) | ord($drawingString[$i]);
+        }
+
+        if (count($this->allowed['glyphWidths']) > 0) {
+            $widths = $this->getWidthsForGlyphs($characters);
+            $width  = (array_sum($widths) / $this->allowed['unitsPerEm']) * $size;
+        }
+
+        return $width;
+    }
+
+    /**
      * Method to calculate the font flags
      *
      * @return int

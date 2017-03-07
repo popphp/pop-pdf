@@ -163,6 +163,16 @@ class Parser
     }
 
     /**
+     * Get the font object
+     *
+     * @return AbstractFont
+     */
+    public function getFont()
+    {
+        return $this->font;
+    }
+
+    /**
      * Get the font index
      *
      * @return int
@@ -282,7 +292,7 @@ class Parser
             $fontType     = 'TrueType';
             $fontName     = $this->font->tables['name']->postscriptName;
             $fontFile     = 'FontFile2';
-            $glyphWidths  = $this->getGlyphWidths($this->font->tables['cmap']);
+            $glyphWidths  = $this->getGlyphWidthsFromCmap($this->font->tables['cmap']);
             $unCompStream = $this->font->read();
             $length1      = strlen($unCompStream);
             $length2      = null;
@@ -319,12 +329,12 @@ class Parser
     }
 
     /**
-     * Method to to get the glyph widths
+     * Method to to get the glyph widths from the CMap
      *
      * @param  TrueType\Table\Cmap $cmap
      * @return array
      */
-    protected function getGlyphWidths(TrueType\Table\Cmap $cmap)
+    protected function getGlyphWidthsFromCmap(TrueType\Table\Cmap $cmap)
     {
         $gw       = ['encoding' => null, 'widths' => []];
         $uniTable = null;

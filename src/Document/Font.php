@@ -13,6 +13,7 @@
  */
 namespace Pop\Pdf\Document;
 
+use Pop\Pdf\Build\Font\AbstractFont;
 use Pop\Pdf\Build\Font\Parser;
 
 /**
@@ -184,6 +185,16 @@ class Font
     public function getStandardFonts()
     {
         return $this->standardFonts;
+    }
+
+    /**
+     * Get the font parser
+     *
+     * @return AbstractFont
+     */
+    public function getParsedFont()
+    {
+        return (null !== $this->parser) ? $this->parser->getFont() : null;
     }
 
     /**
