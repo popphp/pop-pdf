@@ -165,7 +165,7 @@ abstract class AbstractFont extends \ArrayObject
     public function read($offset = null, $length = null)
     {
         if (null !== $offset) {
-            $data = (null !== $length) ?
+            $data = ((null !== $length) && ((int)$length >= 0)) ?
                 file_get_contents($this->fullpath, null, null, $offset, $length) :
                 file_get_contents($this->fullpath, null, null, $offset);
         } else {
