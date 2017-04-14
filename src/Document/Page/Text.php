@@ -119,12 +119,12 @@ class Text
     /**
      * Set the text size
      *
-     * @param  int $size
+     * @param  int|float $size
      * @return Text
      */
     public function setSize($size)
     {
-        $this->size = (int)$size;
+        $this->size = $size;
         return $this;
     }
 
@@ -227,7 +227,7 @@ class Text
     /**
      * Get the text size
      *
-     * @return int
+     * @return int|float
      */
     public function getSize()
     {
