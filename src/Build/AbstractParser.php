@@ -85,12 +85,11 @@ abstract class AbstractParser implements ParserInterface
     }
 
     /**
-     * Parse the data stream
+     * Parse the PDF data
      *
-     * @param  string $file
      * @param  mixed  $pages
      * @return \Pop\Pdf\AbstractDocument
      */
-    abstract public function parse($file, $pages = null);
+    abstract public function parse($pages = null);
 
 }

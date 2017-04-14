@@ -41,12 +41,11 @@ interface ParserInterface
     public function getData();
 
     /**
-     * Parse the data stream
+     * Parse the pdf data
      *
-     * @param  string $file
      * @param  mixed  $pages
      * @return \Pop\Pdf\AbstractDocument
      */
-    public function parse($file, $pages = null);
+    public function parse($pages = null);
 
 }

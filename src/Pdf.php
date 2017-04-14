@@ -38,7 +38,20 @@ class Pdf extends AbstractPdf
     public function importFromFile($file, $pages = null)
     {
         $parser = new Build\Parser();
-        return $parser->parse($file, $pages);
+        return $parser->parseFile($file, $pages);
+    }
+
+    /**
+     * Import from raw data
+     *
+     * @param  string $data
+     * @param  mixed  $pages
+     * @return AbstractDocument
+     */
+    public function importRawData($data, $pages = null)
+    {
+        $parser = new Build\Parser();
+        return $parser->parseData($data, $pages);
     }
 
     /**

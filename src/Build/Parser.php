@@ -75,16 +75,39 @@ class Parser extends AbstractParser
     }
 
     /**
-     * Parse the data stream
+     * Parse from file
      *
      * @param  string $file
      * @param  mixed  $pages
      * @return \Pop\Pdf\AbstractDocument
      */
-    public function parse($file, $pages = null)
+    public function parseFile($file, $pages = null)
     {
-        $this->init($file);
+        $this->initFile($file);
+        return $this->parse($pages);
+    }
 
+    /**
+     * Parse from raw data stream
+     *
+     * @param  string $data
+     * @param  mixed  $pages
+     * @return \Pop\Pdf\AbstractDocument
+     */
+    public function parseData($data, $pages = null)
+    {
+        $this->initData($data);
+        return $this->parse($pages);
+    }
+
+    /**
+     * Parse the data stream
+     *
+     * @param  mixed  $pages
+     * @return \Pop\Pdf\AbstractDocument
+     */
+    public function parse($pages = null)
+    {
         $matches = [];
         preg_match_all('/\d*\s\d*\sobj(.*?)endobj/sm', $this->data, $matches, PREG_OFFSET_CAPTURE);
 
@@ -140,7 +163,7 @@ class Parser extends AbstractParser
      * @throws Exception
      * @return Parser
      */
-    protected function init($file)
+    protected function initFile($file)
     {
         if (!file_exists($file)) {
             throw new Exception('Error: That PDF file does not exist.');
@@ -148,6 +171,24 @@ class Parser extends AbstractParser
 
         $this->file = $file;
         $this->data = file_get_contents($this->file);
+
+        $this->objectStreams = [];
+        $this->objectMap     = [];
+        $this->fonts         = [];
+
+        return $this;
+    }
+
+    /**
+     * Initialize data
+     *
+     * @param  string $data
+     * @throws Exception
+     * @return Parser
+     */
+    protected function initData($data)
+    {
+        $this->data = $data;
 
         $this->objectStreams = [];
         $this->objectMap     = [];
