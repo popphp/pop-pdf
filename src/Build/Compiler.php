@@ -117,13 +117,13 @@ class Compiler extends AbstractCompiler
             if ($page->hasImages()) {
                 $this->prepareImages($page->getImages(), $pageObject);
             }
-            // Prepare text objects
-            if ($page->hasText()) {
-                $this->prepareText($page->getText(), $pageObject);
-            }
             // Prepare path objects
             if ($page->hasPaths()) {
                 $this->preparePaths($page->getPaths(), $pageObject);
+            }
+            // Prepare text objects
+            if ($page->hasText()) {
+                $this->prepareText($page->getText(), $pageObject);
             }
             // Prepare field objects
             if ($page->hasFields()) {
