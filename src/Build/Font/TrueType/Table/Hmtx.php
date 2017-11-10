@@ -49,13 +49,15 @@ class Hmtx extends AbstractTable
 
         for ($i = 0; $i < $font->numberOfHMetrics; $i++) {
             $ary = unpack('nglyphWidth/', $font->read($bytePos, 2));
-            $this->glyphWidths[$i] = $font->shiftToSigned($ary['glyphWidth']);
+            $this->allowed['glyphWidths'][$i] = $font->shiftToSigned($ary['glyphWidth']);
             $bytePos += 4;
         }
 
-        while (count($this->glyphWidths) < $font->numberOfGlyphs) {
-            $this->glyphWidths[] = end($this->glyphWidths);
+        while (count($this->allowed['glyphWidths']) < $font->numberOfGlyphs) {
+            $this->allowed['glyphWidths'] = end($this->allowed['glyphWidths']);
         }
+
+        $this->glyphWidths = $this->allowed['glyphWidths'];
     }
 
 }

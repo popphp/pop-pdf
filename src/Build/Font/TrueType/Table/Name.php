@@ -67,6 +67,7 @@ class Name extends AbstractTable
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {
+        $ary = (array)$font->tableInfo['name'];
         $font->tableInfo['name']->header = new \ArrayObject(
             unpack(
                 'nformatSelector/' .
@@ -100,6 +101,10 @@ class Name extends AbstractTable
             }
 
             $bytePos = $ttfRecordOffset;
+        }
+
+        foreach ($this->allowed as $key => $value) {
+            $this->{$key} = $value;
         }
 
         parent::__construct($this->allowed);

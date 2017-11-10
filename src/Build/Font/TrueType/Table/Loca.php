@@ -52,9 +52,11 @@ class Loca extends AbstractTable
 
         for ($i = 0; $i < ($font->numberOfGlyphs + 1); $i++) {
             $ary = unpack($format . 'offset', $font->read($bytePos, $byteLength));
-            $this->offsets[$i] = $ary['offset'] * $multiplier;
+            $this->allowed['offsets'][$i] = $ary['offset'] * $multiplier;
             $bytePos += $byteLength;
         }
+
+        $this->offsets = $this->allowed['offsets'];
     }
 
 }

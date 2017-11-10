@@ -47,13 +47,17 @@ class OpenType extends \Pop\Pdf\Build\Font\TrueType
     {
         // OS/2
         if (isset($this->tableInfo['OS/2'])) {
-            $this->tables['OS/2'] = new Table\Os2($this);
+            $this->allowed['tables']['OS/2'] = new Table\Os2($this);
 
-            $this->flags->isSerif = $this->tables['OS/2']->flags->isSerif;
-            $this->flags->isScript = $this->tables['OS/2']->flags->isScript;
-            $this->flags->isSymbolic = $this->tables['OS/2']->flags->isSymbolic;
-            $this->flags->isNonSymbolic = $this->tables['OS/2']->flags->isNonSymbolic;
-            $this->capHeight = $this->tables['OS/2']->capHeight;
+            $this->allowed['flags']['isSerif']       = $this->allowed['tables']['OS/2']['flags']['isSerif'];
+            $this->allowed['flags']['isScript']      = $this->allowed['tables']['OS/2']['flags']['isScript'];
+            $this->allowed['flags']['isSymbolic']    = $this->allowed['tables']['OS/2']['flags']['isSymbolic'];
+            $this->allowed['flags']['isNonSymbolic'] = $this->allowed['tables']['OS/2']['flags']['isNonSymbolic'];
+            $this->allowed['capHeight']              = $this->allowed['tables']['OS/2']['capHeight'];
+
+            $this->tables    = $this->allowed['tables'];
+            $this->flags     = $this->allowed['flags'];
+            $this->capHeight = $this->allowed['capHeight'];
         }
     }
 

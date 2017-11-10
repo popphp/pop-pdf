@@ -47,7 +47,7 @@ class Os2 extends AbstractTable
     {
         parent::__construct($this->allowed);
 
-        $this->flags = new \ArrayObject([
+        $this->allowed['flags'] = new \ArrayObject([
             'isFixedPitch'  => false,
             'isSerif'       => false,
             'isSymbolic'    => false,
@@ -61,26 +61,26 @@ class Os2 extends AbstractTable
 
         $bytePos = $font->tableInfo['OS/2']->offset + 8;
         $ary     = unpack("nfsType", $font->read($bytePos, 2));
-        $this->embeddable = (($ary['fsType'] != 2) && (($ary['fsType'] & 0x200) == 0));
+        $this->allowed['embeddable'] = (($ary['fsType'] != 2) && (($ary['fsType'] & 0x200) == 0));
 
         $bytePos = $font->tableInfo['OS/2']->offset + 30;
         $ary     = unpack("nfamily_class", $font->read($bytePos, 2));
         $familyClass = ($font->shiftToSigned($ary['family_class']) >> 8);
 
         if ((($familyClass >= 1) && ($familyClass <= 5)) || ($familyClass == 7)) {
-            $this->flags->isSerif = true;
+            $this->allowed['flags']['isSerif'] = true;
         } else if ($familyClass == 8) {
-            $this->flags->isSerif = false;
+            $this->allowed['flags']['isSerif'] = false;
         }
         if ($familyClass == 10) {
-            $this->flags->isScript = true;
+            $this->allowed['flags']['isScript'] = true;
         }
         if ($familyClass == 12) {
-            $this->flags->isSymbolic = true;
-            $this->flags->isNonSymbolic = false;
+            $this->allowed['flags']['isSymbolic']    = true;
+            $this->allowed['flags']['isNonSymbolic'] = false;
         } else {
-            $this->flags->isSymbolic = false;
-            $this->flags->isNonSymbolic = true;
+            $this->allowed['flags']['isSymbolic']    = false;
+            $this->allowed['flags']['isNonSymbolic'] = true;
         }
 
         // Unicode bit-sniffing may not be necessary.
@@ -93,13 +93,17 @@ class Os2 extends AbstractTable
         );
 
         if (($ary['unicodeRange1'] == 1) && ($ary['unicodeRange2'] == 0) && ($ary['unicodeRange3'] == 0) && ($ary['unicodeRange4'] == 0)) {
-            $this->flags->isSymbolic = false;
-            $this->flags->isNonSymbolic = true;
+            $this->allowed['flags']['isSymbolic']    = false;
+            $this->allowed['flags']['isNonSymbolic'] = true;
         }
 
         $bytePos = $font->tableInfo['OS/2']->offset + 76;
         $ary = unpack("ncap/", $font->read($bytePos, 2));
-        $this->capHeight = $font->toEmSpace($font->shiftToSigned($ary['cap']));
+        $this->allowed['flags']['capHeight'] = $font->toEmSpace($font->shiftToSigned($ary['cap']));
+
+        $this->flags      = $this->allowed['flags'];
+        $this->capHeight  = $this->allowed['flags']['capHeight'];
+        $this->embeddable = $this->allowed['embeddable'];
     }
 
 }

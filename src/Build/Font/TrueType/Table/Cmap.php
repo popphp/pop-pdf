@@ -54,7 +54,8 @@ class Cmap extends AbstractTable
             'nnumberOfTables', $font->read($bytePos, 4)
         );
 
-        $this->header = new \ArrayObject($cmapTableHeader, \ArrayObject::ARRAY_AS_PROPS);
+        $this->allowed['header'] = new \ArrayObject($cmapTableHeader, \ArrayObject::ARRAY_AS_PROPS);
+        $this->header = $this->allowed['header'];
         $this->parseSubTables($font);
     }
 
@@ -69,7 +70,7 @@ class Cmap extends AbstractTable
         $bytePos = $font->tableInfo['cmap']->offset + 4;
 
         // Get each of the sub-table's data.
-        for ($i = 0; $i < $this->header->numberOfTables; $i++) {
+        for ($i = 0; $i < $this->allowed['header']->numberOfTables; $i++) {
             $ary = unpack(
                 'nplatformId/' .
                 'nencodingId/' .
@@ -86,35 +87,37 @@ class Cmap extends AbstractTable
             } else {
                 $ary['encoding'] = 'Unknown';
             }
-            $this->subTables[] = new \ArrayObject($ary, \ArrayObject::ARRAY_AS_PROPS);
+            $this->allowed['subTables'][] = new \ArrayObject($ary, \ArrayObject::ARRAY_AS_PROPS);
             $bytePos += 8;
         }
 
         // Parse each of the sub-table's data.
-        foreach ($this->subTables as $key => $subTable) {
+        foreach ($this->allowed['subTables'] as $key => $subTable) {
             $bytePos = $font->tableInfo['cmap']->offset + $subTable->offset;
             $ary = unpack(
                 'nformat/' .
                 'nlength/' .
                 'nlanguage', $font->read($bytePos, 6)
             );
-            $this->subTables[$key]->format = $ary['format'];
-            $this->subTables[$key]->length = $ary['length'];
-            $this->subTables[$key]->language = $ary['language'];
+            $this->allowed['subTables'][$key]->format = $ary['format'];
+            $this->allowed['subTables'][$key]->length = $ary['length'];
+            $this->allowed['subTables'][$key]->language = $ary['language'];
             $bytePos += 6;
-            $this->subTables[$key]->data = $font->read($bytePos, $ary['length'] - 6);
-            switch ($this->subTables[$key]->format) {
+            $this->allowed['subTables'][$key]->data = $font->read($bytePos, $ary['length'] - 6);
+            switch ($this->allowed['subTables'][$key]->format) {
                 case 0:
-                    $this->subTables[$key]->parsed = Cmap\ByteEncoding::parseData($this->subTables[$key]->data);
+                    $this->allowed['subTables'][$key]->parsed = Cmap\ByteEncoding::parseData($this->allowed['subTables'][$key]->data);
                     break;
                 case 4:
-                    $this->subTables[$key]->parsed = Cmap\SegmentToDelta::parseData($this->subTables[$key]->data);
+                    $this->allowed['subTables'][$key]->parsed = Cmap\SegmentToDelta::parseData($this->allowed['subTables'][$key]->data);
                     break;
                 case 6:
-                    $this->subTables[$key]->parsed = Cmap\TrimmedTable::parseData($this->subTables[$key]->data);
+                    $this->allowed['subTables'][$key]->parsed = Cmap\TrimmedTable::parseData($this->allowed['subTables'][$key]->data);
                     break;
             }
         }
+
+        $this->subTables = $this->allowed['subTables'];
     }
 
 }

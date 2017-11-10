@@ -47,7 +47,9 @@ class Maxp extends AbstractTable
 
         $bytePos = $font->tableInfo['maxp']->offset + 4;
         $ary     = unpack('nnumberOfGlyphs/', $font->read($bytePos, 2));
-        $this->numberOfGlyphs = $ary['numberOfGlyphs'];
+        $this->allowed['numberOfGlyphs'] = $ary['numberOfGlyphs'];
+
+        $this->numberOfGlyphs = $this->allowed['numberOfGlyphs'];
     }
 
 }

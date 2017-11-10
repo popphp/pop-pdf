@@ -55,12 +55,16 @@ class Hhea extends AbstractTable
         );
 
         $ary = $font->shiftToSigned($ary);
-        $this->ascent  = $font->toEmSpace($ary['ascent']);
-        $this->descent = $font->toEmSpace($ary['descent']);
+        $this->allowed['ascent']  = $font->toEmSpace($ary['ascent']);
+        $this->allowed['descent'] = $font->toEmSpace($ary['descent']);
 
         $bytePos = $font->tableInfo['hhea']->offset + 34;
         $ary = unpack('nnumberOfHMetrics/', $font->read($bytePos, 2));
-        $this->numberOfHMetrics = $ary['numberOfHMetrics'];
+        $this->allowed['numberOfHMetrics'] = $ary['numberOfHMetrics'];
+
+        $this->ascent           = $this->allowed['ascent'];
+        $this->descent          = $this->allowed['descent'];
+        $this->numberOfHMetrics = $this->allowed['numberOfHMetrics'];
     }
 
 }

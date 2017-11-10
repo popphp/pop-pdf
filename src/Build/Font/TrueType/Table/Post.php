@@ -49,13 +49,16 @@ class Post extends AbstractTable
         $bytePos = $font->tableInfo['post']->offset + 4;
 
         $italicBytes       = $font->read($bytePos, 4);
-        $this->italicAngle = $font->readFixed(16, 16, $italicBytes);
+        $this->allowed['italicAngle'] = $font->readFixed(16, 16, $italicBytes);
 
         $bytePos += 8;
 
         $ary = unpack('nfixed/', $font->read($bytePos, 2));
         $ary = $font->shiftToSigned($ary);
-        $this->fixed = $ary['fixed'];
+        $this->allowed['fixed'] = $ary['fixed'];
+
+        $this->italicAngle = $this->allowed['italicAngle'];
+        $this->fixed       = $this->allowed['fixed'];
     }
 
 }

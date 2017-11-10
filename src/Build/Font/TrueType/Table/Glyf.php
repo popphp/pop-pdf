@@ -48,6 +48,7 @@ class Glyf extends AbstractTable
 
         $locaLength = count($font->tables['loca']->offsets);
         $j = 0;
+
         foreach ($font->tables['loca']->offsets as $offset) {
             $bytePos = $font->tableInfo['glyf']->offset + $offset;
             $ary = unpack(
@@ -63,7 +64,7 @@ class Glyf extends AbstractTable
             $ary['xMax']  = $font->toEmSpace($ary['xMax']);
             $ary['yMax']  = $font->toEmSpace($ary['yMax']);
             $ary['width'] = $ary['xMin'] + $ary['xMax'];
-            $this->glyphWidths[] = $ary['width'];
+            $this->allowed['glyphWidths'][] = $ary['width'];
 
             $bytePos += 10;
             $ary['endPtsOfContours'] = [];
@@ -103,7 +104,7 @@ class Glyf extends AbstractTable
                     $ary['flags'] = 0;
                 }
                 if ($j < ($locaLength - 1)) {
-                    $this->glyphs[] = $ary;
+                    $this->allowed['glyphs'][] = $ary;
                 }
             // Stopped here. Still need to get the x & y coordinates of the simple glyph.
             // Else, if composite glyph.
@@ -114,6 +115,9 @@ class Glyf extends AbstractTable
             }
             $j++;
         }
+
+        $this->glyphWidths = $this->allowed['glyphWidths'];
+        $this->glyphs      = $this->allowed['glyphs'];
     }
 
 }

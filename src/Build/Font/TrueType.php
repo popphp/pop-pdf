@@ -96,13 +96,13 @@ class TrueType extends AbstractFont
 
         $ttfTable['name'] = $tableName;
 
-        $this->ttfHeader = new \ArrayObject($ttfHeader, \ArrayObject::ARRAY_AS_PROPS);
-        $this->ttfTable = new \ArrayObject($ttfTable, \ArrayObject::ARRAY_AS_PROPS);
+        $this->allowed['ttfHeader'] = new \ArrayObject($ttfHeader, \ArrayObject::ARRAY_AS_PROPS);
+        $this->allowed['ttfTable']  = new \ArrayObject($ttfTable, \ArrayObject::ARRAY_AS_PROPS);
 
         $nameByteOffset = 28;
         $tableByteOffset = 32;
 
-        for ($i = 0; $i < $this->ttfHeader->numberOfTables; $i++) {
+        for ($i = 0; $i < $this->allowed['ttfHeader']['numberOfTables']; $i++) {
             $ttfTableName = $this->read($nameByteOffset, 4);
             $ttfTable = unpack(
                 'Nchecksum/' .
@@ -110,11 +110,15 @@ class TrueType extends AbstractFont
                 'Nlength', $this->read($tableByteOffset, 12)
             );
 
-            $this->tableInfo[trim($ttfTableName)] = new \ArrayObject($ttfTable, \ArrayObject::ARRAY_AS_PROPS);
+            $this->allowed['tableInfo'][trim($ttfTableName)] = new \ArrayObject($ttfTable, \ArrayObject::ARRAY_AS_PROPS);
 
             $nameByteOffset = $tableByteOffset + 12;
             $tableByteOffset = $nameByteOffset + 4;
         }
+
+        $this->ttfHeader = $this->allowed['ttfHeader'];
+        $this->ttfTable  = $this->allowed['ttfTable'];
+        $this->tableInfo = $this->allowed['tableInfo'];
     }
 
     /**
@@ -124,16 +128,19 @@ class TrueType extends AbstractFont
      */
     protected function parseName()
     {
-        if (isset($this->tableInfo['name'])) {
-            $this->tables['name'] = new TrueType\Table\Name($this);
-            $this->info = $this->tables['name'];
-            if ((stripos($this->tables['name']->fontFamily, 'bold') !== false) ||
-                (stripos($this->tables['name']->fullName, 'bold') !== false) ||
-                (stripos($this->tables['name']->postscriptName, 'bold') !== false)) {
-                $this->stemV = 120;
+        if (isset($this->allowed['tableInfo']['name'])) {
+            $this->allowed['tables']['name'] = new TrueType\Table\Name($this);
+            $this->allowed['info'] = $this->allowed['tables']['name'];
+            if ((stripos($this->allowed['tables']['name']['fontFamily'], 'bold') !== false) ||
+                (stripos($this->allowed['tables']['name']['fullName'], 'bold') !== false) ||
+                (stripos($this->allowed['tables']['name']['postscriptName'], 'bold') !== false)) {
+                $this->allowed['stemV'] = 120;
             } else {
-                $this->stemV = 70;
+                $this->allowed['stemV'] = 70;
             }
+
+            $this->tables = $this->allowed['tables'];
+            $this->stemV  = $this->allowed['stemV'];
         }
     }
 
@@ -145,70 +152,92 @@ class TrueType extends AbstractFont
     protected function parseCommonTables()
     {
         // head
-        if (isset($this->tableInfo['head'])) {
-            $this->tables['head'] = new TrueType\Table\Head($this);
+        if (isset($this->allowed['tableInfo']['head'])) {
+            $this->allowed['tables']['head'] = new TrueType\Table\Head($this);
 
-            $this->unitsPerEm = $this->tables['head']->unitsPerEm;
+            $this->allowed['unitsPerEm'] = $this->allowed['tables']['head']['unitsPerEm'];
 
-            $this->tables['head']->xMin = $this->toEmSpace($this->tables['head']->xMin);
-            $this->tables['head']->yMin = $this->toEmSpace($this->tables['head']->yMin);
-            $this->tables['head']->xMax = $this->toEmSpace($this->tables['head']->xMax);
-            $this->tables['head']->yMax = $this->toEmSpace($this->tables['head']->yMax);
+            $this->allowed['tables']['head']['xMin'] = $this->toEmSpace($this->allowed['tables']['head']['xMin']);
+            $this->allowed['tables']['head']['yMin'] = $this->toEmSpace($this->allowed['tables']['head']['yMin']);
+            $this->allowed['tables']['head']['xMax'] = $this->toEmSpace($this->allowed['tables']['head']['xMax']);
+            $this->allowed['tables']['head']['yMax'] = $this->toEmSpace($this->allowed['tables']['head']['yMax']);
 
-            $this->bBox = new \ArrayObject([
-                'xMin' => $this->tables['head']->xMin,
-                'yMin' => $this->tables['head']->yMin,
-                'xMax' => $this->tables['head']->xMax,
-                'yMax' => $this->tables['head']->yMax
+            $this->allowed['bBox'] = new \ArrayObject([
+                'xMin' => $this->allowed['tables']['head']['xMin'],
+                'yMin' => $this->allowed['tables']['head']['yMin'],
+                'xMax' => $this->allowed['tables']['head']['xMax'],
+                'yMax' => $this->allowed['tables']['head']['yMax']
             ], \ArrayObject::ARRAY_AS_PROPS);
 
-            $this->header = $this->tables['head'];
+            $this->allowed['header'] = $this->allowed['tables']['head'];
+
+            $this->tables     = $this->allowed['tables'];
+            $this->header     = $this->allowed['header'];
+            $this->unitsPerEm = $this->allowed['unitsPerEm'];
+            $this->bBox       = $this->allowed['bBox'];
         }
 
         // hhea
-        if (isset($this->tableInfo['hhea'])) {
-            $this->tables['hhea'] = new TrueType\Table\Hhea($this);
-            $this->ascent = $this->tables['hhea']->ascent;
-            $this->descent = $this->tables['hhea']->descent;
-            $this->capHeight = $this->ascent + $this->descent;
-            $this->numberOfHMetrics = $this->tables['hhea']->numberOfHMetrics;
+        if (isset($this->allowed['tableInfo']['hhea'])) {
+            $this->allowed['tables']['hhea'] = new TrueType\Table\Hhea($this);
+            $this->allowed['ascent']           = $this->allowed['tables']['hhea']['ascent'];
+            $this->allowed['descent']          = $this->allowed['tables']['hhea']['descent'];
+            $this->allowed['capHeight']        = $this->allowed['ascent'] + $this->allowed['descent'];
+            $this->allowed['numberOfHMetrics'] = $this->allowed['tables']['hhea']['numberOfHMetrics'];
+
+            $this->tables           = $this->allowed['tables'];
+            $this->ascent           = $this->allowed['ascent'];
+            $this->descent          = $this->allowed['descent'];
+            $this->capHeight        = $this->allowed['capHeight'];
+            $this->numberOfHMetrics = $this->allowed['numberOfHMetrics'];
         }
 
         // maxp
-        if (isset($this->tableInfo['maxp'])) {
-            $this->tables['maxp'] = new TrueType\Table\Maxp($this);
-            $this->numberOfGlyphs = $this->tables['maxp']->numberOfGlyphs;
+        if (isset($this->allowed['tableInfo']['maxp'])) {
+            $this->allowed['tables']['maxp'] = new TrueType\Table\Maxp($this);
+            $this->allowed['numberOfGlyphs'] = $this->allowed['tables']['maxp']['numberOfGlyphs'];
+            $this->tables         = $this->allowed['tables'];
+            $this->numberOfGlyphs = $this->allowed['numberOfGlyphs'];
         }
 
         // post
-        if (isset($this->tableInfo['post'])) {
-            $this->tables['post'] = new TrueType\Table\Post($this);
+        if (isset($this->allowed['tableInfo']['post'])) {
+            $this->allowed['tables']['post'] = new TrueType\Table\Post($this);
 
-            if ($this->tables['post']->italicAngle != 0) {
-                $this->flags->isItalic = true;
-                $this->italicAngle = $this->tables['post']->italicAngle;
+            if ($this->allowed['tables']['post']['italicAngle'] != 0) {
+                $this->allowed['flags']['isItalic'] = true;
+                $this->allowed['italicAngle'] = $this->allowed['tables']['post']['italicAngle'];
             }
 
-            if ($this->tables['post']->fixed != 0) {
-                $this->flags->isFixedPitch = true;
+            if ($this->allowed['tables']['post']['fixed'] != 0) {
+                $this->allowed['flags']['isFixedPitch'] = true;
             }
+
+            $this->tables      = $this->allowed['tables'];
+            $this->flags       = $this->allowed['flags'];
+            $this->italicAngle = $this->allowed['italicAngle'];
         }
 
         // hmtx
-        if (isset($this->tableInfo['hmtx'])) {
-            $this->tables['hmtx'] = new TrueType\Table\Hmtx($this);
-            $this->glyphWidths = $this->tables['hmtx']->glyphWidths;
-            if (isset($this->glyphWidths[0])) {
-                $this->missingWidth = round((1000 / $this->unitsPerEm) * $this->glyphWidths[0]);
+        if (isset($this->allowed['tableInfo']['hmtx'])) {
+            $this->allowed['tables']['hmtx'] = new TrueType\Table\Hmtx($this);
+            $this->allowed['glyphWidths'] = $this->allowed['tables']['hmtx']['glyphWidths'];
+            if (isset($this->allowed['glyphWidths'][0])) {
+                $this->allowed['missingWidth'] = round((1000 / $this->allowed['unitsPerEm']) * $this->allowed['glyphWidths'][0]);
             }
-            foreach ($this->glyphWidths as $key => $value) {
-                $this->glyphWidths[$key] = round((1000 / $this->unitsPerEm) * $value);
+            foreach ($this->allowed['glyphWidths'] as $key => $value) {
+                $this->allowed['glyphWidths'][$key] = round((1000 / $this->allowed['unitsPerEm']) * $value);
             }
+
+            $this->tables       = $this->allowed['tables'];
+            $this->glyphWidths  = $this->allowed['glyphWidths'];
+            $this->missingWidth = $this->allowed['missingWidth'];
         }
 
         // cmap
-        if (isset($this->tableInfo['cmap'])) {
-            $this->tables['cmap'] = new TrueType\Table\Cmap($this);
+        if (isset($this->allowed['tableInfo']['cmap'])) {
+            $this->allowed['tables']['cmap'] = new TrueType\Table\Cmap($this);
+            $this->tables = $this->allowed['tables'];
         }
     }
 
@@ -220,23 +249,29 @@ class TrueType extends AbstractFont
     protected function parseRequiredTables()
     {
         // loca
-        if (isset($this->tableInfo['loca'])) {
-            $this->tables['loca'] = new TrueType\Table\Loca($this);
+        if (isset($this->allowed['tableInfo']['loca'])) {
+            $this->allowed['tables']['loca'] = new TrueType\Table\Loca($this);
+            $this->tables = $this->allowed['tables'];
         }
 
         // glyf
-        if (isset($this->tableInfo['glyf'])) {
-            $this->tables['glyf'] = new TrueType\Table\Glyf($this);
+        if (isset($this->allowed['tableInfo']['glyf'])) {
+            $this->allowed['tables']['glyf'] = new TrueType\Table\Glyf($this);
+            $this->tables = $this->allowed['tables'];
         }
 
         // OS/2 (Optional in a TTF font file)
-        if (isset($this->tableInfo['OS/2'])) {
-            $this->tables['OS/2'] = new TrueType\Table\Os2($this);
-            $this->flags->isSerif = $this->tables['OS/2']->flags->isSerif;
-            $this->flags->isScript = $this->tables['OS/2']->flags->isScript;
-            $this->flags->isSymbolic = $this->tables['OS/2']->flags->isSymbolic;
-            $this->flags->isNonSymbolic = $this->tables['OS/2']->flags->isNonSymbolic;
-            $this->embeddable = $this->tables['OS/2']->embeddable;
+        if (isset($this->allowed['tableInfo']['OS/2'])) {
+            $this->allowed['tables']['OS/2']         = new TrueType\Table\Os2($this);
+            $this->allowed['flags']['isSerif']       = $this->allowed['tables']['OS/2']['flags']['isSerif'];
+            $this->allowed['flags']['isScript']      = $this->allowed['tables']['OS/2']['flags']['isScript'];
+            $this->allowed['flags']['isSymbolic']    = $this->allowed['tables']['OS/2']['flags']['isSymbolic'];
+            $this->allowed['flags']['isNonSymbolic'] = $this->allowed['tables']['OS/2']['flags']['isNonSymbolic'];
+            $this->allowed['embeddable']             = $this->allowed['tables']['OS/2']['embeddable'];
+
+            $this->tables     = $this->allowed['tables'];
+            $this->flags      = $this->allowed['flags'];
+            $this->embeddable = $this->allowed['embeddable'];
         }
     }
 

@@ -79,6 +79,11 @@ class Head extends AbstractTable
         $headerArray['indexToLocFormat'] = $font->shiftToSigned($indexToLocFormat['indexToLocFormat']);
 
         $this->allowed = array_merge($versionArray, $headerArray, $bBox);
+
+        foreach ($this->allowed as $key => $value) {
+            $this->{$key} = $value;
+        }
+
         parent::__construct($this->allowed);
     }
 
