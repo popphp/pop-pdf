@@ -108,9 +108,21 @@ class Font
      *
      * @param  string $font
      */
-    public function __construct($font)
+    public function __construct($font = null)
     {
-        $this->setFont($font);
+        if (null !== $font) {
+            $this->setFont($font);
+        }
+    }
+
+    /**
+     * Get standard PDF fonts in an array
+     *
+     * @return array
+     */
+    public static function standardFonts()
+    {
+        return (new self())->getStandardFonts();
     }
 
     /**
