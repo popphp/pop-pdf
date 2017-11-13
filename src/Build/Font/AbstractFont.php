@@ -23,14 +23,14 @@ namespace Pop\Pdf\Build\Font;
  * @license    http://www.popphp.org/license     New BSD License
  * @version    3.0.0
  */
-abstract class AbstractFont extends \ArrayObject
+abstract class AbstractFont implements \ArrayAccess
 {
 
     /**
-     * Allowed properties
+     * Font properties
      * @var array
      */
-    protected $allowed = [
+    protected $properties = [
         'info'             => null,
         'bBox'             => null,
         'ascent'           => 0,
@@ -122,9 +122,7 @@ abstract class AbstractFont extends \ArrayObject
             throw new Exception('The font file does not exist.');
         }
 
-        parent::__construct($this->allowed, self::ARRAY_AS_PROPS);
-
-        $this->flags = new \ArrayObject([
+        $this->properties['flags'] = new \ArrayObject([
             'isFixedPitch'  => false,
             'isSerif'       => false,
             'isSymbolic'    => false,
@@ -247,7 +245,7 @@ abstract class AbstractFont extends \ArrayObject
      */
     public function toEmSpace($value)
     {
-        return ($this->unitsPerEm == 1000) ? $value : ceil(($value / $this->unitsPerEm) * 1000);
+        return ($this->properties['unitsPerEm'] == 1000) ? $value : ceil(($value / $this->properties['unitsPerEm']) * 1000);
     }
 
     /**
@@ -261,8 +259,8 @@ abstract class AbstractFont extends \ArrayObject
         $widths = [];
 
         foreach ($glyphs as $glyph) {
-            if (isset($this->allowed['glyphWidths'][$glyph])) {
-                $widths[] = $this->allowed['glyphWidths'][$glyph];
+            if (isset($this->properties['glyphWidths'][$glyph])) {
+                $widths[] = $this->properties['glyphWidths'][$glyph];
             }
         }
 
@@ -287,9 +285,9 @@ abstract class AbstractFont extends \ArrayObject
             $characters[] = (ord($drawingString[$i++]) << 8 ) | ord($drawingString[$i]);
         }
 
-        if (count($this->allowed['glyphWidths']) > 0) {
+        if (count($this->properties['glyphWidths']) > 0) {
             $widths = $this->getWidthsForGlyphs($characters);
-            $width  = (array_sum($widths) / $this->allowed['unitsPerEm']) * $size;
+            $width  = (array_sum($widths) / $this->properties['unitsPerEm']) * $size;
         }
 
         return $width;
@@ -304,13 +302,13 @@ abstract class AbstractFont extends \ArrayObject
     {
         $flags = 0;
 
-        if ($this->flags->isFixedPitch) {
+        if ($this->properties['flags']['isFixedPitch']) {
             $flags += 1 << 0;
         }
 
         $flags += 1 << 5;
 
-        if ($this->flags->isItalic) {
+        if ($this->properties['flags']['isItalic']) {
             $flags += 1 << 6;
         }
 
@@ -322,21 +320,11 @@ abstract class AbstractFont extends \ArrayObject
      *
      * @param  string $name
      * @param  mixed  $value
-     * @throws \InvalidArgumentException
      * @return void
      */
     public function offsetSet($name, $value)
     {
-        if (!array_key_exists($name, $this->allowed)) {
-            throw new \InvalidArgumentException("The property '" . $name . "' is not a valid property.");
-        }
-
-        if (in_array($name, $this->readOnly)) {
-            throw new \InvalidArgumentException("The property '" . $name . "' is read only.");
-        }
-
-        $this->allowed[$name] = $value;
-        parent::offsetSet($name, $value);
+        $this->properties[$name] = $value;
     }
 
     /**
@@ -348,11 +336,74 @@ abstract class AbstractFont extends \ArrayObject
      */
     public function offsetGet($name)
     {
-        if (!array_key_exists($name, $this->allowed)) {
-            throw new \InvalidArgumentException("The property '" . $name . "' is not a valid property.");
-        }
+        return (isset($this->properties[$name])) ? $this->properties[$name] : null;
+    }
 
-        return parent::offsetGet($name);
+    /**
+     * Offset exists method
+     *
+     * @param  mixed $offset
+     * @return boolean
+     */
+    public function offsetExists($offset)
+    {
+        return isset($this->properties[$offset]);
+    }
+
+    /**
+     * Offset unset method
+     *
+     * @param  mixed $offset
+     * @return void
+     */
+    public function offsetUnset($offset)
+    {
+        if (isset($this->properties[$offset])) {
+            unset($this->properties[$offset]);
+        }
+    }
+
+    /**
+     * Set method
+     *
+     * @param  string $name
+     * @param  mixed $value
+     * @return void
+     */
+    public function __set($name, $value)
+    {
+        $this->offsetSet($name, $value);
+    }
+
+    /**
+     * Get method
+     *
+     * @param  string $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        return $this->offsetGet($name);
+    }
+    /**
+     * Isset method
+     *
+     * @param  string $name
+     * @return boolean
+     */
+    public function __isset($name)
+    {
+        return $this->offsetExists($name);
+    }
+    /**
+     * Unset fields[$name]
+     *
+     * @param  string $name
+     * @return void
+     */
+    public function __unset($name)
+    {
+        $this->offsetUnset($name);
     }
 
 }

@@ -27,10 +27,10 @@ class Os2 extends AbstractTable
 {
 
     /**
-     * Allowed properties
+     * Font table properties
      * @var array
      */
-    protected $allowed = [
+    protected $properties = [
         'capHeight'  => 0,
         'embeddable' => true,
         'flags'      => null
@@ -45,9 +45,7 @@ class Os2 extends AbstractTable
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {
-        parent::__construct($this->allowed);
-
-        $this->allowed['flags'] = new \ArrayObject([
+        $this->properties['flags'] = new \ArrayObject([
             'isFixedPitch'  => false,
             'isSerif'       => false,
             'isSymbolic'    => false,
@@ -61,26 +59,26 @@ class Os2 extends AbstractTable
 
         $bytePos = $font->tableInfo['OS/2']->offset + 8;
         $ary     = unpack("nfsType", $font->read($bytePos, 2));
-        $this->allowed['embeddable'] = (($ary['fsType'] != 2) && (($ary['fsType'] & 0x200) == 0));
+        $this->properties['embeddable'] = (($ary['fsType'] != 2) && (($ary['fsType'] & 0x200) == 0));
 
         $bytePos = $font->tableInfo['OS/2']->offset + 30;
         $ary     = unpack("nfamily_class", $font->read($bytePos, 2));
         $familyClass = ($font->shiftToSigned($ary['family_class']) >> 8);
 
         if ((($familyClass >= 1) && ($familyClass <= 5)) || ($familyClass == 7)) {
-            $this->allowed['flags']['isSerif'] = true;
+            $this->properties['flags']['isSerif'] = true;
         } else if ($familyClass == 8) {
-            $this->allowed['flags']['isSerif'] = false;
+            $this->properties['flags']['isSerif'] = false;
         }
         if ($familyClass == 10) {
-            $this->allowed['flags']['isScript'] = true;
+            $this->properties['flags']['isScript'] = true;
         }
         if ($familyClass == 12) {
-            $this->allowed['flags']['isSymbolic']    = true;
-            $this->allowed['flags']['isNonSymbolic'] = false;
+            $this->properties['flags']['isSymbolic']    = true;
+            $this->properties['flags']['isNonSymbolic'] = false;
         } else {
-            $this->allowed['flags']['isSymbolic']    = false;
-            $this->allowed['flags']['isNonSymbolic'] = true;
+            $this->properties['flags']['isSymbolic']    = false;
+            $this->properties['flags']['isNonSymbolic'] = true;
         }
 
         // Unicode bit-sniffing may not be necessary.
@@ -93,17 +91,13 @@ class Os2 extends AbstractTable
         );
 
         if (($ary['unicodeRange1'] == 1) && ($ary['unicodeRange2'] == 0) && ($ary['unicodeRange3'] == 0) && ($ary['unicodeRange4'] == 0)) {
-            $this->allowed['flags']['isSymbolic']    = false;
-            $this->allowed['flags']['isNonSymbolic'] = true;
+            $this->properties['flags']['isSymbolic']    = false;
+            $this->properties['flags']['isNonSymbolic'] = true;
         }
 
         $bytePos = $font->tableInfo['OS/2']->offset + 76;
         $ary = unpack("ncap/", $font->read($bytePos, 2));
-        $this->allowed['flags']['capHeight'] = $font->toEmSpace($font->shiftToSigned($ary['cap']));
-
-        $this->flags      = $this->allowed['flags'];
-        $this->capHeight  = $this->allowed['flags']['capHeight'];
-        $this->embeddable = $this->allowed['embeddable'];
+        $this->properties['flags']['capHeight'] = $font->toEmSpace($font->shiftToSigned($ary['cap']));
     }
 
 }

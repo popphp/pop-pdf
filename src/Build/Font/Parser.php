@@ -356,19 +356,25 @@ class Parser
         if (null !== $msTable) {
             $gw['encoding'] = 'WinAnsiEncoding';
             foreach ($cmap->subTables[$msTable]->parsed['glyphNumbers'] as $key => $value) {
-                $gw['widths'][$key] = $this->font->glyphWidths[$value];
+                if (isset($this->font->glyphWidths[$value])) {
+                    $gw['widths'][$key] = $this->font->glyphWidths[$value];
+                }
             }
         } else if (null !== $uniTable) {
             $gw['encoding'] = 'WinAnsiEncoding';
             foreach ($cmap->subTables[$uniTable]->parsed['glyphNumbers'] as $key => $value) {
-                $gw['widths'][$key] = $this->font->glyphWidths[$value];
+                if (isset($this->font->glyphWidths[$value])) {
+                    $gw['widths'][$key] = $this->font->glyphWidths[$value];
+                }
             }
         } else if (null !== $macTable) {
             $gw['encoding'] = 'MacRomanEncoding';
             foreach ($cmap->subTables[$macTable]->parsed as $key => $value) {
                 if (($this->font->glyphWidths[$value->ascii] != 0) &&
                     ($this->font->glyphWidths[$value->ascii] != $this->font->missingWidth)) {
-                    $gw['widths'][$key] = $this->font->glyphWidths[$value->ascii];
+                    if (isset($this->font->glyphWidths[$value->ascii])) {
+                        $gw['widths'][$key] = $this->font->glyphWidths[$value->ascii];
+                    }
                 }
             }
         }

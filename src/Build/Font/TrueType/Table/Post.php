@@ -27,10 +27,10 @@ class Post extends AbstractTable
 {
 
     /**
-     * Allowed properties
+     * Font table properties
      * @var array
      */
-    protected $allowed = [
+    protected $properties = [
         'italicAngle' => 0,
         'fixed'       => 0
     ];
@@ -44,21 +44,16 @@ class Post extends AbstractTable
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {
-        parent::__construct($this->allowed);
-
         $bytePos = $font->tableInfo['post']->offset + 4;
 
-        $italicBytes       = $font->read($bytePos, 4);
-        $this->allowed['italicAngle'] = $font->readFixed(16, 16, $italicBytes);
+        $italicBytes  = $font->read($bytePos, 4);
+        $this->properties['italicAngle'] = $font->readFixed(16, 16, $italicBytes);
 
         $bytePos += 8;
 
         $ary = unpack('nfixed/', $font->read($bytePos, 2));
         $ary = $font->shiftToSigned($ary);
-        $this->allowed['fixed'] = $ary['fixed'];
-
-        $this->italicAngle = $this->allowed['italicAngle'];
-        $this->fixed       = $this->allowed['fixed'];
+        $this->properties['fixed'] = $ary['fixed'];
     }
 
 }

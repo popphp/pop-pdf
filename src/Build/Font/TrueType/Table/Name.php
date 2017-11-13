@@ -27,10 +27,10 @@ class Name extends AbstractTable
 {
 
     /**
-     * Allowed properties
+     * Font table properties
      * @var array
      */
-    protected $allowed = [];
+    protected $properties = [];
 
     /**
      * TrueType font info names
@@ -67,14 +67,21 @@ class Name extends AbstractTable
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {
-        $ary = (array)$font->tableInfo['name'];
-        $font->tableInfo['name']->header = new \ArrayObject(
+        $tableInfo = $font->tableInfo;
+
+        if (!isset($tableInfo['name'])) {
+            $tableInfo['name'] = [];
+        }
+
+        $tableInfo['name']['header'] = new \ArrayObject(
             unpack(
                 'nformatSelector/' .
                 'nnameRecordsCount/' .
                 'nstorageOffset', $font->read($font->tableInfo['name']->offset, 6)
             ), \ArrayObject::ARRAY_AS_PROPS
         );
+
+        $font->tableInfo = $tableInfo;
 
         $bytePos = $font->tableInfo['name']->offset + 6;
 
@@ -97,17 +104,11 @@ class Name extends AbstractTable
                 $ttfValue = @iconv('UTF-16be', 'UTF-8//TRANSLIT', $ttfValue);
             }
             if (($ttfValue != '') && isset($ttfRecord['nameId']) && isset($this->names[$ttfRecord['nameId']])) {
-                $this->allowed[$this->names[$ttfRecord['nameId']]] = $ttfValue;
+                $this->properties[$this->names[$ttfRecord['nameId']]] = $ttfValue;
             }
 
             $bytePos = $ttfRecordOffset;
         }
-
-        foreach ($this->allowed as $key => $value) {
-            $this->{$key} = $value;
-        }
-
-        parent::__construct($this->allowed);
     }
 
 }

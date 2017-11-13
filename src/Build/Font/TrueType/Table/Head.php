@@ -27,10 +27,10 @@ class Head extends AbstractTable
 {
 
     /**
-     * Allowed properties
+     * Font table properties
      * @var array
      */
-    protected $allowed = [];
+    protected $properties = [];
 
     /**
      * Constructor
@@ -78,13 +78,7 @@ class Head extends AbstractTable
         $indexToLocFormat = unpack('nindexToLocFormat', $font->read($bytePos, 2));
         $headerArray['indexToLocFormat'] = $font->shiftToSigned($indexToLocFormat['indexToLocFormat']);
 
-        $this->allowed = array_merge($versionArray, $headerArray, $bBox);
-
-        foreach ($this->allowed as $key => $value) {
-            $this->{$key} = $value;
-        }
-
-        parent::__construct($this->allowed);
+        $this->properties = array_merge($versionArray, $headerArray, $bBox);
     }
 
 }

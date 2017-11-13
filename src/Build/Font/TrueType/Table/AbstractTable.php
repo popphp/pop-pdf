@@ -23,14 +23,14 @@ namespace Pop\Pdf\Build\Font\TrueType\Table;
  * @license    http://www.popphp.org/license     New BSD License
  * @version    3.0.0
  */
-abstract class AbstractTable extends \ArrayObject implements TableInterface
+abstract class AbstractTable implements \ArrayAccess, TableInterface
 {
 
     /**
-     * Allowed properties
+     * Font table properties
      * @var array
      */
-    protected $allowed = [];
+    protected $properties = [];
 
     /**
      * Read-only properties
@@ -39,37 +39,15 @@ abstract class AbstractTable extends \ArrayObject implements TableInterface
     protected $readOnly = [];
 
     /**
-     * Constructor
-     *
-     * Instantiate an abstract object.
-     *
-     * @param  mixed $data
-     */
-    public function __construct($data = [])
-    {
-        parent::__construct($data, self::ARRAY_AS_PROPS);
-    }
-
-    /**
      * Offset set method
      *
      * @param  string $name
      * @param  mixed  $value
-     * @throws \InvalidArgumentException
      * @return void
      */
     public function offsetSet($name, $value)
     {
-        if (!array_key_exists($name, $this->allowed)) {
-            throw new \InvalidArgumentException("The property '" . $name . "' is not a valid property.");
-        }
-
-        if (in_array($name, $this->readOnly)) {
-            throw new \InvalidArgumentException("The property '" . $name . "' is read only.");
-        }
-
-        $this->allowed[$name] = $value;
-        parent::offsetSet($name, $value);
+        $this->properties[$name] = $value;
     }
 
     /**
@@ -81,11 +59,74 @@ abstract class AbstractTable extends \ArrayObject implements TableInterface
      */
     public function offsetGet($name)
     {
-        if (!array_key_exists($name, $this->allowed)) {
-            throw new \InvalidArgumentException("The property '" . $name . "' is not a valid property.");
-        }
+        return (isset($this->properties[$name])) ? $this->properties[$name] : null;
+    }
 
-        return parent::offsetGet($name);
+    /**
+     * Offset exists method
+     *
+     * @param  mixed $offset
+     * @return boolean
+     */
+    public function offsetExists($offset)
+    {
+        return isset($this->properties[$offset]);
+    }
+
+    /**
+     * Offset unset method
+     *
+     * @param  mixed $offset
+     * @return void
+     */
+    public function offsetUnset($offset)
+    {
+        if (isset($this->properties[$offset])) {
+            unset($this->properties[$offset]);
+        }
+    }
+
+    /**
+     * Set method
+     *
+     * @param  string $name
+     * @param  mixed $value
+     * @return void
+     */
+    public function __set($name, $value)
+    {
+        $this->offsetSet($name, $value);
+    }
+
+    /**
+     * Get method
+     *
+     * @param  string $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        return $this->offsetGet($name);
+    }
+    /**
+     * Isset method
+     *
+     * @param  string $name
+     * @return boolean
+     */
+    public function __isset($name)
+    {
+        return $this->offsetExists($name);
+    }
+    /**
+     * Unset fields[$name]
+     *
+     * @param  string $name
+     * @return void
+     */
+    public function __unset($name)
+    {
+        $this->offsetUnset($name);
     }
 
 }

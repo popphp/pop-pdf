@@ -27,10 +27,10 @@ class Glyf extends AbstractTable
 {
 
     /**
-     * Allowed properties
+     * Font table properties
      * @var array
      */
-    protected $allowed = [
+    protected $properties = [
         'glyphs'      => [],
         'glyphWidths' => []
     ];
@@ -44,8 +44,6 @@ class Glyf extends AbstractTable
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {
-        parent::__construct($this->allowed);
-
         $locaLength = count($font->tables['loca']->offsets);
         $j = 0;
 
@@ -64,7 +62,7 @@ class Glyf extends AbstractTable
             $ary['xMax']  = $font->toEmSpace($ary['xMax']);
             $ary['yMax']  = $font->toEmSpace($ary['yMax']);
             $ary['width'] = $ary['xMin'] + $ary['xMax'];
-            $this->allowed['glyphWidths'][] = $ary['width'];
+            $this->properties['glyphWidths'][] = $ary['width'];
 
             $bytePos += 10;
             $ary['endPtsOfContours'] = [];
@@ -104,7 +102,7 @@ class Glyf extends AbstractTable
                     $ary['flags'] = 0;
                 }
                 if ($j < ($locaLength - 1)) {
-                    $this->allowed['glyphs'][] = $ary;
+                    $this->properties['glyphs'][] = $ary;
                 }
             // Stopped here. Still need to get the x & y coordinates of the simple glyph.
             // Else, if composite glyph.
@@ -115,9 +113,6 @@ class Glyf extends AbstractTable
             }
             $j++;
         }
-
-        $this->glyphWidths = $this->allowed['glyphWidths'];
-        $this->glyphs      = $this->allowed['glyphs'];
     }
 
 }

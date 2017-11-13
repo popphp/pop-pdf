@@ -47,17 +47,13 @@ class OpenType extends \Pop\Pdf\Build\Font\TrueType
     {
         // OS/2
         if (isset($this->tableInfo['OS/2'])) {
-            $this->allowed['tables']['OS/2'] = new Table\Os2($this);
+            $this->properties['tables']['OS/2'] = new Table\Os2($this);
 
-            $this->allowed['flags']['isSerif']       = $this->allowed['tables']['OS/2']['flags']['isSerif'];
-            $this->allowed['flags']['isScript']      = $this->allowed['tables']['OS/2']['flags']['isScript'];
-            $this->allowed['flags']['isSymbolic']    = $this->allowed['tables']['OS/2']['flags']['isSymbolic'];
-            $this->allowed['flags']['isNonSymbolic'] = $this->allowed['tables']['OS/2']['flags']['isNonSymbolic'];
-            $this->allowed['capHeight']              = $this->allowed['tables']['OS/2']['capHeight'];
-
-            $this->tables    = $this->allowed['tables'];
-            $this->flags     = $this->allowed['flags'];
-            $this->capHeight = $this->allowed['capHeight'];
+            $this->properties['flags']['isSerif']       = $this->properties['tables']['OS/2']['flags']['isSerif'];
+            $this->properties['flags']['isScript']      = $this->properties['tables']['OS/2']['flags']['isScript'];
+            $this->properties['flags']['isSymbolic']    = $this->properties['tables']['OS/2']['flags']['isSymbolic'];
+            $this->properties['flags']['isNonSymbolic'] = $this->properties['tables']['OS/2']['flags']['isNonSymbolic'];
+            $this->properties['capHeight']              = $this->properties['tables']['OS/2']['capHeight'];
         }
     }
 

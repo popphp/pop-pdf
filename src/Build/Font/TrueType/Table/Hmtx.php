@@ -27,10 +27,10 @@ class Hmtx extends AbstractTable
 {
 
     /**
-     * Allowed properties
+     * Font table properties
      * @var array
      */
-    protected $allowed = [
+    protected $properties = [
         'glyphWidths' => []
     ];
 
@@ -43,21 +43,17 @@ class Hmtx extends AbstractTable
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {
-        parent::__construct($this->allowed);
-
         $bytePos = $font->tableInfo['hmtx']->offset;
 
         for ($i = 0; $i < $font->numberOfHMetrics; $i++) {
             $ary = unpack('nglyphWidth/', $font->read($bytePos, 2));
-            $this->allowed['glyphWidths'][$i] = $font->shiftToSigned($ary['glyphWidth']);
+            $this->properties['glyphWidths'][$i] = $font->shiftToSigned($ary['glyphWidth']);
             $bytePos += 4;
         }
 
-        while (count($this->allowed['glyphWidths']) < $font->numberOfGlyphs) {
-            $this->allowed['glyphWidths'] = end($this->allowed['glyphWidths']);
+        while (count($this->properties['glyphWidths']) < $font->numberOfGlyphs) {
+            $this->properties['glyphWidths'][] = end($this->properties['glyphWidths']);
         }
-
-        $this->glyphWidths = $this->allowed['glyphWidths'];
     }
 
 }

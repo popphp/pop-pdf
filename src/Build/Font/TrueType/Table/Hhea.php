@@ -27,10 +27,10 @@ class Hhea extends AbstractTable
 {
 
     /**
-     * Allowed properties
+     * Font table properties
      * @var array
      */
-    protected $allowed = [
+    protected $properties = [
         'ascent'           => 0,
         'descent'          => 0,
         'numberOfHMetrics' => 0
@@ -45,8 +45,6 @@ class Hhea extends AbstractTable
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {
-        parent::__construct($this->allowed);
-
         $bytePos = $font->tableInfo['hhea']->offset + 4;
 
         $ary = unpack(
@@ -55,16 +53,12 @@ class Hhea extends AbstractTable
         );
 
         $ary = $font->shiftToSigned($ary);
-        $this->allowed['ascent']  = $font->toEmSpace($ary['ascent']);
-        $this->allowed['descent'] = $font->toEmSpace($ary['descent']);
+        $this->properties['ascent']  = $font->toEmSpace($ary['ascent']);
+        $this->properties['descent'] = $font->toEmSpace($ary['descent']);
 
         $bytePos = $font->tableInfo['hhea']->offset + 34;
         $ary = unpack('nnumberOfHMetrics/', $font->read($bytePos, 2));
-        $this->allowed['numberOfHMetrics'] = $ary['numberOfHMetrics'];
-
-        $this->ascent           = $this->allowed['ascent'];
-        $this->descent          = $this->allowed['descent'];
-        $this->numberOfHMetrics = $this->allowed['numberOfHMetrics'];
+        $this->properties['numberOfHMetrics'] = $ary['numberOfHMetrics'];
     }
 
 }

@@ -27,10 +27,10 @@ class Maxp extends AbstractTable
 {
 
     /**
-     * Allowed properties
+     * Font table properties
      * @var array
      */
-    protected $allowed = [
+    protected $properties = [
         'numberOfGlyphs' => 0
     ];
 
@@ -43,13 +43,9 @@ class Maxp extends AbstractTable
      */
     public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
     {
-        parent::__construct($this->allowed);
-
         $bytePos = $font->tableInfo['maxp']->offset + 4;
         $ary     = unpack('nnumberOfGlyphs/', $font->read($bytePos, 2));
-        $this->allowed['numberOfGlyphs'] = $ary['numberOfGlyphs'];
-
-        $this->numberOfGlyphs = $this->allowed['numberOfGlyphs'];
+        $this->properties['numberOfGlyphs'] = $ary['numberOfGlyphs'];
     }
 
 }
