@@ -33,6 +33,12 @@ class Text
     protected $string = null;
 
     /**
+     * Font
+     * @var string
+     */
+    protected $font = null;
+
+    /**
      * Text font size
      * @var int
      */
@@ -92,11 +98,15 @@ class Text
      *
      * @param  string $string
      * @param  string $size
+     * @param  string $font
      */
-    public function __construct($string, $size)
+    public function __construct($string, $size, $font = null)
     {
         $this->setString($string);
         $this->setSize($size);
+        if (null !== $font) {
+            $this->setFont($font);
+        }
     }
 
     /**
@@ -125,6 +135,18 @@ class Text
     public function setSize($size)
     {
         $this->size = $size;
+        return $this;
+    }
+
+    /**
+     * Set the font
+     *
+     * @param  string $font
+     * @return Text
+     */
+    public function setFont($font)
+    {
+        $this->font = $font;
         return $this;
     }
 
@@ -235,6 +257,16 @@ class Text
     }
 
     /**
+     * Get the font
+     *
+     * @return string
+     */
+    public function getFont()
+    {
+        return $this->font;
+    }
+
+    /**
      * Get the text fill color
      *
      * @return Color\ColorInterface
@@ -330,6 +362,89 @@ class Text
     }
 
     /**
+     * Start the text stream
+     *
+     * @param  string $fontReference
+     * @param  int    $x
+     * @param  int    $y
+     * @return string
+     */
+    public function startStream($fontReference, $x, $y)
+    {
+        $stream        = '';
+        $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
+
+        $stream .= "\nBT\n    {$fontReference} {$this->size} Tf\n    " . $this->calculateTextMatrix() .
+            " {$x} {$y} Tm\n    " . $this->textParams['c'] . " Tc " . $this->textParams['w'] .
+            " Tw " . $this->textParams['rend'] . " Tr\n";
+
+        return $stream;
+    }
+
+    /**
+     * Get the partial text stream
+     *
+     * @param  string $fontReference
+     * @return string
+     */
+    public function getPartialStream($fontReference = null)
+    {
+        $stream = '';
+
+        if (null !== $fontReference) {
+            $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
+            $stream       .= "    {$fontReference} {$this->size} Tf\n";
+        }
+
+        if (null !== $this->fillColor) {
+            if ($this->fillColor instanceof Color\Rgb) {
+                $stream .= '    ' . $this->fillColor . " rg\n";
+            } else if ($this->fillColor instanceof Color\Cmyk) {
+                $stream .= '    ' . $this->fillColor . " k\n";
+            } else if ($this->fillColor instanceof Color\Gray) {
+                $stream .= '    ' . $this->fillColor . " g\n";
+            }
+        }
+        if (null !== $this->strokeColor) {
+            if ($this->strokeColor instanceof Color\Rgb) {
+                $stream .= '    ' . $this->strokeColor . " RG\n";
+            } else if ($this->strokeColor instanceof Color\Cmyk) {
+                $stream .= '    ' . $this->strokeColor . " K\n";
+            } else if ($this->strokeColor instanceof Color\Gray) {
+                $stream .= '    ' . $this->strokeColor . " G\n";
+            }
+        }
+
+        if (($this->wrap > 0) && (strlen($this->string) > $this->wrap)) {
+            if ((int)$this->lineHeight == 0) {
+                $this->lineHeight = $this->size;
+            }
+            $strings = explode("\n", wordwrap($this->string, $this->wrap, "\n"));
+
+            foreach ($strings as $i => $string) {
+                $stream .= "    ({$string})Tj\n";
+                if ($i < count($strings)) {
+                    $stream .= "    0 -" . $this->lineHeight . " Td\n";
+                }
+            }
+        } else {
+            $stream .= "    ({$this->string})Tj\n";
+        }
+
+        return $stream;
+    }
+
+    /**
+     * End the text stream
+     *
+     * @return string
+     */
+    public function endStream()
+    {
+        return "ET\n";
+    }
+
+    /**
      * Get the text stream
      *
      * @param  string $fontReference
@@ -339,46 +454,7 @@ class Text
      */
     public function getStream($fontReference, $x, $y)
     {
-        $stream        = '';
-        $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
-
-        if (null !== $this->fillColor) {
-            if ($this->fillColor instanceof Color\Rgb) {
-                $stream .= "\n" . $this->fillColor . " rg\n";
-            } else if ($this->fillColor instanceof Color\Cmyk) {
-                $stream .= "\n" . $this->fillColor . " k\n";
-            } else if ($this->fillColor instanceof Color\Gray) {
-                $stream .= "\n" . $this->fillColor . " g\n";
-            }
-        }
-        if (null !== $this->strokeColor) {
-            if ($this->strokeColor instanceof Color\Rgb) {
-                $stream .= "\n" . $this->strokeColor . " RG\n";
-            } else if ($this->strokeColor instanceof Color\Cmyk) {
-                $stream .= "\n" . $this->strokeColor . " K\n";
-            } else if ($this->strokeColor instanceof Color\Gray) {
-                $stream .= "\n" . $this->strokeColor . " G\n";
-            }
-        }
-
-        if (($this->wrap > 0) && (strlen($this->string) > $this->wrap)) {
-            if ((int)$this->lineHeight == 0) {
-                $this->lineHeight = $this->size;
-            }
-            $strings = explode("\n", wordwrap($this->string, $this->wrap, "\n"));
-            foreach ($strings as $string) {
-                $stream .= "\nBT\n    {$fontReference} {$this->size} Tf\n    " . $this->calculateTextMatrix() .
-                    " {$x} {$y} Tm\n    " . $this->textParams['c'] . " Tc " . $this->textParams['w'] .
-                    " Tw " . $this->textParams['rend'] . " Tr\n    ({$string})Tj\nET\n";
-                $y -= $this->lineHeight;
-            }
-        } else {
-            $stream .= "\nBT\n    {$fontReference} {$this->size} Tf\n    " . $this->calculateTextMatrix() .
-                " {$x} {$y} Tm\n    " . $this->textParams['c'] . " Tc " . $this->textParams['w'] .
-                " Tw " . $this->textParams['rend'] . " Tr\n    ({$this->string})Tj\nET\n";
-        }
-
-        return $stream;
+        return $this->startStream($fontReference, $x, $y) . $this->getPartialStream() . $this->endStream();
     }
 
     /**

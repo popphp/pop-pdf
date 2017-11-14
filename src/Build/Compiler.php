@@ -125,6 +125,10 @@ class Compiler extends AbstractCompiler
             if ($page->hasText()) {
                 $this->prepareText($page->getText(), $pageObject);
             }
+            // Prepare text objects
+            if ($page->hasMultiText()) {
+                $this->prepareMultiText($page->getMultiText(), $pageObject);
+            }
             // Prepare field objects
             if ($page->hasFields()) {
                 $this->prepareFields($page->getFields(), $pageObject);
@@ -287,6 +291,44 @@ class Compiler extends AbstractCompiler
                 $txt['text']->getStream($this->fontReferences[$txt['font']], $coordinates['x'], $coordinates['y'])
             );
         }
+    }
+
+    /**
+     * Prepare the text objects
+     *
+     * @param  array $multiText
+     * @param  Object\PageObject $pageObject
+     * @throws Exception
+     * @return void
+     */
+    protected function prepareMultiText(array $multiText, Object\PageObject $pageObject)
+    {
+        if (null === $pageObject->getCurrentContentIndex()) {
+            $contentObject = new Object\StreamObject($this->lastIndex() + 1);
+            $this->objects[$contentObject->getIndex()] = $contentObject;
+            $pageObject->addContentIndex($contentObject->getIndex());
+        } else {
+            $contentObject = $this->objects[$pageObject->getCurrentContentIndex()];
+        }
+
+        $coordinates = $this->getCoordinates($multiText['x'], $multiText['y'], $pageObject);
+        $stream      = null;
+
+        foreach ($multiText['texts'] as $txt) {
+            $fontName = $txt->getFont();
+            $font     = $this->fontReferences[$fontName];
+            if (!isset($font)) {
+                throw new Exception('Error: The font \'' . $fontName . '\' has not been added to the document.');
+            }
+
+            if (null === $stream) {
+                $stream  = $txt->startStream($font, $coordinates['x'], $coordinates['y']);
+            }
+            $stream .= $txt->getPartialStream($font);
+        }
+
+        $stream .= $txt->endStream();
+        $contentObject->appendStream($stream);
     }
 
     /**

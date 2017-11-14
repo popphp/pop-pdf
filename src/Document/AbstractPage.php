@@ -131,6 +131,12 @@ abstract class AbstractPage implements PageInterface
     protected $text = [];
 
     /**
+     * Multi-text array
+     * @var array
+     */
+    protected $multiText = [];
+
+    /**
      * Annotations array
      * @var array
      */
@@ -235,6 +241,16 @@ abstract class AbstractPage implements PageInterface
     }
 
     /**
+     * Get multi-text objects
+     *
+     * @return array
+     */
+    public function getMultiText()
+    {
+        return $this->multiText;
+    }
+
+    /**
      * Get annotation objects
      *
      * @return array
@@ -282,6 +298,16 @@ abstract class AbstractPage implements PageInterface
     public function hasText()
     {
         return (count($this->text) > 0);
+    }
+
+    /**
+     * Determine if the page has multi-text objects
+     *
+     * @return boolean
+     */
+    public function hasMultiText()
+    {
+        return (count($this->multiText) > 0);
     }
 
     /**

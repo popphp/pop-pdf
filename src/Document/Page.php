@@ -88,15 +88,46 @@ class Page extends AbstractPage
      * @param  string    $font
      * @param  int       $x
      * @param  int       $y
+     * @throws Exception
      * @return Page
      */
-    public function addText(Page\Text $text, $font, $x = 0, $y = 0)
+    public function addText(Page\Text $text, $font = null, $x = 0, $y = 0)
     {
+        if (null === $font) {
+            $font = $text->getFont();
+        }
+        if (null === $font) {
+            throw new Exception('Error: You must either pass a font or set the font in the text object.');
+        }
         $this->text[] = [
             'text' => $text,
             'font' => $font,
             'x'    => (int)$x,
             'y'    => (int)$y
+        ];
+        return $this;
+    }
+
+    /**
+     * Add text to the PDF page
+     *
+     * @param  array $texts
+     * @param  int   $x
+     * @param  int   $y
+     * @throws Exception
+     * @return Page
+     */
+    public function addMultiText(array $texts, $x = 0, $y = 0)
+    {
+        foreach ($texts as $text) {
+            if (!($text instanceof Page\Text)) {
+                throw new Exception("Error: All texts objects must be an instance of Pop\\Pdf\\Document\\Page\\Text.");
+            }
+        }
+        $this->multiText = [
+            'texts' => $texts,
+            'x'     => (int)$x,
+            'y'     => (int)$y
         ];
         return $this;
     }

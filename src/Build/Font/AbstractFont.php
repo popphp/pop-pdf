@@ -261,6 +261,8 @@ abstract class AbstractFont implements \ArrayAccess
         foreach ($glyphs as $glyph) {
             if (isset($this->properties['glyphWidths'][$glyph])) {
                 $widths[] = $this->properties['glyphWidths'][$glyph];
+            } else {
+                $widths[] = $this->properties['missingWidth'];
             }
         }
 
