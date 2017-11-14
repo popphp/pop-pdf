@@ -37,6 +37,7 @@ class TrueType extends AbstractFont
         'descent'          => 0,
         'numberOfGlyphs'   => 0,
         'glyphWidths'      => [],
+        'rawGlyphWidths'   => [],
         'missingWidth'     => 0,
         'numberOfHMetrics' => 0,
         'italicAngle'      => 0,
@@ -201,8 +202,10 @@ class TrueType extends AbstractFont
             if (isset($this->properties['glyphWidths'][0])) {
                 $this->properties['missingWidth'] = round((1000 / $this->properties['unitsPerEm']) * $this->properties['glyphWidths'][0]);
             }
+
             foreach ($this->properties['glyphWidths'] as $key => $value) {
-                $this->properties['glyphWidths'][$key] = round((1000 / $this->properties['unitsPerEm']) * $value);
+                $this->properties['rawGlyphWidths'][$key] = $value;
+                $this->properties['glyphWidths'][$key]    = round((1000 / $this->properties['unitsPerEm']) * $value);
             }
         }
 
