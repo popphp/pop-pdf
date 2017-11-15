@@ -38,6 +38,7 @@ class TrueType extends AbstractFont
         'numberOfGlyphs'   => 0,
         'glyphWidths'      => [],
         'rawGlyphWidths'   => [],
+        'cmap'             => ['glyphIndexArray' => [], 'glyphNumbers' => []],
         'missingWidth'     => 0,
         'numberOfHMetrics' => 0,
         'italicAngle'      => 0,
@@ -212,6 +213,15 @@ class TrueType extends AbstractFont
         // cmap
         if (isset($this->properties['tableInfo']['cmap'])) {
             $this->properties['tables']['cmap'] = new TrueType\Table\Cmap($this);
+            if (isset($this->properties['tables']['cmap']['subTables']) && isset($this->properties['tables']['cmap']['subTables'][0]) &&
+                isset($this->properties['tables']['cmap']['subTables'][0]['parsed'])) {
+                if (isset($this->properties['tables']['cmap']['subTables'][0]['parsed']['glyphIndexArray'])) {
+                    $this->properties['cmap']['glyphIndexArray'] = $this->properties['tables']['cmap']['subTables'][0]['parsed']['glyphIndexArray'];
+                }
+                if (isset($this->properties['tables']['cmap']['subTables'][0]['parsed']['glyphNumbers'])) {
+                    $this->properties['cmap']['glyphNumbers'] = $this->properties['tables']['cmap']['subTables'][0]['parsed']['glyphNumbers'];
+                }
+            }
         }
     }
 
