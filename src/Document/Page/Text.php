@@ -33,6 +33,12 @@ class Text
     protected $string = null;
 
     /**
+     * Text strings with offset values
+     * @var array
+     */
+    protected $stringsWithOffsets = [];
+
+    /**
      * Font
      * @var string
      */
@@ -123,6 +129,27 @@ class Text
             }
         }
         $this->string = $string;
+        return $this;
+    }
+
+    /**
+     * Add a string with offset
+     *
+     * @param  string $string
+     * @param  int    $offset
+     * @return Text
+     */
+    public function addStringWithOffset($string, $offset = 0)
+    {
+        if (function_exists('mb_strlen')) {
+            if (mb_strlen($string, 'UTF-8') < strlen($string)) {
+                $string = utf8_decode($string);
+            }
+        }
+        $this->stringsWithOffsets[] = [
+            'string' => $string,
+            'offset' => $offset
+        ];
         return $this;
     }
 
@@ -415,20 +442,28 @@ class Text
             }
         }
 
-        if (($this->wrap > 0) && (strlen($this->string) > $this->wrap)) {
-            if ((int)$this->lineHeight == 0) {
-                $this->lineHeight = $this->size;
+        if (count($this->stringsWithOffsets) > 0) {
+            $stream .= "    [({$this->string})";
+            foreach ($this->stringsWithOffsets as $string) {
+                $stream .= " " . (0 - $string['offset']) . " (" . $string['string'] . ")";
             }
-            $strings = explode("\n", wordwrap($this->string, $this->wrap, "\n"));
-
-            foreach ($strings as $i => $string) {
-                $stream .= "    ({$string})Tj\n";
-                if ($i < count($strings)) {
-                    $stream .= "    0 -" . $this->lineHeight . " Td\n";
-                }
-            }
+            $stream .= "]TJ\n";
         } else {
-            $stream .= "    ({$this->string})Tj\n";
+            if (($this->wrap > 0) && (strlen($this->string) > $this->wrap)) {
+                if ((int)$this->lineHeight == 0) {
+                    $this->lineHeight = $this->size;
+                }
+                $strings = explode("\n", wordwrap($this->string, $this->wrap, "\n"));
+
+                foreach ($strings as $i => $string) {
+                    $stream .= "    ({$string})Tj\n";
+                    if ($i < count($strings)) {
+                        $stream .= "    0 -" . $this->lineHeight . " Td\n";
+                    }
+                }
+            } else {
+                $stream .= "    ({$this->string})Tj\n";
+            }
         }
 
         return $stream;

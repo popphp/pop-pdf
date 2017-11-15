@@ -210,6 +210,41 @@ class Font
     }
 
     /**
+     * Attempt to get string width
+     *
+     * @param  string $string
+     * @param  mixed  $size
+     * @throws Exception
+     * @return mixed
+     */
+    public function getStringWidth($string, $size)
+    {
+        if (null !== $this->parser) {
+            return $this->parser->getFont()->getStringWidth($string, $size);
+        } else {
+            $fontClass = '\Pop\Pdf\Build\Font\Standard\\' . str_replace([',', '-'], ['', ''], $this->name);
+            if (!class_exists($fontClass)) {
+                throw new Exception('Error: That standard font class was not found.');
+            }
+            $font      = new $fontClass();
+            $widths    = [];
+
+            $drawingString = iconv('UTF-8', 'UTF-16BE//IGNORE', $string);
+            $characters    = [];
+
+            for ($i = 0; $i < strlen($drawingString); $i++) {
+                $characters[] = (ord($drawingString[$i++]) << 8 ) | ord($drawingString[$i]);
+            }
+
+            foreach ($characters as $character) {
+                $widths[] = $font->getGlyphWidth($character);
+            }
+
+            return (array_sum($widths) / $font->getUnitsPerEm()) * $size;
+        }
+    }
+
+    /**
      * Get the font parser
      *
      * @return Parser
