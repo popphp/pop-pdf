@@ -126,7 +126,7 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
         $doc->embedFont(new Font(__DIR__ . '/tmp/fonts/times.ttf'));
         $this->assertInstanceOf('Pop\Pdf\Build\Font\AbstractFont', $doc->getFont('Times-Bold')->getParsedFont());
         $this->assertEquals(2, count($doc->getFont('Times-Bold')->getParsedFont()->getWidthsForGlyphs([0, 1])));
-        $this->assertEquals(67, ceil($doc->getFont('Times-Bold')->getParsedFont()->getStringWidth('Hello World', 12)));
+        $this->assertEquals(33.0, ceil($doc->getFont('Times-Bold')->getParsedFont()->getStringWidth('Hello World', 12)));
         $this->assertEquals(1, $doc->getNumberOfFonts());
         $this->assertFalse($doc->hasImportedFonts());
         $this->assertEquals(0, count($doc->getImportedFonts()));
