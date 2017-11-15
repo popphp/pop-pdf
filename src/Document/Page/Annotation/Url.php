@@ -40,7 +40,6 @@ class Url extends AbstractAnnotation
      * @param  int    $width
      * @param  int    $height
      * @param  string $url
-     * @return Url
      */
     public function __construct($width, $height, $url)
     {

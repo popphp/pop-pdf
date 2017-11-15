@@ -168,7 +168,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * Set the root object
      *
      * @param  Object\RootObject $root
-     * @return Compiler
+     * @return AbstractCompiler
      */
     protected function setRoot(Object\RootObject $root)
     {
@@ -181,7 +181,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * Set the parent object
      *
      * @param  Object\ParentObject $parent
-     * @return Compiler
+     * @return AbstractCompiler
      */
     protected function setParent(Object\ParentObject $parent)
     {
@@ -194,7 +194,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * Set the info object
      *
      * @param  Object\InfoObject $info
-     * @return Compiler
+     * @return AbstractCompiler
      */
     protected function setInfo(Object\InfoObject $info)
     {

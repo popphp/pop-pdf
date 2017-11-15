@@ -87,7 +87,7 @@ class PageObject extends AbstractObject
      *
      * @param  mixed $width
      * @param  mixed $height
-     * @param  int $index
+     * @param  int   $index
      */
     public function __construct($width = 612, $height = 792, $index = 4)
     {

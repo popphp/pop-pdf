@@ -75,7 +75,6 @@ abstract class AbstractAnnotation implements AnnotationInterface
      *
      * @param  int $width
      * @param  int $height
-     * @return AbstractAnnotation
      */
     public function __construct($width, $height)
     {

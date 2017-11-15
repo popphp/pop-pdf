@@ -59,7 +59,6 @@ class Link extends AbstractAnnotation
      * @param  int $height
      * @param  int $xTarget
      * @param  int $yTarget
-     * @return Link
      */
     public function __construct($width, $height, $xTarget, $yTarget)
     {
