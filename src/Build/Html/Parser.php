@@ -426,40 +426,35 @@ class Parser
     {
         $name = $child->getNodeName();
 
-        $currentFont      = null;
-        $fontFamily       = $this->defaultStyles['font-family'];
-        $fontSize         = $this->defaultStyles['font-size'];
-        $fontWeight       = $this->defaultStyles['font-weight'];
-        $color            = $this->defaultStyles['color'];
-        $lineHeight       = $this->defaultStyles['line-height'];
-        $headerLineHeight = null;
+        $currentFont  = null;
+        $fontFamily   = $this->defaultStyles['font-family'];
+        $fontSize     = $this->defaultStyles['font-size'];
+        $fontWeight   = $this->defaultStyles['font-weight'];
+        $color        = $this->defaultStyles['color'];
+        $lineHeight   = $this->defaultStyles['line-height'];
+        $marginBottom = 0;
 
         if (($name == 'h1') || ($name == 'h2') || ($name == 'h3') || ($name == 'h4') || ($name == 'h5') || ($name == 'h6')) {
             switch ($name) {
                 case 'h1':
-                    $fontSize         = round($fontSize * 2.67); // 32
-                    $fontWeight       = 'bold';
-                    $headerLineHeight = $fontSize;
+                    $fontSize   = round($fontSize * 2.67); // 32
+                    $fontWeight = 'bold';
                     break;
                 case 'h2':
-                    $fontSize         = round($fontSize * 2.33);  // 28
-                    $fontWeight       = 'bold';
-                    $headerLineHeight = $fontSize;
+                    $fontSize   = round($fontSize * 2.33);  // 28
+                    $fontWeight = 'bold';
                     break;
                 case 'h3':
-                    $fontSize         = $fontSize * 2;  // 24
-                    $fontWeight       = 'bold';
-                    $headerLineHeight = $fontSize;
+                    $fontSize   = $fontSize * 2;  // 24
+                    $fontWeight = 'bold';
                     break;
                 case 'h4':
-                    $fontSize         = round($fontSize * 1.67); // 20
-                    $fontWeight       = 'bold';
-                    $headerLineHeight = $fontSize;
+                    $fontSize   = round($fontSize * 1.67); // 20
+                    $fontWeight = 'bold';
                     break;
                 case 'h5':
-                    $fontSize         = round($fontSize * 1.33);  // 16
-                    $fontWeight       = 'bold';
-                    $headerLineHeight = $fontSize;
+                    $fontSize   = round($fontSize * 1.33);  // 16
+                    $fontWeight = 'bold';
                     break;
                 case 'h6':
                     $fontWeight = 'bold';
@@ -479,6 +474,12 @@ class Parser
             }
             if ($this->css[$name]->hasProperty('line-height')) {
                 $lineHeight = (int)$this->css[$name]['line-height'];
+            }
+            if ((int)$this->css[$name]['margin-bottom'] > 0) {
+                $marginBottom = (int)$this->css[$name]['margin-bottom'];
+            }
+            if ((int)$this->css[$name]['padding-bottom'] > 0) {
+                $paddingBottom = (int)$this->css[$name]['padding-bottom'];
             }
         }
 
@@ -518,18 +519,65 @@ class Parser
             throw new Exception('Error: No available font has been detected.');
         }
 
-        if (!($this->document->hasPages())) {
-            $page = new Document\Page($this->pageSize);
-            $this->document->addPage($page);
-        } else {
-            $page = $this->document->getPage($this->document->getCurrentPage());
+        if ($fontWeight == 'bold') {
+            if ($this->document->hasFont($currentFont . 'Bold')) {
+                $currentFont .= 'Bold';
+            } else if ($this->document->hasFont($currentFont . '-Bold')) {
+                $currentFont .= '-Bold';
+            } else if ($this->document->hasFont($currentFont . ',Bold')) {
+                $currentFont .= ',Bold';
+            }
         }
 
-        $currentY = $page->getHeight() - $this->pageMargins['top'] - $this->y;
+        if (!($this->document->hasPages())) {
+            $pageObject = new Document\Page($this->pageSize);
+            $this->document->addPage($pageObject);
+        } else {
+            $pageObject = $this->document->getPage($this->document->getCurrentPage());
+        }
+
+        $currentY = $pageObject->getHeight() - $this->pageMargins['top'] - $this->y;
 
         $textContent = $child->getTextContent();
-        $page->addText(new Document\Page\Text($textContent, $fontSize), $currentFont, $this->pageMargins['left'], $currentY);
-        $this->y += (null !== $headerLineHeight) ? $headerLineHeight : $lineHeight;
+
+        $fontObject = $this->document->getFont($currentFont);
+
+        $wrapStart   = $this->pageMargins['left'];
+        $wrapStop    = $pageObject->getWidth() - $this->pageMargins['right'];
+        $wrapLength  = $wrapStop - $wrapStart;
+
+        if (strlen($textContent) > $wrapLength) {
+            $strings   = [];
+            $curString = '';
+            $words     = explode(' ', $textContent);
+            foreach ($words as $word) {
+                $newString = ($curString != '') ? $curString . ' ' . $word : $word;
+                if ($fontObject->getStringWidth($newString, $fontSize) <= $wrapLength) {
+                    $curString = $newString;
+                } else {
+                    $strings[] = $curString;
+                    $curString = $word;
+                }
+            }
+            if (!empty($curString)) {
+                $strings[] = $curString;
+            }
+            foreach ($strings as $i => $string) {
+                $pageObject->addText(new Document\Page\Text($string, $fontSize), $currentFont, $this->pageMargins['left'], $currentY);
+                if ($currentY <= $this->pageMargins['bottom']) {
+                    $pageObject = new Document\Page($this->pageSize);
+                    $this->document->addPage($pageObject);
+                    $this->y = 0;
+                    $currentY = $pageObject->getHeight() - $this->pageMargins['top'] - $this->y;
+                } else {
+                    $currentY -= $lineHeight;
+                    $this->y  += $lineHeight;
+                }
+            }
+        } else {
+            $pageObject->addText(new Document\Page\Text($textContent, $fontSize), $currentFont, $this->pageMargins['left'], $currentY);
+        }
+        $this->y += $marginBottom + $lineHeight;
     }
 
     /**
@@ -540,30 +588,37 @@ class Parser
     protected function createDefaultStyles()
     {
         $h1 = new Css\Selector('h1');
+        $h1['margin-bottom'] = '18px';
         $h1['font-size']   = '32px';
         $h1['font-weight'] = 'bold';
 
         $h2 = new Css\Selector('h2');
+        $h2['margin-bottom'] = '18px';
         $h2['font-size']   = '28px';
         $h2['font-weight'] = 'bold';
 
         $h3 = new Css\Selector('h3');
+        $h3['margin-bottom'] = '16px';
         $h3['font-size']   = '24px';
         $h3['font-weight'] = 'bold';
 
         $h4 = new Css\Selector('h4');
+        $h4['margin-bottom'] = '14px';
         $h4['font-size']   = '20px';
         $h4['font-weight'] = 'bold';
 
         $h5 = new Css\Selector('h5');
+        $h5['margin-bottom'] = '12px';
         $h5['font-size']   = '16px';
         $h5['font-weight'] = 'bold';
 
         $h6 = new Css\Selector('h6');
+        $h6['margin-bottom'] = '12px';
         $h6['font-size']   = '12px';
         $h6['font-weight'] = 'bold';
 
         $p = new Css\Selector('p');
+        $p['margin-bottom'] = '24px';
         $p['font-size'] = '12px';
 
         $a = new Css\Selector('a');
