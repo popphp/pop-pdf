@@ -253,6 +253,17 @@ abstract class AbstractDocument
     }
 
     /**
+     * Determine if a font has been added to the PDF document (alias)
+     *
+     * @param  string $font
+     * @return boolean
+     */
+    public function hasFont($font)
+    {
+        return array_key_exists($font, $this->fonts);
+    }
+
+    /**
      * Get the current page number
      *
      * @return int
