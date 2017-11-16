@@ -287,9 +287,22 @@ class Compiler extends AbstractCompiler
                 throw new Exception('Error: The font \'' . $txt['font'] . '\' has not been added to the document.');
             }
             $coordinates = $this->getCoordinates($txt['x'], $txt['y'], $pageObject);
-            $contentObject->appendStream(
-                $txt['text']->getStream($this->fontReferences[$txt['font']], $coordinates['x'], $coordinates['y'])
-            );
+
+            if ($txt['text']->hasAutoWrap()) {
+                $wrapStart   = $coordinates['x'];
+                $wrapStop    = $pageObject->getWidth() - $txt['text']->getAutoWrap();
+                $wrapLength  = $wrapStop - $wrapStart;
+                $font        = $this->fontReferences[$txt['font']];
+                $fontObject  = $this->fonts[$txt['font']];
+                $stream      = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
+                $stream     .= $txt['text']->getPartialStream($font, $fontObject, $wrapLength);
+                $stream     .= $txt['text']->endStream();
+                $contentObject->appendStream($stream);
+            } else {
+                $contentObject->appendStream(
+                    $txt['text']->getStream($this->fontReferences[$txt['font']], $coordinates['x'], $coordinates['y'])
+                );
+            }
         }
     }
 
@@ -324,7 +337,15 @@ class Compiler extends AbstractCompiler
             if (null === $stream) {
                 $stream  = $txt->startStream($font, $coordinates['x'], $coordinates['y']);
             }
-            $stream .= $txt->getPartialStream($font);
+            if ($txt->hasAutoWrap()) {
+                $wrapStart   = $coordinates['x'];
+                $wrapStop    = $pageObject->getWidth() - $txt->getAutoWrap();
+                $wrapLength  = $wrapStop - $wrapStart;
+                $fontObject  = $this->fonts[$font];
+                $stream     .= $txt->getPartialStream($font, $fontObject, $wrapLength);
+            } else {
+                $stream .= $txt->getPartialStream($font);
+            }
         }
 
         $stream .= $txt->endStream();

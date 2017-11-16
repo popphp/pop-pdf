@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Document\Page;
 
+use Pop\Pdf\Document\Font;
+
 /**
  * Pdf page text class
  *
@@ -73,10 +75,16 @@ class Text
     ];
 
     /**
-     * Text wrap
+     * Text wrap (by number of characters)
      * @var int
      */
     protected $wrap = 0;
+
+    /**
+     * Auto text wrap (by width of characters vs width of page)
+     * @var int
+     */
+    protected $autoWrap = 0;
 
     /**
      * Text line height
@@ -236,6 +244,22 @@ class Text
     }
 
     /**
+     * Set the word auto-wrap
+     *
+     * @param  int $wrap
+     * @param  int $lineHeight
+     * @return Text
+     */
+    public function setAutoWrap($wrap, $lineHeight = null)
+    {
+        $this->autoWrap = (int)$wrap;
+        if (null !== $lineHeight) {
+            $this->setLineHeight($lineHeight);
+        }
+        return $this;
+    }
+
+    /**
      * Set the word wrap
      *
      * @param  int $lineHeight
@@ -334,6 +358,26 @@ class Text
     }
 
     /**
+     * Get the word auto-wrap
+     *
+     * @return int
+     */
+    public function getAutoWrap()
+    {
+        return $this->autoWrap;
+    }
+
+    /**
+     * Determine if the text object has auto-wrap
+     *
+     * @return boolean
+     */
+    public function hasAutoWrap()
+    {
+        return ($this->autoWrap > 0);
+    }
+
+    /**
      * Get the line height
      *
      * @return int
@@ -412,9 +456,11 @@ class Text
      * Get the partial text stream
      *
      * @param  string $fontReference
+     * @param  Font   $fontObject
+     * @param  int    $wrapLength
      * @return string
      */
-    public function getPartialStream($fontReference = null)
+    public function getPartialStream($fontReference = null, Font $fontObject = null, $wrapLength = null)
     {
         $stream = '';
 
@@ -462,7 +508,34 @@ class Text
                     }
                 }
             } else {
-                $stream .= "    ({$this->string})Tj\n";
+                if ((null !== $fontObject) && (null !== $wrapLength)) {
+                    $strings   = [];
+                    $curString = '';
+                    $words     = explode(' ', $this->string);
+                    foreach ($words as $word) {
+                        $newString = ($curString != '') ? $curString . ' ' . $word : $word;
+                        if ($fontObject->getStringWidth($newString, $this->size) <= $wrapLength) {
+                            $curString = $newString;
+                        } else {
+                            $strings[] = $curString;
+                            $curString = $word;
+                        }
+                    }
+                    if (!empty($curString)) {
+                        $strings[] = $curString;
+                    }
+                    if ((int)$this->lineHeight == 0) {
+                        $this->lineHeight = $this->size;
+                    }
+                    foreach ($strings as $i => $string) {
+                        $stream .= "    ({$string})Tj\n";
+                        if ($i < count($strings)) {
+                            $stream .= "    0 -" . $this->lineHeight . " Td\n";
+                        }
+                    }
+                } else {
+                    $stream .= "    ({$this->string})Tj\n";
+                }
             }
         }
 
