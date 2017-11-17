@@ -195,6 +195,54 @@ class Parser
     }
 
     /**
+     * Parse CSS string
+     *
+     * @param  string $cssString
+     * @return self
+     */
+    public function parseCss($cssString)
+    {
+        if (null === $this->css) {
+            $this->css = Css\Css::parseString($cssString);
+        } else {
+            $this->css->parseCss($cssString);
+        }
+        return $this;
+    }
+
+    /**
+     * Parse CSS file
+     *
+     * @param  string $cssFile
+     * @return self
+     */
+    public function parseCssFile($cssFile)
+    {
+        if (null === $this->css) {
+            $this->css = Css\Css::parseFile($cssFile);
+        } else {
+            $this->css->parseCssFile($cssFile);
+        }
+        return $this;
+    }
+
+    /**
+     * Parse CSS URI
+     *
+     * @param  string $cssUri
+     * @return self
+     */
+    public function parseCssUri($cssUri)
+    {
+        if (null === $this->css) {
+            $this->css = Css\Css::parseUri($cssUri);
+        } else {
+            $this->css->parseCssUri($cssUri);
+        }
+        return $this;
+    }
+
+    /**
      * Get document
      *
      * @return Document
@@ -426,13 +474,14 @@ class Parser
     {
         $name = $child->getNodeName();
 
-        $currentFont  = null;
-        $fontFamily   = $this->defaultStyles['font-family'];
-        $fontSize     = $this->defaultStyles['font-size'];
-        $fontWeight   = $this->defaultStyles['font-weight'];
-        $color        = $this->defaultStyles['color'];
-        $lineHeight   = $this->defaultStyles['line-height'];
-        $marginBottom = 0;
+        $currentFont   = null;
+        $fontFamily    = $this->defaultStyles['font-family'];
+        $fontSize      = $this->defaultStyles['font-size'];
+        $fontWeight    = $this->defaultStyles['font-weight'];
+        $color         = $this->defaultStyles['color'];
+        $lineHeight    = $this->defaultStyles['line-height'];
+        $marginBottom  = 0;
+        $paddingBottom = 0;
 
         if (($name == 'h1') || ($name == 'h2') || ($name == 'h3') || ($name == 'h4') || ($name == 'h5') || ($name == 'h6')) {
             switch ($name) {
@@ -464,13 +513,20 @@ class Parser
 
         if ($this->css->hasSelector($name)) {
             if ($this->css[$name]->hasProperty('font-family')) {
-                $fontFamily = $this->css[$name]['font-family'];
+                $fontFamily = str_replace('"', '', $this->css[$name]['font-family']);
             }
             if ($this->css[$name]->hasProperty('font-size')) {
                 $fontSize = (int)$this->css[$name]['font-size'];
             }
+            if ($this->css[$name]->hasProperty('font-weight')) {
+                $fontWeight = $this->css[$name]['font-weight'];
+            }
             if ($this->css[$name]->hasProperty('color')) {
-                $color = $this->css[$name]['color']->toArray(false);
+                $color = $this->css[$name]['color'];
+                if (is_string($color)) {
+                    $cssColor = Css\Color::parse($color);
+                    $color = $cssColor->toRgb()->toArray(false);
+                }
             }
             if ($this->css[$name]->hasProperty('line-height')) {
                 $lineHeight = (int)$this->css[$name]['line-height'];
@@ -495,6 +551,18 @@ class Parser
         if (!($this->document->hasFont('Arial,BoldItalic'))) {
             $this->document->addFont(new Document\Font('Arial,BoldItalic'));
         }
+        if (!($this->document->hasFont('TimesNewRoman'))) {
+            $this->document->addFont(new Document\Font('TimesNewRoman'));
+        }
+        if (!($this->document->hasFont('TimesNewRoman,Bold'))) {
+            $this->document->addFont(new Document\Font('TimesNewRoman,Bold'));
+        }
+        if (!($this->document->hasFont('TimesNewRoman,Italic'))) {
+            $this->document->addFont(new Document\Font('TimesNewRoman,Italic'));
+        }
+        if (!($this->document->hasFont('TimesNewRoman,BoldItalic'))) {
+            $this->document->addFont(new Document\Font('TimesNewRoman,BoldItalic'));
+        }
 
         if (strpos($fontFamily, ',') !== false) {
             $fonts = explode(',', $fontFamily);
@@ -517,6 +585,10 @@ class Parser
 
         if (null === $currentFont) {
             throw new Exception('Error: No available font has been detected.');
+        } else if ($currentFont == 'sans-serif') {
+            $currentFont = 'Arial';
+        } else if ($currentFont == 'serif') {
+            $currentFont = 'TimesNewRoman';
         }
 
         if ($fontWeight == 'bold') {
@@ -529,6 +601,43 @@ class Parser
             }
         }
 
+        if (!($this->document->hasFont($currentFont))) {
+            $standardFonts = Document\Font::standardFonts();
+            if (in_array($currentFont, $standardFonts)) {
+                $this->document->addFont(new Document\Font($currentFont));
+            } else if (in_array(str_replace(' ', '-', $currentFont), $standardFonts)) {
+                $currentFont = str_replace(' ', '-', $currentFont);
+                $this->document->addFont(new Document\Font($currentFont));
+            } else if (in_array(str_replace(' ', ',', $currentFont), $standardFonts)) {
+                $currentFont = str_replace(' ', ',', $currentFont);
+                $this->document->addFont(new Document\Font($currentFont));
+            } else if (in_array(str_replace(' ', '', $currentFont), $standardFonts)) {
+                $currentFont = str_replace(' ', '', $currentFont);
+                $this->document->addFont(new Document\Font($currentFont));
+            } else {
+                throw new Exception('Error: The current font has not been added to the document.');
+            }
+
+            if ($fontWeight == 'bold') {
+                if ($this->document->hasFont($currentFont . 'Bold')) {
+                    $currentFont .= 'Bold';
+                } else if ($this->document->hasFont($currentFont . '-Bold')) {
+                    $currentFont .= '-Bold';
+                } else if ($this->document->hasFont($currentFont . ',Bold')) {
+                    $currentFont .= ',Bold';
+                } else if (in_array($currentFont . 'Bold', $standardFonts)) {
+                    $currentFont .= 'Bold';
+                    $this->document->addFont(new Document\Font($currentFont));
+                } else if (in_array($currentFont . '-Bold', $standardFonts)) {
+                    $currentFont .= '-Bold';
+                    $this->document->addFont(new Document\Font($currentFont));
+                } else if (in_array($currentFont . ',Bold', $standardFonts)) {
+                    $currentFont .= ',Bold';
+                    $this->document->addFont(new Document\Font($currentFont));
+                }
+            }
+        }
+
         if (!($this->document->hasPages())) {
             $pageObject = new Document\Page($this->pageSize);
             $this->document->addPage($pageObject);
@@ -537,6 +646,13 @@ class Parser
         }
 
         $currentY = $pageObject->getHeight() - $this->pageMargins['top'] - $this->y;
+
+        if ($currentY <= $this->pageMargins['bottom']) {
+            $pageObject = new Document\Page($this->pageSize);
+            $this->document->addPage($pageObject);
+            $this->y = 0;
+            $currentY = $pageObject->getHeight() - $this->pageMargins['top'] - $this->y;
+        }
 
         $textContent = $child->getTextContent();
 
@@ -563,7 +679,9 @@ class Parser
                 $strings[] = $curString;
             }
             foreach ($strings as $i => $string) {
-                $pageObject->addText(new Document\Page\Text($string, $fontSize), $currentFont, $this->pageMargins['left'], $currentY);
+                $text = new Document\Page\Text($string, $fontSize);
+                $text->setFillColor(new Document\Page\Color\Rgb($color[0], $color[1], $color[2]));
+                $pageObject->addText($text, $currentFont, $this->pageMargins['left'], $currentY);
                 if ($currentY <= $this->pageMargins['bottom']) {
                     $pageObject = new Document\Page($this->pageSize);
                     $this->document->addPage($pageObject);
@@ -575,9 +693,116 @@ class Parser
                 }
             }
         } else {
-            $pageObject->addText(new Document\Page\Text($textContent, $fontSize), $currentFont, $this->pageMargins['left'], $currentY);
+            if ($child->hasChildNodes()) {
+                $fontObject = $this->document->getFont($currentFont);
+                $currentX = $this->pageMargins['left'];
+                $textContent = $child->getNodeValue() . ' ';
+                $text = new Document\Page\Text($textContent, $fontSize);
+                $text->setFillColor(new Document\Page\Color\Rgb($color[0], $color[1], $color[2]));
+                $pageObject->addText($text, $currentFont, $currentX, $currentY);
+                $currentX += $fontObject->getStringWidth($textContent, $fontSize);
+
+                $originalCurrentFont = $currentFont;
+
+                foreach ($child->getChildNodes() as $grandKid) {
+                    $childFontFamily = $this->defaultStyles['font-family'];
+                    $childFontSize   = $this->defaultStyles['font-size'];
+                    $childFontWeight = $this->defaultStyles['font-weight'];
+                    $childColor      = $this->defaultStyles['color'];
+                    $nodeName        = $grandKid->getNodeName();
+                    $attribs         = $grandKid->getAttributes();
+
+                    if ($this->css->hasSelector($nodeName)) {
+                        if ($this->css[$nodeName]->hasProperty('font-family')) {
+                            $childFontFamily = str_replace('"', '', $this->css[$nodeName]['font-family']);
+                        }
+                        if ($this->css[$nodeName]->hasProperty('font-size')) {
+                            $childFontSize = (int)$this->css[$nodeName]['font-size'];
+                        }
+                        if ($this->css[$nodeName]->hasProperty('font-weight')) {
+                            $childFontWeight = $this->css[$nodeName]['font-weight'];
+                        }
+                        if ($this->css[$nodeName]->hasProperty('color')) {
+                            $childColor = $this->css[$nodeName]['color'];
+                            if (is_string($color)) {
+                                $cssColor = Css\Color::parse($color);
+                                $childColor = $cssColor->toRgb()->toArray(false);
+                            }
+                        }
+                    }
+                    if (isset($attribs['id']) && $this->css->hasSelector('#' . $attribs['id'])) {
+                        if ($this->css['#' . $attribs['id']]->hasProperty('font-family')) {
+                            $childFontFamily = str_replace('"', '', $this->css['#' . $attribs['id']]['font-family']);
+                        }
+                        if ($this->css['#' . $attribs['id']]->hasProperty('font-size')) {
+                            $childFontSize = (int)$this->css['#' . $attribs['id']]['font-size'];
+                        }
+                        if ($this->css['#' . $attribs['id']]->hasProperty('font-weight')) {
+                            $childFontWeight = $this->css['#' . $attribs['id']]['font-weight'];
+                        }
+                        if ($this->css['#' . $attribs['id']]->hasProperty('color')) {
+                            $childColor = $this->css['#' . $attribs['id']]['color'];
+                            if (is_string($color)) {
+                                $cssColor = Css\Color::parse($color);
+                                $childColor = $cssColor->toRgb()->toArray(false);
+                            }
+                        }
+                    }
+                    if (isset($attribs['class']) && $this->css->hasSelector('.' . $attribs['class'])) {
+                        if ($this->css['.' . $attribs['class']]->hasProperty('font-family')) {
+                            $childFontFamily = str_replace('"', '', $this->css['.' . $attribs['class']]['font-family']);
+                        }
+                        if ($this->css['.' . $attribs['class']]->hasProperty('font-size')) {
+                            $childFontSize = (int)$this->css['.' . $attribs['class']]['font-size'];
+                        }
+                        if ($this->css['.' . $attribs['class']]->hasProperty('font-weight')) {
+                            $childFontWeight = $this->css['.' . $attribs['class']]['font-weight'];
+                        }
+                        if ($this->css['.' . $attribs['class']]->hasProperty('color')) {
+                            $childColor = $this->css['.' . $attribs['class']]['color'];
+                            if (is_string($childColor)) {
+                                $cssColor = Css\Color::parse($childColor);
+                                $childColor = $cssColor->toRgb()->toArray(false);
+                            }
+                        }
+                    }
+
+                    if ($childFontWeight == 'bold') {
+                        if ($this->document->hasFont($currentFont . 'Bold')) {
+                            $currentFont .= 'Bold';
+                        } else if ($this->document->hasFont($currentFont . '-Bold')) {
+                            $currentFont .= '-Bold';
+                        } else if ($this->document->hasFont($currentFont . ',Bold')) {
+                            $currentFont .= ',Bold';
+                        } else if (in_array($currentFont . 'Bold', $standardFonts)) {
+                            $currentFont .= 'Bold';
+                            $this->document->addFont(new Document\Font($currentFont));
+                        } else if (in_array($currentFont . '-Bold', $standardFonts)) {
+                            $currentFont .= '-Bold';
+                            $this->document->addFont(new Document\Font($currentFont));
+                        } else if (in_array($currentFont . ',Bold', $standardFonts)) {
+                            $currentFont .= ',Bold';
+                            $this->document->addFont(new Document\Font($currentFont));
+                        }
+                    } else {
+                        $currentFont = $originalCurrentFont;
+                    }
+
+                    $fontObject = $this->document->getFont($currentFont);
+
+                    $textContent = $grandKid->getNodeValue() . ' ';
+                    $text = new Document\Page\Text($textContent, $childFontSize);
+                    $text->setFillColor(new Document\Page\Color\Rgb($childColor[0], $childColor[1], $childColor[2]));
+                    $pageObject->addText($text, $currentFont, $currentX, $currentY);
+                    $currentX += $fontObject->getStringWidth($textContent, $fontSize);
+                }
+            } else {
+                $text = new Document\Page\Text($textContent, $fontSize);
+                $text->setFillColor(new Document\Page\Color\Rgb($color[0], $color[1], $color[2]));
+                $pageObject->addText($text, $currentFont, $this->pageMargins['left'], $currentY);
+            }
         }
-        $this->y += $marginBottom + $lineHeight;
+        $this->y += $marginBottom + $paddingBottom + $lineHeight;
     }
 
     /**
