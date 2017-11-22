@@ -479,11 +479,10 @@ class Parser
      * Add node to document
      *
      * @param  Child   $child
-     * @param  boolean $nextLine
      * @throws Exception
      * @return void
      */
-    protected function addNodeToDocument(Child $child, $nextLine = true)
+    protected function addNodeToDocument(Child $child)
     {
         $styles     = $this->prepareNodeStyles($child->getNodeName(), $child->getAttributes());
         $currentX   = $this->getCurrentX();
@@ -491,36 +490,88 @@ class Parser
         $fontObject = $this->document->getFont($styles['currentFont']);
         $wrapLength = $this->page->getWidth() - $this->pageMargins['right'] - $this->pageMargins['left'];
 
-        if ($child->hasChildNodes()) {
-            $string = $child->getNodeValue();
-            if (!empty($string)) {
-                if ($fontObject->getStringWidth($string, $styles['fontSize']) > $wrapLength) {
-                    $strings = $this->getStringLines($string, $styles['fontSize'], $wrapLength, $fontObject);
-                    foreach ($strings as $i => $string) {
-                        $text = new Document\Page\Text($string, $styles['fontSize']);
-                        $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
-                        $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
-                    }
-                    $this->x += $fontObject->getStringWidth($string . ' ', $styles['fontSize']);
+        $string = $child->getNodeValue();
+        $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
+        if ($stringWidth > $wrapLength) {
+            $strings = $this->getStringLines($string, $styles['fontSize'], $wrapLength, $fontObject);
+            foreach ($strings as $i => $string) {
+                $text = new Document\Page\Text($string, $styles['fontSize']);
+                $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+                $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                if ($currentY <= $this->pageMargins['bottom']) {
+                    $currentY = $this->newPage();
                 } else {
-                    $text = new Document\Page\Text($string . ' ', $styles['fontSize']);
-                    $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
-                    $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
-                    $this->x += $fontObject->getStringWidth($string . ' ', $styles['fontSize']);
+                    $currentY -= $styles['lineHeight'];
+                    $this->y  += $styles['lineHeight'];
                 }
             }
-            foreach ($child->getChildNodes() as $grandChild) {
-                $this->addNodeToDocument($grandChild, false);
-            }
         } else {
-            $string      = $child->getNodeValue();
-            $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
-            if ($stringWidth > $wrapLength) {
-                $strings = $this->getStringLines($string, $styles['fontSize'], $wrapLength, $fontObject);
-                foreach ($strings as $i => $string) {
-                    $text = new Document\Page\Text($string, $styles['fontSize']);
-                    $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
-                    $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+            $text = new Document\Page\Text($string, $styles['fontSize']);
+            $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+            $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+        }
+
+        if ($child->hasChildNodes()) {
+            $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
+            foreach ($child->getChildNodes() as $grandChild) {
+                if ((substr($grandChild->getNodeValue(), 0, 1) != '.') && (substr($grandChild->getNodeValue(), 0, 1) != ',') &&
+                    (substr($grandChild->getNodeValue(), 0, 1) != ':') && (substr($grandChild->getNodeValue(), 0, 1) != ';') &&
+                    (substr($grandChild->getNodeValue(), 0, 1) != '!') && (substr($grandChild->getNodeValue(), 0, 1) != '?') &&
+                    (substr($grandChild->getNodeValue(), 0, 1) != '"') && (substr($grandChild->getNodeValue(), 0, 1) != "'")) {
+                    $this->x += $fontObject->getStringWidth(' ', $styles['fontSize']);
+                }
+                $this->addNodeStreamToDocument($grandChild);
+            }
+        }
+
+        $this->resetX();
+        $this->goToNextLine($styles);
+    }
+
+    /**
+     * Add node stream to document
+     *
+     * @param  Child   $child
+     * @param  string  $lastChar
+     * @throws Exception
+     * @return void
+     */
+    protected function addNodeStreamToDocument(Child $child, $lastChar = null)
+    {
+        $styles     = $this->prepareNodeStyles($child->getNodeName(), $child->getAttributes());
+        $currentX   = $this->getCurrentX();
+        $currentY   = $this->getCurrentY();
+        $fontObject = $this->document->getFont($styles['currentFont']);
+        $wrapLength = ($this->x > $this->pageMargins['left']) ?
+            $this->page->getWidth() - $this->pageMargins['right'] - $this->x :
+            $this->page->getWidth() - $this->pageMargins['right'] - $this->pageMargins['left'];
+
+        $string      = $child->getNodeValue();
+        $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
+
+        if ($stringWidth > $wrapLength) {
+            $strings = $this->getStringLines($string, $styles['fontSize'], $wrapLength, $fontObject);
+            if ($this->x > $this->pageMargins['left']) {
+                $text = new Document\Page\Text($strings[0], $styles['fontSize']);
+                $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+                $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                if ($currentY <= $this->pageMargins['bottom']) {
+                    $currentY = $this->newPage();
+                } else {
+                    $currentY -= $styles['lineHeight'];
+                    $this->y  += $styles['lineHeight'];
+                }
+                $currentX   = $this->resetX();
+                $wrapLength = $this->page->getWidth() - $this->pageMargins['right'] - $this->pageMargins['left'];
+                unset($strings[0]);
+                $strings = $this->getStringLines(implode(' ', $strings), $styles['fontSize'], $wrapLength, $fontObject);
+            }
+
+            foreach ($strings as $i => $string) {
+                $text = new Document\Page\Text($string, $styles['fontSize']);
+                $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+                $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                if ($i < (count($strings) - 1)) {
                     if ($currentY <= $this->pageMargins['bottom']) {
                         $currentY = $this->newPage();
                     } else {
@@ -528,21 +579,17 @@ class Parser
                         $this->y  += $styles['lineHeight'];
                     }
                 }
-                if ($nextLine) {
-                    $this->goToNextLine($styles);
-                } else {
-                    $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
-                }
-            } else {
-                $text = new Document\Page\Text($string, $styles['fontSize']);
-                $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
-                $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
-                if ($nextLine) {
-                    $this->goToNextLine($styles);
-                } else {
-                    $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
-                }
             }
+            $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
+        } else {
+            $text = new Document\Page\Text($string, $styles['fontSize']);
+            $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+            $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+            $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
+        }
+
+        foreach ($child->getChildNodes() as $grandChild) {
+            $this->addNodeStreamToDocument($grandChild);
         }
     }
 
