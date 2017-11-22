@@ -288,7 +288,29 @@ class Compiler extends AbstractCompiler
             }
             $coordinates = $this->getCoordinates($txt['x'], $txt['y'], $pageObject);
 
-            if ($txt['text']->hasAutoWrap()) {
+            if ($txt['text']->hasWrapLeft()) {
+                $wrapLeft    = $txt['text']->getWrapLeft();
+                $wrapEdge    = $wrapLeft['wrapEdge'];
+                $boxXEdge    = $wrapLeft['boxXEdge'];
+                $boxYEdge    = $wrapLeft['boxYEdge'];
+                $font        = $this->fontReferences[$txt['font']];
+                $fontObject  = $this->fonts[$txt['font']];
+                $stream      = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
+                $stream     .= $txt['text']->getPartialStreamWrapLeft($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
+                $stream     .= $txt['text']->endStream();
+                $contentObject->appendStream($stream);
+            } else if ($txt['text']->hasWrapRight()) {
+                $wrapRight = $txt['text']->getWrapRight();
+                $wrapEdge    = $wrapRight['wrapEdge'];
+                $boxXEdge    = $wrapRight['boxXEdge'];
+                $boxYEdge    = $wrapRight['boxYEdge'];
+                $font        = $this->fontReferences[$txt['font']];
+                $fontObject  = $this->fonts[$txt['font']];
+                $stream      = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
+                $stream     .= $txt['text']->getPartialStreamWrapRight($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
+                $stream     .= $txt['text']->endStream();
+                $contentObject->appendStream($stream);
+            } else if ($txt['text']->hasAutoWrap()) {
                 $wrapStart   = $coordinates['x'];
                 $wrapStop    = $pageObject->getWidth() - $txt['text']->getAutoWrap();
                 $wrapLength  = $wrapStop - $wrapStart;
@@ -337,7 +359,22 @@ class Compiler extends AbstractCompiler
             if (null === $stream) {
                 $stream  = $txt->startStream($font, $coordinates['x'], $coordinates['y']);
             }
-            if ($txt->hasAutoWrap()) {
+
+            if ($txt->hasWrapLeft()) {
+                $wrapLeft    = $txt->getWrapLeft();
+                $wrapEdge    = $wrapLeft['wrapEdge'];
+                $boxXEdge    = $wrapLeft['boxXEdge'];
+                $boxYEdge    = $wrapLeft['boxYEdge'];
+                $fontObject  = $this->fonts[$font];
+                $stream     .= $txt->getPartialStreamWrapLeft($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
+            } else if ($txt->hasWrapRight()) {
+                $wrapRight = $txt->getWrapRight();
+                $wrapEdge    = $wrapRight['wrapEdge'];
+                $boxXEdge    = $wrapRight['boxXEdge'];
+                $boxYEdge    = $wrapRight['boxYEdge'];
+                $fontObject  = $this->fonts[$font];
+                $stream     .= $txt->getPartialStreamWrapRight($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
+            } else if ($txt->hasAutoWrap()) {
                 $wrapStart   = $coordinates['x'];
                 $wrapStop    = $pageObject->getWidth() - $txt->getAutoWrap();
                 $wrapLength  = $wrapStop - $wrapStart;
