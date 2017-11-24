@@ -254,6 +254,46 @@ class Image
     }
 
     /**
+     * Get the image width
+     *
+     * @return int
+     */
+    public function getWidth()
+    {
+        return $this->width;
+    }
+
+    /**
+     * Get the image height
+     *
+     * @return int
+     */
+    public function getHeight()
+    {
+        return $this->height;
+    }
+
+    /**
+     * Get the image resized width
+     *
+     * @return int
+     */
+    public function getResizedWidth()
+    {
+        return ((null !== $this->resize) && isset($this->resize['width'])) ? $this->resize['width'] : null;
+    }
+
+    /**
+     * Get the image resized height
+     *
+     * @return int
+     */
+    public function getResizedHeight()
+    {
+        return ((null !== $this->resize) && isset($this->resize['height'])) ? $this->resize['height'] : null;
+    }
+
+    /**
      * Get the image resize dimensions
      *
      * @return array

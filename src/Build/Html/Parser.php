@@ -90,10 +90,22 @@ class Parser
     protected $y = 0;
 
     /**
+     * Wrap until point
+     * @var int
+     */
+    protected $wrapUntil = null;
+
+    /**
      * Current page object
      * @var Document\Page
      */
     protected $page = null;
+
+    /**
+     * HTML file directory
+     * @var string
+     */
+    protected $fileDir = null;
 
     /**
      * Constructor
@@ -191,6 +203,7 @@ class Parser
         if (!file_exists($htmlFile)) {
             throw new Exception('Error: That file does not exist.');
         }
+        $this->fileDir = dirname(realpath($htmlFile));
         return $this->parseHtml(file_get_contents($htmlFile));
     }
 
@@ -277,19 +290,21 @@ class Parser
     /**
      * Set page size
      *
-     * @param  string $size
+     * @param  mixed $size
+     * @param  mixed $height
      * @return self
      */
-    public function setPageSize($size)
+    public function setPageSize($size, $height = null)
     {
-        $this->pageSize = $size;
+        $this->pageSize = (null !== $height) ? ['width' => $size, 'height' => $height] : $size;
+
         return $this;
     }
 
     /**
      * Get page size
      *
-     * @return string
+     * @return string|array
      */
     public function getPageSize()
     {
@@ -452,7 +467,19 @@ class Parser
         $htmlNodes = null;
         if ($this->html instanceof Child) {
             foreach ($this->html->getChildNodes() as $child) {
-                if ($child->getNodeName() == 'body') {
+                if ($child->getNodeName() == 'head') {
+                    foreach ($child->getChildNodes() as $c) {
+                        if (($c->getNodeName() == 'link') && ($c->hasAttribute('href')) &&
+                            ($c->hasAttribute('type')) && ($c->getAttribute('type') == 'text/css')) {
+                            $href = $c->getAttribute('href');
+                            if (null === $this->css) {
+                                $this->css = Css\Css::parseFile($this->fileDir . '/' . $href);
+                            } else {
+                                $this->css->parseCssFile($this->fileDir . '/' . $href);
+                            }
+                        }
+                    }
+                } else if ($child->getNodeName() == 'body') {
                     $htmlNodes = $child;
                 }
             }
@@ -488,55 +515,93 @@ class Parser
         $currentX   = $this->getCurrentX();
         $currentY   = $this->getCurrentY();
         $fontObject = $this->document->getFont($styles['currentFont']);
-        $wrapLength = $this->page->getWidth() - $this->pageMargins['right'] - $this->pageMargins['left'];
+        $wrapLength = ($this->x > $this->pageMargins['left']) ?
+            $this->page->getWidth() - $this->pageMargins['right'] - $this->x :
+            $this->page->getWidth() - $this->pageMargins['right'] - $this->pageMargins['left'];
 
-        $string = $child->getNodeValue();
-        $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
-        if ($stringWidth > $wrapLength) {
-            $strings = $this->getStringLines($string, $styles['fontSize'], $wrapLength, $fontObject);
-            foreach ($strings as $i => $string) {
+        if ($child->getNodeName() == 'img') {
+            $image  = Document\Page\Image::createImageFromFile($this->fileDir . '/' . $child->getAttribute('src'));
+            $width  = null;
+            $height = null;
+            if ($child->hasAttribute('width')) {
+                $width = (strpos($child->getAttribute('width'), '%')) ?
+                    $this->page->getWidth() * ((int)$child->getAttribute('width') / 100) : (int)$child->getAttribute('width');
+            } else if ($child->hasAttribute('height')) {
+                $height = (strpos($child->getAttribute('height'), '%')) ?
+                    $this->page->getHeight() * ((int)$child->getAttribute('height') / 100) : (int)$child->getAttribute('height');
+            } else if (null !== $styles['width']) {
+                $width = (strpos($styles['width'], '%')) ?
+                    $this->page->getWidth() * ((int)$styles['width'] / 100) : (int)$styles['width'];
+            } else if (null !== $styles['height']) {
+                $height = (strpos($styles['height'], '%')) ?
+                    $this->page->getHeight() * ((int)$styles['height'] / 100) : (int)$styles['height'];
+            }
+            if (null !== $width) {
+                $image->resizeToWidth($width);
+            } else if (null !== $height) {
+                $image->resizeToHeight($height);
+            }
+            $currentY -= (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
+            $this->y  += (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
+            $this->page->addImage($image, $currentX, $currentY);
+            if ((null !== $styles['float']) && (null !== $width)) {
+                if ($styles['float'] == 'left') {
+                    $this->x += $width + $styles['marginRight'] + $styles['paddingRight'];
+                    $this->wrapUntil = $currentY;
+                }
+                $currentY += (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
+                $this->y  -= (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
+            }
+        } else {
+            $string = $child->getNodeValue();
+            $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
+            if ($stringWidth > $wrapLength) {
+                $strings = $this->getStringLines($string, $styles['fontSize'], $wrapLength, $fontObject);
+                foreach ($strings as $i => $string) {
+                    $text = new Document\Page\Text($string, $styles['fontSize']);
+                    $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+                    $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                    if ($currentY <= $this->pageMargins['bottom']) {
+                        $currentY = $this->newPage();
+                    } else {
+                        $currentY -= $styles['lineHeight'];
+                        $this->y  += $styles['lineHeight'];
+                    }
+                }
+            } else {
                 $text = new Document\Page\Text($string, $styles['fontSize']);
                 $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
                 $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
-                if ($currentY <= $this->pageMargins['bottom']) {
-                    $currentY = $this->newPage();
-                } else {
-                    $currentY -= $styles['lineHeight'];
-                    $this->y  += $styles['lineHeight'];
+            }
+
+            if ($child->hasChildNodes()) {
+                if (null === $this->wrapUntil) {
+                    $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
+                }
+                foreach ($child->getChildNodes() as $grandChild) {
+                    if ((substr($grandChild->getNodeValue(), 0, 1) != '.') && (substr($grandChild->getNodeValue(), 0, 1) != ',') &&
+                        (substr($grandChild->getNodeValue(), 0, 1) != ':') && (substr($grandChild->getNodeValue(), 0, 1) != ';') &&
+                        (substr($grandChild->getNodeValue(), 0, 1) != '!') && (substr($grandChild->getNodeValue(), 0, 1) != '?') &&
+                        (substr($grandChild->getNodeValue(), 0, 1) != '"') && (substr($grandChild->getNodeValue(), 0, 1) != "'")) {
+                        $this->x += $fontObject->getStringWidth(' ', $styles['fontSize']);
+                    }
+                    $this->addNodeStreamToDocument($grandChild);
                 }
             }
-        } else {
-            $text = new Document\Page\Text($string, $styles['fontSize']);
-            $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
-            $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
-        }
 
-        if ($child->hasChildNodes()) {
-            $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
-            foreach ($child->getChildNodes() as $grandChild) {
-                if ((substr($grandChild->getNodeValue(), 0, 1) != '.') && (substr($grandChild->getNodeValue(), 0, 1) != ',') &&
-                    (substr($grandChild->getNodeValue(), 0, 1) != ':') && (substr($grandChild->getNodeValue(), 0, 1) != ';') &&
-                    (substr($grandChild->getNodeValue(), 0, 1) != '!') && (substr($grandChild->getNodeValue(), 0, 1) != '?') &&
-                    (substr($grandChild->getNodeValue(), 0, 1) != '"') && (substr($grandChild->getNodeValue(), 0, 1) != "'")) {
-                    $this->x += $fontObject->getStringWidth(' ', $styles['fontSize']);
-                }
-                $this->addNodeStreamToDocument($grandChild);
-            }
+            $this->resetX();
+            $this->goToNextLine($styles);
         }
-
-        $this->resetX();
-        $this->goToNextLine($styles);
     }
 
     /**
      * Add node stream to document
      *
-     * @param  Child   $child
-     * @param  string  $lastChar
+     * @param  Child $child
      * @throws Exception
      * @return void
      */
-    protected function addNodeStreamToDocument(Child $child, $lastChar = null)
+    protected function addNodeStreamToDocument(Child $child)
     {
         $styles     = $this->prepareNodeStyles($child->getNodeName(), $child->getAttributes());
         $currentX   = $this->getCurrentX();
@@ -561,7 +626,7 @@ class Parser
                     $currentY -= $styles['lineHeight'];
                     $this->y  += $styles['lineHeight'];
                 }
-                $currentX   = $this->resetX();
+                $currentX = $this->resetX();
                 $wrapLength = $this->page->getWidth() - $this->pageMargins['right'] - $this->pageMargins['left'];
                 unset($strings[0]);
                 $strings = $this->getStringLines(implode(' ', $strings), $styles['fontSize'], $wrapLength, $fontObject);
@@ -580,12 +645,16 @@ class Parser
                     }
                 }
             }
-            $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
+            if (null === $this->wrapUntil) {
+                $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
+            }
         } else {
             $text = new Document\Page\Text($string, $styles['fontSize']);
             $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
             $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
-            $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
+            if (null === $this->wrapUntil) {
+                $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
+            }
         }
 
         foreach ($child->getChildNodes() as $grandChild) {
@@ -602,37 +671,37 @@ class Parser
     {
         $h1 = new Css\Selector('h1');
         $h1['margin-bottom'] = '18px';
-        $h1['font-size']   = '32px';
-        $h1['font-weight'] = 'bold';
+        $h1['font-size']     = '32px';
+        $h1['font-weight']   = 'bold';
 
         $h2 = new Css\Selector('h2');
         $h2['margin-bottom'] = '18px';
-        $h2['font-size']   = '28px';
-        $h2['font-weight'] = 'bold';
+        $h2['font-size']     = '28px';
+        $h2['font-weight']   = 'bold';
 
         $h3 = new Css\Selector('h3');
         $h3['margin-bottom'] = '16px';
-        $h3['font-size']   = '24px';
-        $h3['font-weight'] = 'bold';
+        $h3['font-size']     = '24px';
+        $h3['font-weight']   = 'bold';
 
         $h4 = new Css\Selector('h4');
         $h4['margin-bottom'] = '14px';
-        $h4['font-size']   = '20px';
-        $h4['font-weight'] = 'bold';
+        $h4['font-size']     = '20px';
+        $h4['font-weight']   = 'bold';
 
         $h5 = new Css\Selector('h5');
         $h5['margin-bottom'] = '12px';
-        $h5['font-size']   = '16px';
-        $h5['font-weight'] = 'bold';
+        $h5['font-size']     = '16px';
+        $h5['font-weight']   = 'bold';
 
         $h6 = new Css\Selector('h6');
         $h6['margin-bottom'] = '12px';
-        $h6['font-size']   = '12px';
-        $h6['font-weight'] = 'bold';
+        $h6['font-size']     = '12px';
+        $h6['font-weight']   = 'bold';
 
         $p = new Css\Selector('p');
         $p['margin-bottom'] = '24px';
-        $p['font-size'] = '12px';
+        $p['font-size']     = '12px';
 
         $a = new Css\Selector('a');
         $a['color'] = new Css\Color\Rgb(0, 0, 255);
@@ -689,10 +758,19 @@ class Parser
             'fontFamily'    => $this->defaultStyles['font-family'],
             'fontSize'      => $this->defaultStyles['font-size'],
             'fontWeight'    => $this->defaultStyles['font-weight'],
+            'float'         => null,
+            'width'         => null,
+            'height'        => null,
             'color'         => $this->defaultStyles['color'],
             'lineHeight'    => $this->defaultStyles['line-height'],
+            'marginTop'     => 0,
+            'paddingTop'    => 0,
+            'marginRight'   => 0,
+            'paddingRight'  => 0,
             'marginBottom'  => 0,
-            'paddingBottom' => 0
+            'paddingBottom' => 0,
+            'marginLeft'    => 0,
+            'paddingLeft'   => 0
         ];
 
         if (($name == 'h1') || ($name == 'h2') || ($name == 'h3') || ($name == 'h4') || ($name == 'h5') || ($name == 'h6')) {
@@ -740,14 +818,41 @@ class Parser
                     $styles['color'] = $cssColor->toRgb()->toArray(false);
                 }
             }
+            if ($this->css[$name]->hasProperty('float')) {
+                $styles['float'] = $this->css[$name]['float'];
+            }
+            if ($this->css[$name]->hasProperty('width')) {
+                $styles['width'] = $this->css[$name]['width'];
+            }
+            if ($this->css[$name]->hasProperty('height')) {
+                $styles['height'] = $this->css[$name]['height'];
+            }
             if ($this->css[$name]->hasProperty('line-height')) {
                 $styles['lineHeight'] = (int)$this->css[$name]['line-height'];
+            }
+            if ((int)$this->css[$name]['margin-top'] > 0) {
+                $styles['marginTop'] = (int)$this->css[$name]['margin-top'];
+            }
+            if ((int)$this->css[$name]['padding-top'] > 0) {
+                $styles['paddingTop'] = (int)$this->css[$name]['padding-top'];
+            }
+            if ((int)$this->css[$name]['margin-right'] > 0) {
+                $styles['marginRight'] = (int)$this->css[$name]['margin-right'];
+            }
+            if ((int)$this->css[$name]['padding-right'] > 0) {
+                $styles['paddingRight'] = (int)$this->css[$name]['padding-right'];
             }
             if ((int)$this->css[$name]['margin-bottom'] > 0) {
                 $styles['marginBottom'] = (int)$this->css[$name]['margin-bottom'];
             }
             if ((int)$this->css[$name]['padding-bottom'] > 0) {
                 $styles['paddingBottom'] = (int)$this->css[$name]['padding-bottom'];
+            }
+            if ((int)$this->css[$name]['margin-left'] > 0) {
+                $styles['marginLeft'] = (int)$this->css[$name]['margin-left'];
+            }
+            if ((int)$this->css[$name]['padding-left'] > 0) {
+                $styles['paddingLeft'] = (int)$this->css[$name]['padding-left'];
             }
         }
 
@@ -768,14 +873,41 @@ class Parser
                     $styles['color'] = $cssColor->toRgb()->toArray(false);
                 }
             }
+            if ($this->css['#' . $attribs['id']]->hasProperty('float')) {
+                $styles['float'] = $this->css['#' . $attribs['id']]['float'];
+            }
+            if ($this->css['#' . $attribs['id']]->hasProperty('width')) {
+                $styles['width'] = $this->css['#' . $attribs['id']]['width'];
+            }
+            if ($this->css['#' . $attribs['id']]->hasProperty('height')) {
+                $styles['height'] = $this->css['#' . $attribs['id']]['height'];
+            }
             if ($this->css['#' . $attribs['id']]->hasProperty('line-height')) {
                 $styles['lineHeight'] = (int)$this->css['#' . $attribs['id']]['line-height'];
+            }
+            if ((int)$this->css['#' . $attribs['id']]['margin-top'] > 0) {
+                $styles['marginTop'] = (int)$this->css['#' . $attribs['id']]['margin-top'];
+            }
+            if ((int)$this->css['#' . $attribs['id']]['padding-top'] > 0) {
+                $styles['paddingTop'] = (int)$this->css['#' . $attribs['id']]['padding-top'];
+            }
+            if ((int)$this->css['#' . $attribs['id']]['margin-right'] > 0) {
+                $styles['marginRight'] = (int)$this->css['#' . $attribs['id']]['margin-right'];
+            }
+            if ((int)$this->css['#' . $attribs['id']]['padding-right'] > 0) {
+                $styles['paddingRight'] = (int)$this->css['#' . $attribs['id']]['padding-right'];
             }
             if ((int)$this->css['#' . $attribs['id']]['margin-bottom'] > 0) {
                 $styles['marginBottom'] = (int)$this->css['#' . $attribs['id']]['margin-bottom'];
             }
             if ((int)$this->css['#' . $attribs['id']]['padding-bottom'] > 0) {
                 $styles['paddingBottom'] = (int)$this->css['#' . $attribs['id']]['padding-bottom'];
+            }
+            if ((int)$this->css['#' . $attribs['id']]['margin-left'] > 0) {
+                $styles['marginLeft'] = (int)$this->css['#' . $attribs['id']]['margin-left'];
+            }
+            if ((int)$this->css['#' . $attribs['id']]['padding-left'] > 0) {
+                $styles['paddingLeft'] = (int)$this->css['#' . $attribs['id']]['padding-left'];
             }
         }
 
@@ -796,14 +928,41 @@ class Parser
                     $styles['color'] = $cssColor->toRgb()->toArray(false);
                 }
             }
+            if ($this->css['.' . $attribs['class']]->hasProperty('float')) {
+                $styles['float'] = $this->css['.' . $attribs['class']]['float'];
+            }
+            if ($this->css['.' . $attribs['class']]->hasProperty('width')) {
+                $styles['width'] = $this->css['.' . $attribs['class']]['width'];
+            }
+            if ($this->css['.' . $attribs['class']]->hasProperty('height')) {
+                $styles['height'] = $this->css['.' . $attribs['class']]['height'];
+            }
             if ($this->css['.' . $attribs['class']]->hasProperty('line-height')) {
                 $styles['lineHeight'] = (int)$this->css['.' . $attribs['class']]['line-height'];
+            }
+            if ((int)$this->css['.' . $attribs['class']]['margin-top'] > 0) {
+                $styles['marginTop'] = (int)$this->css['.' . $attribs['class']]['margin-top'];
+            }
+            if ((int)$this->css['.' . $attribs['class']]['padding-top'] > 0) {
+                $styles['paddingTop'] = (int)$this->css['.' . $attribs['class']]['padding-top'];
+            }
+            if ((int)$this->css['.' . $attribs['class']]['margin-right'] > 0) {
+                $styles['marginRight'] = (int)$this->css['.' . $attribs['class']]['margin-right'];
+            }
+            if ((int)$this->css['.' . $attribs['class']]['padding-right'] > 0) {
+                $styles['paddingRight'] = (int)$this->css['.' . $attribs['class']]['padding-right'];
             }
             if ((int)$this->css['.' . $attribs['class']]['margin-bottom'] > 0) {
                 $styles['marginBottom'] = (int)$this->css['.' . $attribs['class']]['margin-bottom'];
             }
             if ((int)$this->css['.' . $attribs['class']]['padding-bottom'] > 0) {
                 $styles['paddingBottom'] = (int)$this->css['.' . $attribs['class']]['padding-bottom'];
+            }
+            if ((int)$this->css['.' . $attribs['class']]['margin-left'] > 0) {
+                $styles['marginLeft'] = (int)$this->css['.' . $attribs['class']]['margin-left'];
+            }
+            if ((int)$this->css['.' . $attribs['class']]['padding-left'] > 0) {
+                $styles['paddingLeft'] = (int)$this->css['.' . $attribs['class']]['padding-left'];
             }
         }
 
@@ -904,7 +1063,9 @@ class Parser
      */
     protected function resetX()
     {
-        $this->x = $this->pageMargins['left'];
+        if (null === $this->wrapUntil) {
+            $this->x = $this->pageMargins['left'];
+        }
         return $this->x;
     }
 
@@ -916,7 +1077,9 @@ class Parser
     protected function getCurrentY()
     {
         if (!($this->document->hasPages())) {
-            $this->page = new Document\Page($this->pageSize);
+
+            $this->page = (is_array($this->pageSize)) ?
+                new Document\Page($this->pageSize['width'], $this->pageSize['height']) : new Document\Page($this->pageSize);
             $this->document->addPage($this->page);
         } else {
             $this->page = $this->document->getPage($this->document->getCurrentPage());
@@ -925,7 +1088,8 @@ class Parser
         $currentY = $this->page->getHeight() - $this->pageMargins['top'] - $this->y;
 
         if ($currentY <= $this->pageMargins['bottom']) {
-            $this->page = new Document\Page($this->pageSize);
+            $this->page = (is_array($this->pageSize)) ?
+                new Document\Page($this->pageSize['width'], $this->pageSize['height']) : new Document\Page($this->pageSize);
             $this->document->addPage($this->page);
             $currentY = $this->resetY();
         }
@@ -941,7 +1105,8 @@ class Parser
     protected function resetY()
     {
         if (!($this->document->hasPages())) {
-            $this->page = new Document\Page($this->pageSize);
+            $this->page = (is_array($this->pageSize)) ?
+                new Document\Page($this->pageSize['width'], $this->pageSize['height']) : new Document\Page($this->pageSize);
             $this->document->addPage($this->page);
         } else {
             $this->page = $this->document->getPage($this->document->getCurrentPage());
@@ -960,7 +1125,8 @@ class Parser
      */
     protected function newPage()
     {
-        $this->page = new Document\Page($this->pageSize);
+        $this->page = (is_array($this->pageSize)) ?
+            new Document\Page($this->pageSize['width'], $this->pageSize['height']) : new Document\Page($this->pageSize);
         $this->document->addPage($this->page);
         $this->y = 0;
         return $this->page->getHeight() - $this->pageMargins['top'] - $this->y;
