@@ -71,10 +71,10 @@ class Parser
      */
     protected $defaultStyles = [
         'font-family' => 'Arial',
-        'font-size'   => 12,
+        'font-size'   => 10,
         'font-weight' => 'normal',
         'color'       => [0, 0, 0],
-        'line-height' => 16
+        'line-height' => 14
     ];
 
     /**
@@ -372,6 +372,19 @@ class Parser
     }
 
     /**
+     * Set a default style
+     *
+     * @param  string $property
+     * @param  string $value
+     * @return self
+     */
+    public function setDefaultStyle($property, $value)
+    {
+        $this->defaultStyles[$property] = $value;
+        return $this;
+    }
+
+    /**
      * Set x-position
      *
      * @param  int $x
@@ -463,6 +476,17 @@ class Parser
     public function getY()
     {
         return $this->y;
+    }
+
+    /**
+     * Get a default style
+     *
+     * @param  string $property
+     * @return string
+     */
+    public function getDefaultStyle($property)
+    {
+        return (isset($this->defaultStyles[$property])) ? $this->defaultStyles[$property] : null;
     }
 
     /**
@@ -721,8 +745,8 @@ class Parser
         $h5['font-weight']   = 'bold';
 
         $h6 = new Css\Selector('h6');
-        $h6['margin-bottom'] = '12px';
-        $h6['font-size']     = '12px';
+        $h6['margin-bottom'] = '10px';
+        $h6['font-size']     = '14px';
         $h6['font-weight']   = 'bold';
 
         $p = new Css\Selector('p');
@@ -733,11 +757,11 @@ class Parser
         $a['color'] = new Css\Color\Rgb(0, 0, 255);
 
         $strong = new Css\Selector('strong');
-        $strong['font-size']   = '12px';
+        $strong['font-size']   = '10px';
         $strong['font-weight'] = 'bold';
 
         $em = new Css\Selector('em');
-        $em['font-size']  = '12px';
+        $em['font-size']  = '10px';
         $em['font-style'] = 'italic';
 
         $this->css = new Css\Css();
