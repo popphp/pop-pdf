@@ -372,6 +372,30 @@ class Parser
     }
 
     /**
+     * Set x-position
+     *
+     * @param  int $x
+     * @return self
+     */
+    public function setX($x)
+    {
+        $this->x = $x;
+        return $this;
+    }
+
+    /**
+     * Set y-position
+     *
+     * @param  int $y
+     * @return self
+     */
+    public function setY($y)
+    {
+        $this->y = $y;
+        return $this;
+    }
+
+    /**
      * Get page margins
      *
      * @return array
@@ -419,6 +443,26 @@ class Parser
     public function getPageLeftMargin()
     {
         return $this->pageMargins['left'];
+    }
+
+    /**
+     * Get x-position
+     *
+     * @return int
+     */
+    public function getX()
+    {
+        return $this->x;
+    }
+
+    /**
+     * Get y-position
+     *
+     * @return int
+     */
+    public function getY()
+    {
+        return $this->y;
     }
 
     /**
