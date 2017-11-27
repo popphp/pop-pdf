@@ -90,12 +90,6 @@ class Parser
     protected $y = 0;
 
     /**
-     * Wrap until point
-     * @var int
-     */
-    protected $wrapUntil = null;
-
-    /**
      * Current page object
      * @var Document\Page
      */
@@ -544,14 +538,8 @@ class Parser
             $currentY -= (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
             $this->y  += (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
             $this->page->addImage($image, $currentX, $currentY);
-            if ((null !== $styles['float']) && (null !== $width)) {
-                if ($styles['float'] == 'left') {
-                    $this->x += $width + $styles['marginRight'] + $styles['paddingRight'];
-                    $this->wrapUntil = $currentY;
-                }
-                $currentY += (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
-                $this->y  -= (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
-            }
+            $currentY -= $styles['lineHeight'];
+            $this->y  += $styles['lineHeight'];
         } else {
             $string = $child->getNodeValue();
             $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
@@ -575,9 +563,7 @@ class Parser
             }
 
             if ($child->hasChildNodes()) {
-                if (null === $this->wrapUntil) {
-                    $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
-                }
+                $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
                 foreach ($child->getChildNodes() as $grandChild) {
                     if ((substr($grandChild->getNodeValue(), 0, 1) != '.') && (substr($grandChild->getNodeValue(), 0, 1) != ',') &&
                         (substr($grandChild->getNodeValue(), 0, 1) != ':') && (substr($grandChild->getNodeValue(), 0, 1) != ';') &&
@@ -645,16 +631,12 @@ class Parser
                     }
                 }
             }
-            if (null === $this->wrapUntil) {
-                $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
-            }
+            $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
         } else {
             $text = new Document\Page\Text($string, $styles['fontSize']);
             $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
             $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
-            if (null === $this->wrapUntil) {
-                $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
-            }
+            $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
         }
 
         foreach ($child->getChildNodes() as $grandChild) {
@@ -1063,9 +1045,7 @@ class Parser
      */
     protected function resetX()
     {
-        if (null === $this->wrapUntil) {
-            $this->x = $this->pageMargins['left'];
-        }
+        $this->x = $this->pageMargins['left'];
         return $this->x;
     }
 
