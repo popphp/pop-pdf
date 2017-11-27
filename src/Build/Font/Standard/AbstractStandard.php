@@ -66,7 +66,7 @@ abstract class AbstractStandard
         if (isset($this->cmap[$code]) && isset($this->glyphWidths[$this->cmap[$code]])) {
             return $this->glyphWidths[$this->cmap[$code]];
         } else {
-            throw new Exception('Error: That character was not found.');
+            return 0;
         }
     }
 
