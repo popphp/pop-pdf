@@ -74,14 +74,13 @@ class Pdf extends AbstractPdf
      * @param  AbstractDocument $document
      * @param  string           $filename
      * @param  boolean          $forceDownload
+     * @param  array            $headers
      * @return string
      */
-    public function outputToHttp(AbstractDocument $document, $filename = 'pop.pdf', $forceDownload = false)
+    public function outputToHttp(AbstractDocument $document, $filename = 'pop.pdf', $forceDownload = false, array $headers = [])
     {
-        $headers = [
-            'Content-type'        => 'application/pdf',
-            'Content-disposition' => (($forceDownload) ? 'attachment; ' : null) . 'filename=' . $filename
-        ];
+        $headers['Content-type']        = 'application/pdf';
+        $headers['Content-disposition'] = (($forceDownload) ? 'attachment; ' : null) . 'filename=' . $filename;
 
         if (isset($_SERVER['SERVER_PORT']) && ($_SERVER['SERVER_PORT'] == 443)) {
             $headers['Expires']       = 0;
