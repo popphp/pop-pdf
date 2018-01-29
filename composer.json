@@ -13,7 +13,7 @@
         "pop php"
     ],
     "homepage": "http://github.com/popphp/pop-pdf",
-    "license": "New BSD",
+    "license": "BSD-3-Clause",
     "authors": [
         {
             "name": "Nick Sagona",
