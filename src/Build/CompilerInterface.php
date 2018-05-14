@@ -36,21 +36,21 @@ interface CompilerInterface
     /**
      * Get the root object
      *
-     * @return Object\RootObject
+     * @return PdfObject\RootObject
      */
     public function getRoot();
 
     /**
      * Get the parent object
      *
-     * @return Object\ParentObject
+     * @return PdfObject\ParentObject
      */
     public function getParent();
 
     /**
      * Get the info object
      *
-     * @return Object\InfoObject
+     * @return PdfObject\InfoObject
      */
     public function getInfo();
 

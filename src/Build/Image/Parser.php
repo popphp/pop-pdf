@@ -13,7 +13,7 @@
  */
 namespace Pop\Pdf\Build\Image;
 
-use Pop\Pdf\Build\Object\StreamObject;
+use Pop\Pdf\Build\PdfObject\StreamObject;
 
 /**
  * Pdf image parser class

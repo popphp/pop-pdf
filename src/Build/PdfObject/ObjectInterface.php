@@ -11,7 +11,7 @@
 /**
  * @namespace
  */
-namespace Pop\Pdf\Build\Object;
+namespace Pop\Pdf\Build\PdfObject;
 
 /**
  * Pdf object interface

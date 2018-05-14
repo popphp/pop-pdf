@@ -14,7 +14,7 @@
 namespace Pop\Pdf\Build;
 
 use Pop\Pdf\Build\Image;
-use Pop\Pdf\Build\Object;
+use Pop\Pdf\Build\PdfObject;
 
 /**
  * Pdf compiler class
@@ -55,11 +55,11 @@ class Compiler extends AbstractCompiler
 
         if ($this->document->hasImportedObjects()) {
             foreach ($this->document->getImportObjects() as $i => $object) {
-                if ($object instanceof Object\RootObject) {
+                if ($object instanceof PdfObject\RootObject) {
                     $this->setRoot($object);
-                } else if ($object instanceof Object\ParentObject) {
+                } else if ($object instanceof PdfObject\ParentObject) {
                     $this->setParent($object);
-                } else if ($object instanceof Object\InfoObject) {
+                } else if ($object instanceof PdfObject\InfoObject) {
                     $this->setInfo($object);
                 } else {
                     $this->objects[$i] = $object;
@@ -68,13 +68,13 @@ class Compiler extends AbstractCompiler
         }
 
         if (null === $this->root) {
-            $this->setRoot(new Object\RootObject());
+            $this->setRoot(new PdfObject\RootObject());
         }
         if (null === $this->parent) {
-            $this->setParent(new Object\ParentObject());
+            $this->setParent(new PdfObject\ParentObject());
         }
         if (null === $this->info) {
-            $this->setInfo(new Object\InfoObject());
+            $this->setInfo(new PdfObject\InfoObject());
         }
 
         $this->root->setVersion($this->document->getVersion());
@@ -103,7 +103,7 @@ class Compiler extends AbstractCompiler
                 $this->objects[$pageObject->getIndex()] = $pageObject;
             } else {
                 $page->setIndex($this->lastIndex() + 1);
-                $pageObject = new Object\PageObject($page->getWidth(), $page->getHeight(), $page->getIndex());
+                $pageObject = new PdfObject\PageObject($page->getWidth(), $page->getHeight(), $page->getIndex());
                 $pageObject->setParentIndex($this->parent->getIndex());
                 $this->objects[$pageObject->getIndex()] = $pageObject;
                 $this->parent->addKid($pageObject->getIndex());
@@ -161,7 +161,7 @@ class Compiler extends AbstractCompiler
         // for the xref table and add their data to the output.
         foreach ($this->objects as $object) {
             if ($object->getIndex() != $this->root->getIndex()) {
-                if (($object instanceof Object\StreamObject) && ($this->compression) && (!$object->isPalette()) &&
+                if (($object instanceof PdfObject\StreamObject) && ($this->compression) && (!$object->isPalette()) &&
                     (!$object->isEncoded() && !$object->isImported() && (stripos($object->getDefinition(), '/length') === false))) {
                     $object->encode();
                 }
@@ -193,7 +193,7 @@ class Compiler extends AbstractCompiler
 
                 if ($font->isStandard()) {
                     $this->fontReferences[$font->getName()] = '/MF' . $f . ' ' . $i . ' 0 R';
-                    $this->objects[$i] = Object\StreamObject::parse(
+                    $this->objects[$i] = PdfObject\StreamObject::parse(
                         "{$i} 0 obj\n<<\n    /Type /Font\n    /Subtype /Type1\n    /Name /MF{$f}\n    /BaseFont /" .
                         $font->getName() . "\n    /Encoding /WinAnsiEncoding\n>>\nendobj\n\n"
                     );
@@ -221,14 +221,14 @@ class Compiler extends AbstractCompiler
      * Prepare the image objects
      *
      * @param  array $images
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    protected function prepareImages(array $images, Object\PageObject $pageObject)
+    protected function prepareImages(array $images, PdfObject\PageObject $pageObject)
     {
         $imgs = [];
         if (null === $pageObject->getCurrentContentIndex()) {
-            $contentObject = new Object\StreamObject($this->lastIndex() + 1);
+            $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
             $this->objects[$contentObject->getIndex()] = $contentObject;
             $pageObject->addContentIndex($contentObject->getIndex());
         } else {
@@ -269,14 +269,14 @@ class Compiler extends AbstractCompiler
      * Prepare the text objects
      *
      * @param  array $text
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @throws Exception
      * @return void
      */
-    protected function prepareText(array $text, Object\PageObject $pageObject)
+    protected function prepareText(array $text, PdfObject\PageObject $pageObject)
     {
         if (null === $pageObject->getCurrentContentIndex()) {
-            $contentObject = new Object\StreamObject($this->lastIndex() + 1);
+            $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
             $this->objects[$contentObject->getIndex()] = $contentObject;
             $pageObject->addContentIndex($contentObject->getIndex());
         } else {
@@ -332,14 +332,14 @@ class Compiler extends AbstractCompiler
      * Prepare the text objects
      *
      * @param  array $multiText
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @throws Exception
      * @return void
      */
-    protected function prepareMultiText(array $multiText, Object\PageObject $pageObject)
+    protected function prepareMultiText(array $multiText, PdfObject\PageObject $pageObject)
     {
         if (null === $pageObject->getCurrentContentIndex()) {
-            $contentObject = new Object\StreamObject($this->lastIndex() + 1);
+            $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
             $this->objects[$contentObject->getIndex()] = $contentObject;
             $pageObject->addContentIndex($contentObject->getIndex());
         } else {
@@ -393,13 +393,13 @@ class Compiler extends AbstractCompiler
      * Prepare the path objects
      *
      * @param  array $paths
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    protected function preparePaths(array $paths, Object\PageObject $pageObject)
+    protected function preparePaths(array $paths, PdfObject\PageObject $pageObject)
     {
         if (null === $pageObject->getCurrentContentIndex()) {
-            $contentObject = new Object\StreamObject($this->lastIndex() + 1);
+            $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
             $this->objects[$contentObject->getIndex()] = $contentObject;
             $pageObject->addContentIndex($contentObject->getIndex());
         } else {
@@ -430,10 +430,10 @@ class Compiler extends AbstractCompiler
      * Prepare the annotation objects
      *
      * @param  array $annotations
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    protected function prepareAnnotations(array $annotations, Object\PageObject $pageObject)
+    protected function prepareAnnotations(array $annotations, PdfObject\PageObject $pageObject)
     {
         foreach ($annotations as $annotation) {
             $i = $this->lastIndex() + 1;
@@ -453,7 +453,7 @@ class Compiler extends AbstractCompiler
                     $i, $coordinates['x'], $coordinates['y'], $pageObject->getIndex(), $this->parent->getKids()
                 );
             }
-            $this->objects[$i] = Object\StreamObject::parse($stream);
+            $this->objects[$i] = PdfObject\StreamObject::parse($stream);
         }
     }
 
@@ -461,11 +461,11 @@ class Compiler extends AbstractCompiler
      * Prepare the field objects
      *
      * @param  array $fields
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @throws Exception
      * @return void
      */
-    protected function prepareFields(array $fields, Object\PageObject $pageObject)
+    protected function prepareFields(array $fields, PdfObject\PageObject $pageObject)
     {
         foreach ($fields as $field) {
             if (null !== $this->document->getForm($field['form'])) {
@@ -480,7 +480,7 @@ class Compiler extends AbstractCompiler
                 $pageObject->addAnnotIndex($i);
                 $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
                 $this->document->getForm($field['form'])->addFieldIndex($i);
-                $this->objects[$i] = Object\StreamObject::parse(
+                $this->objects[$i] = PdfObject\StreamObject::parse(
                     $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'])
                 );
             }
@@ -497,7 +497,7 @@ class Compiler extends AbstractCompiler
         $formRefs = '';
         foreach ($this->document->getForms() as $form) {
             $i = $this->lastIndex() + 1;
-            $this->objects[$i] = Object\StreamObject::parse($form->getStream($i));
+            $this->objects[$i] = PdfObject\StreamObject::parse($form->getStream($i));
             $formRefs .= $i . ' 0 R ';
         }
         $formRefs = substr($formRefs, 0, -1);

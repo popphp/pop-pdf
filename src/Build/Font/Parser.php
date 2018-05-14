@@ -13,7 +13,7 @@
  */
 namespace Pop\Pdf\Build\Font;
 
-use Pop\Pdf\Build\Object\StreamObject;
+use Pop\Pdf\Build\PdfObject\StreamObject;
 
 /**
  * Pdf font parser class

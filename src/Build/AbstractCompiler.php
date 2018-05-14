@@ -28,19 +28,19 @@ abstract class AbstractCompiler implements CompilerInterface
 
     /**
      * Root object
-     * @var Object\RootObject
+     * @var PdfObject\RootObject
      */
     protected $root = null;
 
     /**
      * Parent object
-     * @var Object\ParentObject
+     * @var PdfObject\ParentObject
      */
     protected $parent = null;
 
     /**
      * Info object
-     * @var Object\InfoObject
+     * @var PdfObject\InfoObject
      */
     protected $info = null;
 
@@ -111,7 +111,7 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Get the root object
      *
-     * @return Object\RootObject
+     * @return PdfObject\RootObject
      */
     public function getRoot()
     {
@@ -121,7 +121,7 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Get the parent object
      *
-     * @return Object\ParentObject
+     * @return PdfObject\ParentObject
      */
     public function getParent()
     {
@@ -131,7 +131,7 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Get the info object
      *
-     * @return Object\InfoObject
+     * @return PdfObject\InfoObject
      */
     public function getInfo()
     {
@@ -167,10 +167,10 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Set the root object
      *
-     * @param  Object\RootObject $root
+     * @param  PdfObject\RootObject $root
      * @return AbstractCompiler
      */
-    protected function setRoot(Object\RootObject $root)
+    protected function setRoot(PdfObject\RootObject $root)
     {
         $this->root = $root;
         $this->objects[$this->root->getIndex()] = $this->root;
@@ -180,10 +180,10 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Set the parent object
      *
-     * @param  Object\ParentObject $parent
+     * @param  PdfObject\ParentObject $parent
      * @return AbstractCompiler
      */
-    protected function setParent(Object\ParentObject $parent)
+    protected function setParent(PdfObject\ParentObject $parent)
     {
         $this->parent = $parent;
         $this->objects[$this->parent->getIndex()] = $this->parent;
@@ -193,10 +193,10 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Set the info object
      *
-     * @param  Object\InfoObject $info
+     * @param  PdfObject\InfoObject $info
      * @return AbstractCompiler
      */
-    protected function setInfo(Object\InfoObject $info)
+    protected function setInfo(PdfObject\InfoObject $info)
     {
         $this->info = $info;
         $this->objects[$this->info->getIndex()] = $this->info;
@@ -230,10 +230,10 @@ abstract class AbstractCompiler implements CompilerInterface
      *
      * @param  int $x
      * @param  int $y
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @return array
      */
-    protected function getCoordinates($x, $y, Object\PageObject $pageObject)
+    protected function getCoordinates($x, $y, PdfObject\PageObject $pageObject)
     {
         $coordinates = ['x' => $x, 'y' => $y];
         $width       = $pageObject->getWidth();
@@ -286,36 +286,36 @@ abstract class AbstractCompiler implements CompilerInterface
      * Prepare the image objects
      *
      * @param  array $images
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    abstract protected function prepareImages(array $images, Object\PageObject $pageObject);
+    abstract protected function prepareImages(array $images, PdfObject\PageObject $pageObject);
 
     /**
      * Prepare the text objects
      *
      * @param  array $text
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    abstract protected function prepareText(array $text, Object\PageObject $pageObject);
+    abstract protected function prepareText(array $text, PdfObject\PageObject $pageObject);
 
     /**
      * Prepare the annotation objects
      *
      * @param  array $annotations
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    abstract protected function prepareAnnotations(array $annotations, Object\PageObject $pageObject);
+    abstract protected function prepareAnnotations(array $annotations, PdfObject\PageObject $pageObject);
 
     /**
      * Prepare the path objects
      *
      * @param  array $paths
-     * @param  Object\PageObject $pageObject
+     * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    abstract protected function preparePaths(array $paths, Object\PageObject $pageObject);
+    abstract protected function preparePaths(array $paths, PdfObject\PageObject $pageObject);
 
 }

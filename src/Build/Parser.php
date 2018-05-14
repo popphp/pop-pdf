@@ -207,7 +207,7 @@ class Parser extends AbstractParser
         foreach ($this->objectStreams as $stream) {
             switch ($this->getStreamType($stream)) {
                 case 'root':
-                    $root = Object\RootObject::parse($stream);
+                    $root = PdfObject\RootObject::parse($stream);
                     $root->setImported(true);
                     $root->setVersion(substr($this->data, 5, 3));
                     $this->objectMap['root'] = [
@@ -218,7 +218,7 @@ class Parser extends AbstractParser
                     ];
                     break;
                 case 'parent':
-                    $parent = Object\ParentObject::parse($stream);
+                    $parent = PdfObject\ParentObject::parse($stream);
                     $parent->setImported(true);
                     $this->objectMap['parent'] = [
                         'stream' => $stream,
@@ -229,7 +229,7 @@ class Parser extends AbstractParser
                     ];
                     break;
                 case 'info':
-                    $info = Object\InfoObject::parse($stream);
+                    $info = PdfObject\InfoObject::parse($stream);
                     $info->setImported(true);
                     $this->objectMap['info'] = [
                         'stream' => $stream,
@@ -242,7 +242,7 @@ class Parser extends AbstractParser
                         $this->objectMap['pages'] = [];
                     }
 
-                    $page = Object\PageObject::parse($stream);
+                    $page = PdfObject\PageObject::parse($stream);
                     $page->setImported(true);
 
                     $this->objectMap['pages'][$page->getIndex()] = [
@@ -262,7 +262,7 @@ class Parser extends AbstractParser
                     if (!isset($this->objectMap['streams'])) {
                         $this->objectMap['streams'] = [];
                     }
-                    $stream = Object\StreamObject::parse($stream);
+                    $stream = PdfObject\StreamObject::parse($stream);
                     $stream->setImported(true);
                     $this->objectMap['streams'][$stream->getIndex()] = [
                         'stream' => $stream,

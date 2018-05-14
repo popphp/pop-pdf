@@ -30,7 +30,7 @@ class Page extends AbstractPage
 
     /**
      * Imported page object
-     * @var \Pop\Pdf\Build\Object\PageObject
+     * @var \Pop\Pdf\Build\PdfObject\PageObject
      */
     protected $importedPageObject = null;
 
@@ -211,10 +211,10 @@ class Page extends AbstractPage
     /**
      * Import page object into the page
      *
-     * @param \Pop\Pdf\Build\Object\PageObject $page
+     * @param \Pop\Pdf\Build\PdfObject\PageObject $page
      * @return Page
      */
-    public function importPageObject(\Pop\Pdf\Build\Object\PageObject $page)
+    public function importPageObject(\Pop\Pdf\Build\PdfObject\PageObject $page)
     {
         $this->importedPageObject = $page;
         return $this;
@@ -233,7 +233,7 @@ class Page extends AbstractPage
     /**
      * Get the import page object
      *
-     * @return \Pop\Pdf\Build\Object\PageObject
+     * @return \Pop\Pdf\Build\PdfObject\PageObject
      */
     public function getImportedPageObject()
     {

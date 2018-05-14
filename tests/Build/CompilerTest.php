@@ -18,9 +18,9 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(0, $compiler->lastIndex());
         $compiler->setDocument($doc);
         $this->assertInstanceOf('Pop\Pdf\Document', $compiler->getDocument());
-        $this->assertInstanceOf('Pop\Pdf\Build\Object\RootObject', $compiler->getRoot());
-        $this->assertInstanceOf('Pop\Pdf\Build\Object\ParentObject', $compiler->getParent());
-        $this->assertInstanceOf('Pop\Pdf\Build\Object\InfoObject', $compiler->getInfo());
+        $this->assertInstanceOf('Pop\Pdf\Build\PdfObject\RootObject', $compiler->getRoot());
+        $this->assertInstanceOf('Pop\Pdf\Build\PdfObject\ParentObject', $compiler->getParent());
+        $this->assertInstanceOf('Pop\Pdf\Build\PdfObject\InfoObject', $compiler->getInfo());
     }
 
     public function testFinalize()
