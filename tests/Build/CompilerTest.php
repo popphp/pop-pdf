@@ -47,6 +47,9 @@ class CompilerTest extends \PHPUnit_Framework_TestCase
         $page2->addUrl(new Page\Annotation\Url(150, 20, 'http://www.google.com/'));
         $page2->addLink(new Page\Annotation\Link(150, 20, 300, 300));
 
+        $texts = [new Page\Text('Hello World', 36, $doc->getCurrentFont()), new Page\Text('Hello World', 12, $doc->getCurrentFont())];
+
+        $page2->addMultiText($texts, 50, 400);
         $page2->addField(new Page\Field\Text('name', 'Arial', 10), 'contact_form', 50, 200);
         $page2->addField(new Page\Field\Text('email', 'Arial', 10), 'contact_form', 50, 175);
 

@@ -147,6 +147,7 @@ class DocumentTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf('Pop\Pdf\Document\Font', $doc->getFont('Arial'));
         $this->assertContains('Arial', $doc->getAvailableFonts());
         $this->assertTrue($doc->isFontAvailable('Arial'));
+        $this->assertTrue($doc->hasFont('Arial'));
     }
 
     public function testGetFontException()

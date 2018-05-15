@@ -11,6 +11,7 @@ class PdfTest extends \PHPUnit_Framework_TestCase
     {
         $pdf = new Pdf\Pdf();
         $this->assertInstanceOf('Pop\Pdf\Pdf', $pdf);
+
     }
 
     public function testImportFromFile()

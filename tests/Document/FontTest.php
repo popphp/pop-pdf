@@ -2,19 +2,34 @@
 
 namespace Pop\Pdf\Test\Document;
 
-use Pop\Pdf\Document\Form;
+use Pop\Pdf\Document\Font;
 
-class FormTest extends \PHPUnit_Framework_TestCase
+class FontTest extends \PHPUnit_Framework_TestCase
 {
 
-    public function testAddFieldIndex()
+    public function testSetFontException()
     {
-        $form = new Form('contact');
-        $form->addFieldIndex(1);
-        $this->assertEquals(1, count($form->getFieldIndices()));
-        $this->assertEquals(1, $form->getNumberOfFields());
-        $this->assertContains('1 0 obj', $form->getStream(1));
-        $this->assertContains('<</Fields', $form->getStream(1));
+        $this->expectException('Pop\Pdf\Document\Exception');
+        $font = new Font('BAD_FONT');
+    }
+
+    public function testGetFont()
+    {
+        $font = new Font('Arial');
+        $this->assertEquals('Arial', $font->getFont());
+    }
+
+    public function testGetStandardFonts()
+    {
+        $font = new Font('Arial');
+        $this->assertEquals(26, count($font->getStandardFonts()));
+        $this->assertEquals(26, count(Font::standardFonts()));
+    }
+
+    public function testGetStringWidth()
+    {
+        $font = new Font('Arial');
+        $this->assertEquals(27.336, $font->getStringWidth('Hello', 12));
     }
 
 }
