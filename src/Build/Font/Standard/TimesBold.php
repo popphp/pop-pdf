@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2018 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2019 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -23,9 +23,9 @@ namespace Pop\Pdf\Build\Font\Standard;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2018 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2019 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    3.1.0
+ * @version    3.2.0
  */
 class TimesBold extends AbstractStandard
 {
@@ -143,7 +143,7 @@ class TimesBold extends AbstractStandard
         0x54 =>   0x35,   0x55 =>   0x36,   0x56 =>   0x37,   0x57 =>   0x38,
         0x58 =>   0x39,   0x59 =>   0x3a,   0x5a =>   0x3b,   0x5b =>   0x3c,
         0x5c =>   0x3d,   0x5d =>   0x3e,   0x5e =>   0x3f,   0x5f =>   0x40,
-        0x2018 =>   0x41,   0x61 =>   0x42,   0x62 =>   0x43,   0x63 =>   0x44,
+        0x2019 =>   0x41,   0x61 =>   0x42,   0x62 =>   0x43,   0x63 =>   0x44,
         0x64 =>   0x45,   0x65 =>   0x46,   0x66 =>   0x47,   0x67 =>   0x48,
         0x68 =>   0x49,   0x69 =>   0x4a,   0x6a =>   0x4b,   0x6b =>   0x4c,
         0x6c =>   0x4d,   0x6d =>   0x4e,   0x6e =>   0x4f,   0x6f =>   0x50,

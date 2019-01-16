@@ -22,12 +22,12 @@
         }
     ],
     "require": {
-        "php": ">=5.6.0",
-        "popphp/pop-css" : "^1.0.3",
-        "popphp/pop-dom" : "^3.2.1"
+        "php": ">=7.1.0",
+        "popphp/pop-css" : "^1.0.7",
+        "popphp/pop-dom" : "^3.2.6"
     },
     "require-dev": {
-        "phpunit/phpunit": "5.5.*"
+        "phpunit/phpunit": "^7.0.0"
     },
     "suggest": {
         "ext-gd": "For the image parser"
@@ -44,7 +44,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "3.0.x-dev"
+            "dev-master": "3.2.x-dev"
         }
     }
 }
