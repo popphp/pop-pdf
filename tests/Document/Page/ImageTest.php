@@ -3,8 +3,9 @@
 namespace Pop\Pdf\Test\Document\Page;
 
 use Pop\Pdf\Document\Page\Image;
+use PHPUnit\Framework\TestCase;
 
-class ImageTest extends \PHPUnit_Framework_TestCase
+class ImageTest extends TestCase
 {
 
     public function testSetImageDoesNotExistException()

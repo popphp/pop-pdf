@@ -3,8 +3,9 @@
 namespace Pop\Pdf\Test\Document\Page;
 
 use Pop\Pdf\Document\Page\Color;
+use PHPUnit\Framework\TestCase;
 
-class ColorTest extends \PHPUnit_Framework_TestCase
+class ColorTest extends TestCase
 {
 
     public function testSetAndGetRgbValues()

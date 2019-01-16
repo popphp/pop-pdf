@@ -3,8 +3,9 @@
 namespace Pop\Pdf\Test\Build\Image;
 
 use Pop\Pdf\Build\Image\Parser;
+use PHPUnit\Framework\TestCase;
 
-class ParserTest extends \PHPUnit_Framework_TestCase
+class ParserTest extends TestCase
 {
 
     public function testConstructor()

@@ -3,8 +3,9 @@
 namespace Pop\Pdf\Test\Document;
 
 use Pop\Pdf\Document\Font;
+use PHPUnit\Framework\TestCase;
 
-class FontTest extends \PHPUnit_Framework_TestCase
+class FontTest extends TestCase
 {
 
     public function testSetFontException()

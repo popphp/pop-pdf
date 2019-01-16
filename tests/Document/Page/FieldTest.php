@@ -4,8 +4,9 @@ namespace Pop\Pdf\Test\Document\Page;
 
 use Pop\Pdf\Document\Page\Field;
 use Pop\Pdf\Document\Page\Color;
+use PHPUnit\Framework\TestCase;
 
-class FieldTest extends \PHPUnit_Framework_TestCase
+class FieldTest extends TestCase
 {
 
     public function testConstructor()

@@ -4,8 +4,9 @@ namespace Pop\Pdf\Test\Document\Page;
 
 use Pop\Pdf\Document\Page\Path;
 use Pop\Pdf\Document\Page\Color;
+use PHPUnit\Framework\TestCase;
 
-class PathTest extends \PHPUnit_Framework_TestCase
+class PathTest extends TestCase
 {
 
     public function testSetFillColor()

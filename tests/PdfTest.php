@@ -3,8 +3,9 @@
 namespace Pop\Pdf\Test;
 
 use Pop\Pdf;
+use PHPUnit\Framework\TestCase;
 
-class PdfTest extends \PHPUnit_Framework_TestCase
+class PdfTest extends TestCase
 {
 
     public function testConstructor()

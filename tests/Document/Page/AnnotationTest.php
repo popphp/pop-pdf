@@ -3,8 +3,9 @@
 namespace Pop\Pdf\Test\Document\Page;
 
 use Pop\Pdf\Document\Page\Annotation;
+use PHPUnit\Framework\TestCase;
 
-class AnnotationTest extends \PHPUnit_Framework_TestCase
+class AnnotationTest extends TestCase
 {
 
     public function testGetWidthAndHeight()

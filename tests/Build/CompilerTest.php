@@ -7,8 +7,9 @@ use Pop\Pdf\Document\Font;
 use Pop\Pdf\Document\Form;
 use Pop\Pdf\Document\Page;
 use Pop\Pdf\Build\Compiler;
+use PHPUnit\Framework\TestCase;
 
-class CompilerTest extends \PHPUnit_Framework_TestCase
+class CompilerTest extends TestCase
 {
 
     public function testSetDocument()

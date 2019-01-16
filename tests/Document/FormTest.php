@@ -3,8 +3,9 @@
 namespace Pop\Pdf\Test\Document;
 
 use Pop\Pdf\Document\Form;
+use PHPUnit\Framework\TestCase;
 
-class FormTest extends \PHPUnit_Framework_TestCase
+class FormTest extends TestCase
 {
 
     public function testAddFieldIndex()

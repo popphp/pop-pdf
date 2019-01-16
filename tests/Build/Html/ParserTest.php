@@ -4,8 +4,9 @@ namespace Pop\Pdf\Test\Build\Html;
 
 use Pop\Pdf\Build\Html\Parser;
 use Pop\Pdf\Document;
+use PHPUnit\Framework\TestCase;
 
-class ParserTest extends \PHPUnit_Framework_TestCase
+class ParserTest extends TestCase
 {
 
     public function testConstructor()

@@ -3,8 +3,9 @@
 namespace Pop\Pdf\Test\Build;
 
 use Pop\Pdf\Build\Parser;
+use PHPUnit\Framework\TestCase;
 
-class ParserTest extends \PHPUnit_Framework_TestCase
+class ParserTest extends TestCase
 {
 
     public function testGetObjectStreamsAndMap()

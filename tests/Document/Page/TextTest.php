@@ -4,8 +4,9 @@ namespace Pop\Pdf\Test\Document\Page;
 
 use Pop\Pdf\Document\Page\Color;
 use Pop\Pdf\Document\Page\Text;
+use PHPUnit\Framework\TestCase;
 
-class TextTest extends \PHPUnit_Framework_TestCase
+class TextTest extends TestCase
 {
 
     public function testGetSize()
