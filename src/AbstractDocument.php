@@ -350,7 +350,7 @@ abstract class AbstractDocument
      * Set the compression
      *
      * @param  boolean $compression
-     * @return Document
+     * @return AbstractDocument
      */
     public function setCompression($compression)
     {

@@ -79,9 +79,9 @@ interface CompilerInterface
     /**
      * Compile and finalize the PDF document
      *
-     * @param  \Pop\Pdf\Document $document
+     * @param  \Pop\Pdf\AbstractDocument $document
      * @return void
      */
-    public function finalize(\Pop\Pdf\Document $document);
+    public function finalize(\Pop\Pdf\AbstractDocument $document);
 
 }

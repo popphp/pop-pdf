@@ -82,12 +82,6 @@ class Pdf extends AbstractPdf
         $headers['Content-type']        = 'application/pdf';
         $headers['Content-disposition'] = (($forceDownload) ? 'attachment; ' : null) . 'filename=' . $filename;
 
-        if (isset($_SERVER['SERVER_PORT']) && ($_SERVER['SERVER_PORT'] == 443)) {
-            $headers['Expires']       = 0;
-            $headers['Cache-Control'] = 'private, must-revalidate';
-            $headers['Pragma']        = 'cache';
-        }
-
         $compiler = new Build\Compiler();
         $compiler->finalize($document);
 
