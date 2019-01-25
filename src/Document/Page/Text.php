@@ -75,34 +75,16 @@ class Text
     ];
 
     /**
-     * Text wrap (by number of characters)
-     * @var int
+     * Text alignment object
+     * @var Text\Alignment
      */
-    protected $wrap = 0;
+    protected $alignment = null;
 
     /**
-     * Auto text wrap (by width of characters vs width of page)
-     * @var int
+     * Text wrap object
+     * @var Text\Wrap
      */
-    protected $autoWrap = 0;
-
-    /**
-     * Wrap text left of a box object (image, graphic, etc.)
-     * @var array
-     */
-    protected $wrapLeft = [];
-
-    /**
-     * Wrap text right of a box object (image, graphic, etc.)
-     * @var array
-     */
-    protected $wrapRight = [];
-
-    /**
-     * Text line height
-     * @var int
-     */
-    protected $lineHeight = 0;
+    protected $wrap = null;
 
     /**
      * Text parameters
@@ -240,94 +222,6 @@ class Text
     }
 
     /**
-     * Set the word wrap
-     *
-     * @param  int $wrap
-     * @param  int $lineHeight
-     * @return Text
-     */
-    public function setWrap($wrap, $lineHeight = null)
-    {
-        $this->wrap = (int)$wrap;
-        if (null !== $lineHeight) {
-            $this->setLineHeight($lineHeight);
-        }
-        return $this;
-    }
-
-    /**
-     * Set the auto-wrap boundary
-     *
-     * @param  int $wrap
-     * @param  int $lineHeight
-     * @return Text
-     */
-    public function setAutoWrap($wrap, $lineHeight = null)
-    {
-        $this->autoWrap = (int)$wrap;
-        if (null !== $lineHeight) {
-            $this->setLineHeight($lineHeight);
-        }
-        return $this;
-    }
-
-    /**
-     * Set the text to wrap left
-     *
-     * @param  int $wrap
-     * @param  int $boxXEdge
-     * @param  int $boxYEdge
-     * @param  int $lineHeight
-     * @return Text
-     */
-    public function setWrapLeft($wrap, $boxXEdge, $boxYEdge, $lineHeight = null)
-    {
-        $this->wrapLeft = [
-            'wrapEdge' => $wrap,
-            'boxXEdge' => $boxXEdge,
-            'boxYEdge' => $boxYEdge,
-        ];
-        if (null !== $lineHeight) {
-            $this->setLineHeight($lineHeight);
-        }
-        return $this;
-    }
-
-    /**
-     * Set the text to wrap right
-     *
-     * @param  int $wrap
-     * @param  int $boxXEdge
-     * @param  int $boxYEdge
-     * @param  int $lineHeight
-     * @return Text
-     */
-    public function setWrapRight($wrap, $boxXEdge, $boxYEdge, $lineHeight = null)
-    {
-        $this->wrapRight = [
-            'wrapEdge' => $wrap,
-            'boxXEdge' => $boxXEdge,
-            'boxYEdge' => $boxYEdge,
-        ];
-        if (null !== $lineHeight) {
-            $this->setLineHeight($lineHeight);
-        }
-        return $this;
-    }
-
-    /**
-     * Set the word wrap
-     *
-     * @param  int $lineHeight
-     * @return Text
-     */
-    public function setLineHeight($lineHeight)
-    {
-        $this->lineHeight = (int)$lineHeight;
-        return $this;
-    }
-
-    /**
      * Method to set the rotation of the text
      *
      * @param  int $rotation
@@ -340,6 +234,30 @@ class Text
             throw new \OutOfRangeException('Error: The rotation parameter must be between -90 and 90 degrees.');
         }
         $this->textParams['rot'] = $rotation;
+        return $this;
+    }
+
+    /**
+     * Set the text alignment
+     *
+     * @param  Text\Alignment
+     * @return Text
+     */
+    public function setAlignment(Text\Alignment $alignment)
+    {
+        $this->alignment = $alignment;
+        return $this;
+    }
+
+    /**
+     * Set the text wrap
+     *
+     * @param  Text\Wrap
+     * @return Text
+     */
+    public function setWrap(Text\Wrap $wrap)
+    {
+        $this->wrap = $wrap;
         return $this;
     }
 
@@ -404,86 +322,6 @@ class Text
     }
 
     /**
-     * Get the word wrap
-     *
-     * @return int
-     */
-    public function getWrap()
-    {
-        return $this->wrap;
-    }
-
-    /**
-     * Get the word auto-wrap
-     *
-     * @return int
-     */
-    public function getAutoWrap()
-    {
-        return $this->autoWrap;
-    }
-
-    /**
-     * Get the wrap left
-     *
-     * @return array
-     */
-    public function getWrapLeft()
-    {
-        return $this->wrapLeft;
-    }
-
-    /**
-     * Get the wrap right
-     *
-     * @return array
-     */
-    public function getWrapRight()
-    {
-        return $this->wrapRight;
-    }
-
-    /**
-     * Determine if the text object has auto-wrap
-     *
-     * @return boolean
-     */
-    public function hasAutoWrap()
-    {
-        return ($this->autoWrap > 0);
-    }
-
-    /**
-     * Determine if the text object has wrap left
-     *
-     * @return boolean
-     */
-    public function hasWrapLeft()
-    {
-        return (count($this->wrapLeft) > 0);
-    }
-
-    /**
-     * Determine if the text object has wrap right
-     *
-     * @return boolean
-     */
-    public function hasWrapRight()
-    {
-        return (count($this->wrapRight) > 0);
-    }
-
-    /**
-     * Get the line height
-     *
-     * @return int
-     */
-    public function getLineHeight()
-    {
-        return $this->lineHeight;
-    }
-
-    /**
      * Get the rotation of the text
      *
      * @return int
@@ -491,6 +329,46 @@ class Text
     public function getRotation()
     {
         return $this->textParams['rot'];
+    }
+
+    /**
+     * Get the text alignment
+     *
+     * @return Text\Alignment
+     */
+    public function getAlignment()
+    {
+        return $this->alignment;
+    }
+
+    /**
+     * Get the text wrap
+     *
+     * @return Text\Wrap
+     */
+    public function getWrap()
+    {
+        return $this->wrap;
+    }
+
+    /**
+     * Has text alignment
+     *
+     * @return boolean
+     */
+    public function hasAlignment()
+    {
+        return (null !== $this->alignment);
+    }
+
+    /**
+     * Has text wrap
+     *
+     * @return boolean
+     */
+    public function hasWrap()
+    {
+        return (null !== $this->wrap);
     }
 
     /**
@@ -549,208 +427,6 @@ class Text
     }
 
     /**
-     * Get the partial text stream
-     *
-     * @param  string $fontReference
-     * @param  Font   $fontObject
-     * @param  int    $wrapLength
-     * @return string
-     */
-    public function getPartialStream($fontReference = null, Font $fontObject = null, $wrapLength = null)
-    {
-        $stream = '';
-
-        if (null !== $fontReference) {
-            $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
-            $stream       .= "    {$fontReference} {$this->size} Tf\n";
-        }
-
-        if (null !== $this->fillColor) {
-            if ($this->fillColor instanceof Color\Rgb) {
-                $stream .= '    ' . $this->fillColor . " rg\n";
-            } else if ($this->fillColor instanceof Color\Cmyk) {
-                $stream .= '    ' . $this->fillColor . " k\n";
-            } else if ($this->fillColor instanceof Color\Gray) {
-                $stream .= '    ' . $this->fillColor . " g\n";
-            }
-        }
-        if (null !== $this->strokeColor) {
-            if ($this->strokeColor instanceof Color\Rgb) {
-                $stream .= '    ' . $this->strokeColor . " RG\n";
-            } else if ($this->strokeColor instanceof Color\Cmyk) {
-                $stream .= '    ' . $this->strokeColor . " K\n";
-            } else if ($this->strokeColor instanceof Color\Gray) {
-                $stream .= '    ' . $this->strokeColor . " G\n";
-            }
-        }
-
-        if (count($this->stringsWithOffsets) > 0) {
-            $stream .= "    [({$this->string})";
-            foreach ($this->stringsWithOffsets as $string) {
-                $stream .= " " . (0 - $string['offset']) . " (" . $string['string'] . ")";
-            }
-            $stream .= "]TJ\n";
-        } else {
-            if (($this->wrap > 0) && (strlen($this->string) > $this->wrap)) {
-                if ((int)$this->lineHeight == 0) {
-                    $this->lineHeight = $this->size;
-                }
-                $strings = explode("\n", wordwrap($this->string, $this->wrap, "\n"));
-
-                foreach ($strings as $i => $string) {
-                    $stream .= "    ({$string})Tj\n";
-                    if ($i < count($strings)) {
-                        $stream .= "    0 -" . $this->lineHeight . " Td\n";
-                    }
-                }
-            } else {
-                if ((null !== $fontObject) && (null !== $wrapLength)) {
-                    $strings   = [];
-                    $curString = '';
-                    $words     = explode(' ', $this->string);
-                    foreach ($words as $word) {
-                        $newString = ($curString != '') ? $curString . ' ' . $word : $word;
-                        if ($fontObject->getStringWidth($newString, $this->size) <= $wrapLength) {
-                            $curString = $newString;
-                        } else {
-                            $strings[] = $curString;
-                            $curString = $word;
-                        }
-                    }
-                    if (!empty($curString)) {
-                        $strings[] = $curString;
-                    }
-                    if ((int)$this->lineHeight == 0) {
-                        $this->lineHeight = $this->size;
-                    }
-                    foreach ($strings as $i => $string) {
-                        $stream .= "    ({$string})Tj\n";
-                        if ($i < count($strings)) {
-                            $stream .= "    0 -" . $this->lineHeight . " Td\n";
-                        }
-                    }
-                } else {
-                    $stream .= "    ({$this->string})Tj\n";
-                }
-            }
-        }
-
-        return $stream;
-    }
-
-    /**
-     * Get the partial text stream
-     *
-     * @param  int    $startX
-     * @param  int    $startY
-     * @param  int    $wrapEdge
-     * @param  int    $boxXEdge
-     * @param  int    $boxYEdge
-     * @param  string $fontReference
-     * @param  Font   $fontObject
-     * @return string
-     */
-    public function getPartialStreamWrapLeft($startX, $startY, $wrapEdge, $boxXEdge, $boxYEdge, $fontReference = null, Font $fontObject = null)
-    {
-        $stream = '';
-
-        if (null !== $fontReference) {
-            $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
-            $stream .= "    {$fontReference} {$this->size} Tf\n";
-        }
-
-        if (null !== $this->fillColor) {
-            if ($this->fillColor instanceof Color\Rgb) {
-                $stream .= '    ' . $this->fillColor . " rg\n";
-            } else if ($this->fillColor instanceof Color\Cmyk) {
-                $stream .= '    ' . $this->fillColor . " k\n";
-            } else if ($this->fillColor instanceof Color\Gray) {
-                $stream .= '    ' . $this->fillColor . " g\n";
-            }
-        }
-        if (null !== $this->strokeColor) {
-            if ($this->strokeColor instanceof Color\Rgb) {
-                $stream .= '    ' . $this->strokeColor . " RG\n";
-            } else if ($this->strokeColor instanceof Color\Cmyk) {
-                $stream .= '    ' . $this->strokeColor . " K\n";
-            } else if ($this->strokeColor instanceof Color\Gray) {
-                $stream .= '    ' . $this->strokeColor . " G\n";
-            }
-        }
-
-        $strings = $this->getStringsForWrapLeft($startX, $startY, $wrapEdge, $boxXEdge, $boxYEdge, $fontObject);
-
-        foreach ($strings as $i => $string) {
-            $stream .= "    (" . $string['string'] . ")Tj\n";
-            if ($i < count($strings)) {
-                $stream .= "    0 -" . $this->lineHeight . " Td\n";
-            }
-        }
-
-        return $stream;
-    }
-
-    /**
-     * Get the partial text stream
-     *
-     * @param  int    $startX
-     * @param  int    $startY
-     * @param  int    $wrapEdge
-     * @param  int    $boxXEdge
-     * @param  int    $boxYEdge
-     * @param  string $fontReference
-     * @param  Font   $fontObject
-     * @return string
-     */
-    public function getPartialStreamWrapRight($startX, $startY, $wrapEdge, $boxXEdge, $boxYEdge, $fontReference = null, Font $fontObject = null)
-    {
-        $stream = '';
-
-        if (null !== $fontReference) {
-            $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
-            $stream .= "    {$fontReference} {$this->size} Tf\n";
-        }
-
-        if (null !== $this->fillColor) {
-            if ($this->fillColor instanceof Color\Rgb) {
-                $stream .= '    ' . $this->fillColor . " rg\n";
-            } else if ($this->fillColor instanceof Color\Cmyk) {
-                $stream .= '    ' . $this->fillColor . " k\n";
-            } else if ($this->fillColor instanceof Color\Gray) {
-                $stream .= '    ' . $this->fillColor . " g\n";
-            }
-        }
-        if (null !== $this->strokeColor) {
-            if ($this->strokeColor instanceof Color\Rgb) {
-                $stream .= '    ' . $this->strokeColor . " RG\n";
-            } else if ($this->strokeColor instanceof Color\Cmyk) {
-                $stream .= '    ' . $this->strokeColor . " K\n";
-            } else if ($this->strokeColor instanceof Color\Gray) {
-                $stream .= '    ' . $this->strokeColor . " G\n";
-            }
-        }
-
-        $strings = $this->getStringsForWrapRight($startX, $startY, $wrapEdge, $boxXEdge, $boxYEdge, $fontObject);
-
-        $firstX = 0;
-        foreach ($strings as $i => $string) {
-            if ($i == 0) {
-                $firstX  = $string['x'];
-                $stream .= "    " . $firstX . " 0 Td\n";
-            } else if ($firstX != $string['x']) {
-                $stream .= "    -" . $firstX . " 0 Td\n";
-                $firstX  = $string['x'];
-            }
-            $stream .= "    (" . $string['string'] . ")Tj\n";
-            if ($i < count($strings)) {
-                $stream .= "    0 -" . $this->lineHeight . " Td\n";
-            }
-        }
-
-        return $stream;
-    }
-
-    /**
      * End the text stream
      *
      * @return string
@@ -774,107 +450,18 @@ class Text
     }
 
     /**
-     * Get the strings for wrap left
+     * Get the partial text stream
      *
-     * @param  int    $startX
-     * @param  int    $startY
-     * @param  int    $wrapEdge
-     * @param  int    $boxXEdge
-     * @param  int    $boxYEdge
+     * @param  string $fontReference
      * @param  Font   $fontObject
-     * @return array
+     * @param  int    $wrapLength
+     * @return string
      */
-    public function getStringsForWrapLeft($startX, $startY, $wrapEdge, $boxXEdge, $boxYEdge, Font $fontObject)
+    public function getPartialStream($fontReference = null, Font $fontObject = null, $wrapLength = null)
     {
-        $strings   = [];
-        $curString = '';
-        $words     = explode(' ', $this->string);
+        $stream = '';
 
-        if ((int)$this->lineHeight == 0) {
-            $this->lineHeight = $this->size;
-        }
-
-        $wrapLength = $boxXEdge - $startX;
-
-        foreach ($words as $word) {
-            $newString = ($curString != '') ? $curString . ' ' . $word : $word;
-            if ($fontObject->getStringWidth($newString, $this->size) <= $wrapLength) {
-                $curString = $newString;
-            } else {
-                $strings[] = [
-                    'string' => $curString,
-                    'x'      => $startX,
-                    'y'      => $startY
-                ];
-                $curString = $word;
-                $startY -= $this->lineHeight;
-            }
-            if ($startY < ($boxYEdge - $this->lineHeight)) {
-                $wrapLength = $wrapEdge - $startX;
-            }
-        }
-        if (!empty($curString)) {
-            $strings[] = [
-                'string' => $curString,
-                'x'      => $startX,
-                'y'      => $startY
-            ];
-        }
-
-        return $strings;
-    }
-
-    /**
-     * Get the strings for wrap right
-     *
-     * @param  int    $startX
-     * @param  int    $startY
-     * @param  int    $wrapEdge
-     * @param  int    $boxXEdge
-     * @param  int    $boxYEdge
-     * @param  Font   $fontObject
-     * @return array
-     */
-    public function getStringsForWrapRight($startX, $startY, $wrapEdge, $boxXEdge, $boxYEdge, Font $fontObject)
-    {
-        $strings   = [];
-        $curString = '';
-        $words     = explode(' ', $this->string);
-
-        if ((int)$this->lineHeight == 0) {
-            $this->lineHeight = $this->size;
-        }
-
-        $wrapLength    = $wrapEdge - $boxXEdge;
-        $currentStartX = $boxXEdge - $startX;
-
-        foreach ($words as $word) {
-            $newString = ($curString != '') ? $curString . ' ' . $word : $word;
-            if ($fontObject->getStringWidth($newString, $this->size) <= $wrapLength) {
-                $curString = $newString;
-            } else {
-                $strings[] = [
-                    'string' => $curString,
-                    'x'      => $currentStartX,
-                    'y'      => $startY
-                ];
-                $curString = $word;
-                $startY -= $this->lineHeight;
-            }
-            if ($startY < ($boxYEdge - $this->lineHeight)) {
-                $wrapLength = $wrapEdge - $startX;
-                $currentStartX = $startX;
-            }
-        }
-        if (!empty($curString)) {
-            $strings[] = [
-                'string' => $curString,
-                'x'      => $currentStartX,
-                'y'      => $startY
-            ];
-        }
-
-        return $strings;
+        return $stream;
     }
 
     /**
