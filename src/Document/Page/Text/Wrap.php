@@ -23,14 +23,8 @@ namespace Pop\Pdf\Document\Page\Text;
  * @license    http://www.popphp.org/license     New BSD License
  * @version    3.2.0
  */
-class Wrap
+class Wrap extends AbstractAlignment
 {
-
-    /**
-     * Wrap constants
-     */
-    const LEFT  = 'LEFT';
-    const RIGHT = 'RIGHT';
 
     /**
      * Wrap direction
@@ -65,12 +59,34 @@ class Wrap
     /**
      * Constructor
      *
-     * Instantiate a PDF text alignment object.
+     * Instantiate a PDF text wrap object.
      *
+     * @param string $direction
+     * @param array  $boundaries
+     * @param int    $charWrap
+     * @param int    $pageWrap
+     * @param int    $leading
      */
-    public function __construct()
+    public function __construct($direction = 'LEFT', array $boundaries = [], $charWrap = 0, $pageWrap = 0, $leading = 0)
     {
+        parent::__construct($charWrap, $pageWrap, $leading);
 
+        $this->setDirection($direction);
+
+        if (!empty($boundaries)) {
+            if (isset($boundaries['leftX'])) {
+                $this->setLeftX($boundaries['leftX']);
+            }
+            if (isset($boundaries['rightX'])) {
+                $this->setRightX($boundaries['rightX']);
+            }
+            if (isset($boundaries['topY'])) {
+                $this->setTopY($boundaries['topY']);
+            }
+            if (isset($boundaries['bottomY'])) {
+                $this->setBottomY($boundaries['bottomY']);
+            }
+        }
     }
 
     /**

@@ -282,7 +282,8 @@ class Compiler extends AbstractCompiler
         } else {
             $contentObject = $this->objects[$pageObject->getCurrentContentIndex()];
         }
-        foreach ($text as $txt) {
+
+        foreach ($text as  $txt) {
             if (!isset($this->fontReferences[$txt['font']])) {
                 throw new Exception('Error: The font \'' . $txt['font'] . '\' has not been added to the document.');
             }

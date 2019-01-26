@@ -262,6 +262,33 @@ class Text
     }
 
     /**
+     * Escape string
+     *
+     * @param  mixed $search
+     * @param  mixed $replace
+     * @return Text
+     */
+    public function escape($search = null, $replace = null)
+    {
+        $searchAry  = ['(', ')'];
+        $replaceAry = ['\(', '\)'];
+
+        if (!empty($search) && !empty($replace)) {
+            if (!is_array($search)) {
+                $search = [$search];
+            }
+            if (!is_array($replace)) {
+                $replace = [$replace];
+            }
+            $searchAry  = array_merge($searchAry, $search);
+            $replaceAry = array_merge($replaceAry, $replace);
+        }
+
+        $this->string = str_replace($searchAry, $replaceAry, $this->string);
+        return $this;
+    }
+
+    /**
      * Get the text string
      *
      * @return string
@@ -460,6 +487,83 @@ class Text
     public function getPartialStream($fontReference = null, Font $fontObject = null, $wrapLength = null)
     {
         $stream = '';
+
+        if (null !== $fontReference) {
+            $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
+            $stream       .= "    {$fontReference} {$this->size} Tf\n";
+        }
+
+        if (null !== $this->fillColor) {
+            if ($this->fillColor instanceof Color\Rgb) {
+                $stream .= '    ' . $this->fillColor . " rg\n";
+            } else if ($this->fillColor instanceof Color\Cmyk) {
+                $stream .= '    ' . $this->fillColor . " k\n";
+            } else if ($this->fillColor instanceof Color\Gray) {
+                $stream .= '    ' . $this->fillColor . " g\n";
+            }
+        }
+        if (null !== $this->strokeColor) {
+            if ($this->strokeColor instanceof Color\Rgb) {
+                $stream .= '    ' . $this->strokeColor . " RG\n";
+            } else if ($this->strokeColor instanceof Color\Cmyk) {
+                $stream .= '    ' . $this->strokeColor . " K\n";
+            } else if ($this->strokeColor instanceof Color\Gray) {
+                $stream .= '    ' . $this->strokeColor . " G\n";
+            }
+        }
+
+        if (count($this->stringsWithOffsets) > 0) {
+            $stream .= "    [({$this->string})";
+            foreach ($this->stringsWithOffsets as $string) {
+                $stream .= " " . (0 - $string['offset']) . " (" . $string['string'] . ")";
+            }
+            $stream .= "]TJ\n";
+        } else {
+            /*
+            if (($this->wrap > 0) && (strlen($this->string) > $this->wrap)) {
+                if ((int)$this->lineHeight == 0) {
+                    $this->lineHeight = $this->size;
+                }
+                $strings = explode("\n", wordwrap($this->string, $this->wrap, "\n"));
+
+                foreach ($strings as $i => $string) {
+                    $stream .= "    ({$string})Tj\n";
+                    if ($i < count($strings)) {
+                        $stream .= "    0 -" . $this->lineHeight . " Td\n";
+                    }
+                }
+            } else {
+                if ((null !== $fontObject) && (null !== $wrapLength)) {
+                    $strings   = [];
+                    $curString = '';
+                    $words     = explode(' ', $this->string);
+                    foreach ($words as $word) {
+                        $newString = ($curString != '') ? $curString . ' ' . $word : $word;
+                        if ($fontObject->getStringWidth($newString, $this->size) <= $wrapLength) {
+                            $curString = $newString;
+                        } else {
+                            $strings[] = $curString;
+                            $curString = $word;
+                        }
+                    }
+                    if (!empty($curString)) {
+                        $strings[] = $curString;
+                    }
+                    if ((int)$this->lineHeight == 0) {
+                        $this->lineHeight = $this->size;
+                    }
+                    foreach ($strings as $i => $string) {
+                        $stream .= "    ({$string})Tj\n";
+                        if ($i < count($strings)) {
+                            $stream .= "    0 -" . $this->lineHeight . " Td\n";
+                        }
+                    }
+                } else {
+                    $stream .= "    ({$this->string})Tj\n";
+                }
+            }
+            */
+        }
 
         return $stream;
     }

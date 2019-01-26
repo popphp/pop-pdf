@@ -23,14 +23,12 @@ namespace Pop\Pdf\Document\Page\Text;
  * @license    http://www.popphp.org/license     New BSD License
  * @version    3.2.0
  */
-class Alignment
+class Alignment extends AbstractAlignment
 {
 
     /**
-     * Justification constants
+     * Alignment constant
      */
-    const LEFT   = 'LEFT';
-    const RIGHT  = 'RIGHT';
     const CENTER = 'CENTER';
 
     /**
@@ -40,32 +38,19 @@ class Alignment
     protected $justification = 'LEFT';
 
     /**
-     * Character wrap boundary (wrap by length of characters)
-     * @var int
-     */
-    protected $charWrap = 0;
-
-    /**
-     * Page wrap boundary (wrap by the edge of the page)
-     * @var int
-     */
-    protected $pageWrap = 0;
-
-    /**
-     * Text leading
-     * @var int
-     */
-    protected $leading = 0;
-
-    /**
      * Constructor
      *
      * Instantiate a PDF text alignment object.
      *
+     * @param string $justification
+     * @param int    $charWrap
+     * @param int    $pageWrap
+     * @param int    $leading
      */
-    public function __construct()
+    public function __construct($justification = 'LEFT', $charWrap = 0, $pageWrap = 0, $leading = 0)
     {
-
+        parent::__construct($charWrap, $pageWrap, $leading);
+        $this->setJustification($justification);
     }
 
     /**
@@ -88,42 +73,6 @@ class Alignment
     }
 
     /**
-     * Set character wrap boundary
-     *
-     * @param  int $charWrap
-     * @return Alignment
-     */
-    public function setCharWrap($charWrap)
-    {
-        $this->charWrap = $charWrap;
-        return $this;
-    }
-
-    /**
-     * Set page wrap boundary
-     *
-     * @param  int $pageWrap
-     * @return Alignment
-     */
-    public function setPageWrap($pageWrap)
-    {
-        $this->pageWrap = $pageWrap;
-        return $this;
-    }
-
-    /**
-     * Set the leading
-     *
-     * @param  int $leading
-     * @return Alignment
-     */
-    public function setLeading($leading)
-    {
-        $this->leading = $leading;
-        return $this;
-    }
-
-    /**
      * Get text justification
      *
      * @return string
@@ -131,36 +80,6 @@ class Alignment
     public function getJustification()
     {
         return $this->justification;
-    }
-
-    /**
-     * Get character wrap boundary
-     *
-     * @return int
-     */
-    public function getCharWrap()
-    {
-        return $this->charWrap;
-    }
-
-    /**
-     * Get page wrap boundary
-     *
-     * @return int
-     */
-    public function getPageWrap()
-    {
-        return $this->pageWrap;
-    }
-
-    /**
-     * Get the leading
-     *
-     * @return int
-     */
-    public function getLeading()
-    {
-        return $this->leading;
     }
 
 }
