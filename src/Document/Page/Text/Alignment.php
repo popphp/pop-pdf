@@ -13,6 +13,9 @@
  */
 namespace Pop\Pdf\Document\Page\Text;
 
+use Pop\Pdf\Document\Page\Text as Txt;
+use Pop\Pdf\Document\Font;
+
 /**
  * Pdf page text alignment class
  *
@@ -27,69 +30,64 @@ class Alignment extends AbstractAlignment
 {
 
     /**
-     * Alignment constant
-     */
-    const CENTER = 'CENTER';
-
-    /**
-     * Text alignment
-     * @var string
-     */
-    protected $alignment = 'LEFT';
-
-    /**
-     * Constructor
+     * Get strings
      *
-     * Instantiate a PDF text alignment object.
-     *
-     * @param string $alignment
-     * @param int    $charWrap
-     * @param int    $pageWrap
-     * @param int    $leading
+     * @param  Txt  $text
+     * @param  Font $font
+     * @param  int  $startY
+     * @return array
      */
-    public function __construct($alignment = 'LEFT', $charWrap = 0, $pageWrap = 0, $leading = 0)
+    public function getStrings(Txt $text, Font $font, $startY)
     {
-        parent::__construct($charWrap, $pageWrap, $leading);
-        $this->setAlignment($alignment);
-    }
+        $strings    = [];
+        $curString  = '';
+        $words      = explode(' ', $text->getString());
+        $wrapLength = abs($this->rightX - $this->leftX);
+        $startX     = $this->leftX;
 
-    /**
-     * Set text alignment
-     *
-     * @param  string $alignment
-     * @throws \InvalidArgumentException
-     * @return Alignment
-     */
-    public function setAlignment($alignment)
-    {
-        $alignment = strtoupper($alignment);
-
-        if (($alignment != self::LEFT) && ($alignment != self::RIGHT) && ($alignment != self::CENTER)) {
-            throw new \InvalidArgumentException('Error: The alignment must be either LEFT, RIGHT or CENTER');
+        if ((int)$this->leading == 0) {
+            $this->leading = $text->getSize();
         }
 
-        $this->alignment = $alignment;
-        return $this;
-    }
+        foreach ($words as $word) {
+            $newString = ($curString != '') ? $curString . ' ' . $word : $word;
+            if ($font->getStringWidth($newString, $text->getSize()) <= $wrapLength) {
+                $curString = $newString;
+            } else {
+                if ($this->isRight()) {
+                    $x = $this->leftX + ($wrapLength - $font->getStringWidth($curString, $text->getSize()));
+                } else if ($this->isCenter()) {
+                    $x = $this->leftX + (($wrapLength - $font->getStringWidth($curString, $text->getSize())) / 2);
+                } else {
+                    $x = $startX;
+                }
 
-    /**
-     * Get text alignment
-     *
-     * @return string
-     */
-    public function getAlignment()
-    {
-        return $this->alignment;
-    }
+                $strings[] = [
+                    'string' => $curString,
+                    'x'      => $x,
+                    'y'      => $startY
+                ];
+                $curString = $word;
+                $startY   -= $this->leading;
+            }
+        }
 
-    /**
-     * Determine if text has alignment
-     *
-     * @return boolean
-     */
-    public function hasAlignment()
-    {
-        return !empty($this->alignment);
+        if (!empty($curString)) {
+            if ($this->isRight()) {
+                $x = $this->leftX + ($wrapLength - $font->getStringWidth($curString, $text->getSize()));
+            } else if ($this->isCenter()) {
+                $x = $this->leftX + (($wrapLength - $font->getStringWidth($curString, $text->getSize())) / 2);
+            } else {
+                $x = $startX;
+            }
+            $strings[] = [
+                'string' => $curString,
+                'x'      => $x,
+                'y'      => $startY
+            ];
+        }
+
+        return $strings;
     }
 
 }

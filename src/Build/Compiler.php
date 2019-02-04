@@ -15,6 +15,7 @@ namespace Pop\Pdf\Build;
 
 use Pop\Pdf\Build\Image;
 use Pop\Pdf\Build\PdfObject;
+use Pop\Pdf\Document\Page\Text;
 
 /**
  * Pdf compiler class
@@ -289,9 +290,6 @@ class Compiler extends AbstractCompiler
             }
             $coordinates = $this->getCoordinates($txt['x'], $txt['y'], $pageObject);
 
-
-
-
             //if ($txt['text']->hasWrapLeft()) {
             //    $wrapLeft    = $txt['text']->getWrapLeft();
             //    $wrapEdge    = $wrapLeft['wrapEdge'];
@@ -325,16 +323,24 @@ class Compiler extends AbstractCompiler
             //    $stream     .= $txt['text']->endStream();
             //    $contentObject->appendStream($stream);
 
-            // Left/right text wrap around a boundary
-            if (($txt['text']->hasWrap()) && ($txt['text']->getWrap()->hasBoundary())) {
 
             // Auto-wrap text by character length
-            } else if (($txt['text']->hasWrap()) && ($txt['text']->getWrap()->hasCharWrap())) {
-
+            if ($txt['text']->hasCharWrap()) {
+                $font    = $this->fontReferences[$txt['font']];
+                $stream  = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
+                $stream .= $txt['text']->getPartialStream($font);
+                $stream .= $txt['text']->endStream();
+                $contentObject->appendStream($stream);
             // Left/right/center align text
             } else if ($txt['text']->hasAlignment()) {
-
-            // Else, just append text stream
+                $fontObject = $this->fonts[$txt['font']];
+                $strings    = $txt['text']->getAlignment()->getStrings($txt['text'], $fontObject, $coordinates['y']);
+                foreach ($strings as $string) {
+                    $textString = new Text($string['string'], $txt['text']->getSize());
+                    $contentObject->appendStream(
+                        $textString->getStream($this->fontReferences[$txt['font']], $string['x'], $string['y'])
+                    );
+                }
             } else {
                 $contentObject->appendStream(
                     $txt['text']->getStream($this->fontReferences[$txt['font']], $coordinates['x'], $coordinates['y'])

@@ -13,10 +13,8 @@
  */
 namespace Pop\Pdf\Document\Page\Text;
 
-use Pop\Pdf\Document\Page\Text as Txt;
-
 /**
- * Pdf page text alignment class
+ * Pdf page text abstract alignment class
  *
  * @category   Pop
  * @package    Pop\Pdf
@@ -33,18 +31,25 @@ abstract class AbstractAlignment implements AlignmentInterface
      */
     const LEFT   = 'LEFT';
     const RIGHT  = 'RIGHT';
+    const CENTER = 'CENTER';
 
     /**
-     * Character wrap boundary (wrap by length of characters)
-     * @var int
+     * Text alignment
+     * @var string
      */
-    protected $charWrap = 0;
+    protected $alignment = self::LEFT;
 
     /**
-     * Page wrap boundary (wrap by the edge of the page)
+     * Left X boundary
      * @var int
      */
-    protected $pageWrap = 0;
+    protected $leftX = 0;
+
+    /**
+     * Right X boundary
+     * @var int
+     */
+    protected $rightX = 0;
 
     /**
      * Text leading
@@ -57,38 +62,53 @@ abstract class AbstractAlignment implements AlignmentInterface
      *
      * Instantiate a PDF text alignment object.
      *
-     * @param int $charWrap
-     * @param int $pageWrap
+     * @param string $alignment
+     * @param int    $leftX
+     * @param int    $rightX
+     * @param int    $leading
      * @param int $leading
      */
-    public function __construct($charWrap = 0, $pageWrap = 0, $leading = 0)
+    public function __construct($alignment = self::LEFT, $leftX = 0, $rightX = 0, $leading = 0)
     {
-        $this->setCharWrap($charWrap);
-        $this->setPageWrap($pageWrap);
+        $this->setAlignment($alignment);
+        $this->setLeftX($leftX);
+        $this->setRightX($rightX);
         $this->setLeading($leading);
     }
 
     /**
-     * Set character wrap boundary
+     * Set alignment
      *
-     * @param  int $charWrap
+     * @param  string $alignment
      * @return AbstractAlignment
      */
-    public function setCharWrap($charWrap)
+    public function setAlignment($alignment)
     {
-        $this->charWrap = $charWrap;
+        $this->alignment = $alignment;
         return $this;
     }
 
     /**
-     * Set page wrap boundary
+     * Set the left X boundary
      *
-     * @param  int $pageWrap
-     * @return AbstractAlignment
+     * @param  int $x
+     * @return AlignmentInterface
      */
-    public function setPageWrap($pageWrap)
+    public function setLeftX($x)
     {
-        $this->pageWrap = $pageWrap;
+        $this->leftX = $x;
+        return $this;
+    }
+
+    /**
+     * Set the right X boundary
+     *
+     * @param  int $x
+     * @return AlignmentInterface
+     */
+    public function setRightX($x)
+    {
+        $this->rightX = $x;
         return $this;
     }
 
@@ -105,23 +125,33 @@ abstract class AbstractAlignment implements AlignmentInterface
     }
 
     /**
-     * Get character wrap boundary
+     * Get alignment
      *
-     * @return int
+     * @return string
      */
-    public function getCharWrap()
+    public function getAlignment()
     {
-        return $this->charWrap;
+        return $this->alignment;
     }
 
     /**
-     * Get page wrap boundary
+     * Get the left X
      *
      * @return int
      */
-    public function getPageWrap()
+    public function getLeftX()
     {
-        return $this->pageWrap;
+        return $this->leftX;
+    }
+
+    /**
+     * Get the right X
+     *
+     * @return int
+     */
+    public function getRightX()
+    {
+        return $this->rightX;
     }
 
     /**
@@ -135,27 +165,27 @@ abstract class AbstractAlignment implements AlignmentInterface
     }
 
     /**
-     * Determine is there is a character wrap boundary
+     * Has left X
      *
      * @return boolean
      */
-    public function hasCharWrap()
+    public function hasLeftX()
     {
-        return ($this->charWrap > 0);
+        return ($this->leftX > 0);
     }
 
     /**
-     * Determine is there is a page wrap boundary
+     * Has right X
      *
      * @return boolean
      */
-    public function hasPageWrap()
+    public function hasRightX()
     {
-        return ($this->pageWrap > 0);
+        return ($this->rightX > 0);
     }
 
     /**
-     * Determine is there is leading
+     * Has leading
      *
      * @return boolean
      */
@@ -165,30 +195,33 @@ abstract class AbstractAlignment implements AlignmentInterface
     }
 
     /**
-     * Get character wrap stream
+     * Is LEFT alignment
      *
-     * @param  Txt $text
-     * @return string
+     * @return boolean
      */
-    public function getCharWrapStream(Txt $text)
+    public function isLeft()
     {
-        $stream = '';
-
-        if ((int)$this->leading == 0) {
-            $this->leading = $text->getSize();
-        }
-        $strings = explode("\n", wordwrap($text->getString(), $this->charWrap, "\n"));
-
-        foreach ($strings as $i => $string) {
-            $stream .= "    ({$string})Tj\n";
-            if ($i < count($strings)) {
-                $stream .= "    0 -" . $this->leading . " Td\n";
-            }
-        }
-
-        return $stream;
+        return ($this->alignment == self::LEFT);
     }
 
+    /**
+     * Is RIGHT alignment
+     *
+     * @return boolean
+     */
+    public function isRight()
+    {
+        return ($this->alignment == self::RIGHT);
+    }
 
+    /**
+     * Is CENTER alignment
+     *
+     * @return boolean
+     */
+    public function isCenter()
+    {
+        return ($this->alignment == self::CENTER);
+    }
 
 }

@@ -14,7 +14,7 @@
 namespace Pop\Pdf\Document\Page\Text;
 
 /**
- * Pdf page text alignment class
+ * Pdf page text alignment interface
  *
  * @category   Pop
  * @package    Pop\Pdf
@@ -27,20 +27,28 @@ interface AlignmentInterface
 {
 
     /**
-     * Set character wrap boundary
+     * Set alignment
      *
-     * @param  int $charWrap
+     * @param  string $alignment
      * @return AlignmentInterface
      */
-    public function setCharWrap($charWrap);
+    public function setAlignment($alignment);
 
     /**
-     * Set page wrap boundary
+     * Set the left X boundary
      *
-     * @param  int $pageWrap
+     * @param  int $x
      * @return AlignmentInterface
      */
-    public function setPageWrap($pageWrap);
+    public function setLeftX($x);
+
+    /**
+     * Set the right X boundary
+     *
+     * @param  int $x
+     * @return AlignmentInterface
+     */
+    public function setRightX($x);
 
     /**
      * Set the leading
@@ -53,16 +61,23 @@ interface AlignmentInterface
     /**
      * Get character wrap boundary
      *
-     * @return int
+     * @return string
      */
-    public function getCharWrap();
+    public function getAlignment();
 
     /**
-     * Get page wrap boundary
+     * Get left X
      *
      * @return int
      */
-    public function getPageWrap();
+    public function getLeftX();
+
+    /**
+     * Get left X
+     *
+     * @return int
+     */
+    public function getRightX();
 
     /**
      * Get the leading
@@ -70,5 +85,47 @@ interface AlignmentInterface
      * @return int
      */
     public function getLeading();
+
+    /**
+     * Has left X
+     *
+     * @return boolean
+     */
+    public function hasLeftX();
+
+    /**
+     * Has right X
+     *
+     * @return boolean
+     */
+    public function hasRightX();
+
+    /**
+     * Has leading
+     *
+     * @return boolean
+     */
+    public function hasLeading();
+
+    /**
+     * Is LEFT alignment
+     *
+     * @return boolean
+     */
+    public function isLeft();
+
+    /**
+     * Is RIGHT alignment
+     *
+     * @return boolean
+     */
+    public function isRight();
+
+    /**
+     * Is CENTER alignment
+     *
+     * @return boolean
+     */
+    public function isCenter();
 
 }

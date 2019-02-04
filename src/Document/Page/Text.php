@@ -75,16 +75,22 @@ class Text
     ];
 
     /**
+     * Basic wrap based on character length
+     * @var int
+     */
+    protected $charWrap = 0;
+
+    /**
+     * Leading for the lines for a character wrap
+     * @var int
+     */
+    protected $leading = 0;
+
+    /**
      * Text alignment object
      * @var Text\Alignment
      */
-    protected $alignment = null;
-
-    /**
-     * Text wrap object
-     * @var Text\Wrap
-     */
-    protected $wrap = null;
+    protected $alignment = 0;
 
     /**
      * Text parameters
@@ -238,26 +244,42 @@ class Text
     }
 
     /**
-     * Set the text alignment
+     * Method to set the character wrap
      *
-     * @param  Text\Alignment
+     * @param  int $charWrap
+     * @param  int $leading
+     * @return Text
+     */
+    public function setCharWrap($charWrap, $leading = null)
+    {
+        $this->charWrap = (int)$charWrap;
+        if (null !== $leading) {
+            $this->setLeading($leading);
+        }
+        return $this;
+    }
+
+    /**
+     * Method to set the character wrap leading
+     *
+     * @param  int $leading
+     * @return Text
+     */
+    public function setLeading($leading)
+    {
+        $this->leading = (int)$leading;
+        return $this;
+    }
+
+    /**
+     * Method to set the text alignment
+     *
+     * @param  Text\Alignment $alignment
      * @return Text
      */
     public function setAlignment(Text\Alignment $alignment)
     {
         $this->alignment = $alignment;
-        return $this;
-    }
-
-    /**
-     * Set the text wrap
-     *
-     * @param  Text\Wrap
-     * @return Text
-     */
-    public function setWrap(Text\Wrap $wrap)
-    {
-        $this->wrap = $wrap;
         return $this;
     }
 
@@ -359,7 +381,27 @@ class Text
     }
 
     /**
-     * Get the text alignment
+     * Get character wrap
+     *
+     * @return int
+     */
+    public function getCharWrap()
+    {
+        return $this->charWrap;
+    }
+
+    /**
+     * Get character wrap leading
+     *
+     * @return int
+     */
+    public function getLeading()
+    {
+        return $this->leading;
+    }
+
+    /**
+     * Get text alignment
      *
      * @return Text\Alignment
      */
@@ -369,13 +411,23 @@ class Text
     }
 
     /**
-     * Get the text wrap
+     * Has character wrap
      *
-     * @return Text\Wrap
+     * @return boolean
      */
-    public function getWrap()
+    public function hasCharWrap()
     {
-        return $this->wrap;
+        return ($this->charWrap > 0);
+    }
+
+    /**
+     * Has character wrap leading
+     *
+     * @return boolean
+     */
+    public function hasLeading()
+    {
+        return ($this->leading > 0);
     }
 
     /**
@@ -386,16 +438,6 @@ class Text
     public function hasAlignment()
     {
         return (null !== $this->alignment);
-    }
-
-    /**
-     * Has text wrap
-     *
-     * @return boolean
-     */
-    public function hasWrap()
-    {
-        return (null !== $this->wrap);
     }
 
     /**
@@ -480,11 +522,9 @@ class Text
      * Get the partial text stream
      *
      * @param  string $fontReference
-     * @param  Font   $fontObject
-     * @param  int    $wrapLength
      * @return string
      */
-    public function getPartialStream($fontReference = null, Font $fontObject = null, $wrapLength = null)
+    public function getPartialStream($fontReference = null)
     {
         $stream = '';
 
@@ -519,51 +559,22 @@ class Text
             }
             $stream .= "]TJ\n";
         } else {
-            $stream .= "    ({$this->string})Tj\n";
-            /*
-            if (($this->wrap > 0) && (strlen($this->string) > $this->wrap)) {
-                if ((int)$this->lineHeight == 0) {
-                    $this->lineHeight = $this->size;
+            if (($this->hasCharWrap()) && (strlen($this->string) > $this->charWrap)) {
+                if ((int)$this->leading == 0) {
+                    $this->leading = $this->size;
                 }
-                $strings = explode("\n", wordwrap($this->string, $this->wrap, "\n"));
+
+                $strings = explode("\n", wordwrap($this->string, $this->charWrap, "\n"));
 
                 foreach ($strings as $i => $string) {
                     $stream .= "    ({$string})Tj\n";
                     if ($i < count($strings)) {
-                        $stream .= "    0 -" . $this->lineHeight . " Td\n";
+                        $stream .= "    0 -" . $this->leading . " Td\n";
                     }
                 }
             } else {
-                if ((null !== $fontObject) && (null !== $wrapLength)) {
-                    $strings   = [];
-                    $curString = '';
-                    $words     = explode(' ', $this->string);
-                    foreach ($words as $word) {
-                        $newString = ($curString != '') ? $curString . ' ' . $word : $word;
-                        if ($fontObject->getStringWidth($newString, $this->size) <= $wrapLength) {
-                            $curString = $newString;
-                        } else {
-                            $strings[] = $curString;
-                            $curString = $word;
-                        }
-                    }
-                    if (!empty($curString)) {
-                        $strings[] = $curString;
-                    }
-                    if ((int)$this->lineHeight == 0) {
-                        $this->lineHeight = $this->size;
-                    }
-                    foreach ($strings as $i => $string) {
-                        $stream .= "    ({$string})Tj\n";
-                        if ($i < count($strings)) {
-                            $stream .= "    0 -" . $this->lineHeight . " Td\n";
-                        }
-                    }
-                } else {
-                    $stream .= "    ({$this->string})Tj\n";
-                }
+                $stream .= "    ({$this->string})Tj\n";
             }
-            */
         }
 
         return $stream;
