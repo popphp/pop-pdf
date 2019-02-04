@@ -289,38 +289,52 @@ class Compiler extends AbstractCompiler
             }
             $coordinates = $this->getCoordinates($txt['x'], $txt['y'], $pageObject);
 
-            if ($txt['text']->hasWrapLeft()) {
-                $wrapLeft    = $txt['text']->getWrapLeft();
-                $wrapEdge    = $wrapLeft['wrapEdge'];
-                $boxXEdge    = $wrapLeft['boxXEdge'];
-                $boxYEdge    = $wrapLeft['boxYEdge'];
-                $font        = $this->fontReferences[$txt['font']];
-                $fontObject  = $this->fonts[$txt['font']];
-                $stream      = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
-                $stream     .= $txt['text']->getPartialStreamWrapLeft($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
-                $stream     .= $txt['text']->endStream();
-                $contentObject->appendStream($stream);
-            } else if ($txt['text']->hasWrapRight()) {
-                $wrapRight = $txt['text']->getWrapRight();
-                $wrapEdge    = $wrapRight['wrapEdge'];
-                $boxXEdge    = $wrapRight['boxXEdge'];
-                $boxYEdge    = $wrapRight['boxYEdge'];
-                $font        = $this->fontReferences[$txt['font']];
-                $fontObject  = $this->fonts[$txt['font']];
-                $stream      = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
-                $stream     .= $txt['text']->getPartialStreamWrapRight($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
-                $stream     .= $txt['text']->endStream();
-                $contentObject->appendStream($stream);
-            } else if ($txt['text']->hasAutoWrap()) {
-                $wrapStart   = $coordinates['x'];
-                $wrapStop    = $pageObject->getWidth() - $txt['text']->getAutoWrap();
-                $wrapLength  = $wrapStop - $wrapStart;
-                $font        = $this->fontReferences[$txt['font']];
-                $fontObject  = $this->fonts[$txt['font']];
-                $stream      = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
-                $stream     .= $txt['text']->getPartialStream($font, $fontObject, $wrapLength);
-                $stream     .= $txt['text']->endStream();
-                $contentObject->appendStream($stream);
+
+
+
+            //if ($txt['text']->hasWrapLeft()) {
+            //    $wrapLeft    = $txt['text']->getWrapLeft();
+            //    $wrapEdge    = $wrapLeft['wrapEdge'];
+            //    $boxXEdge    = $wrapLeft['boxXEdge'];
+            //    $boxYEdge    = $wrapLeft['boxYEdge'];
+            //    $font        = $this->fontReferences[$txt['font']];
+            //    $fontObject  = $this->fonts[$txt['font']];
+            //    $stream      = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
+            //    $stream     .= $txt['text']->getPartialStreamWrapLeft($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
+            //    $stream     .= $txt['text']->endStream();
+            //    $contentObject->appendStream($stream);
+            //} else if ($txt['text']->hasWrapRight()) {
+            //    $wrapRight = $txt['text']->getWrapRight();
+            //    $wrapEdge    = $wrapRight['wrapEdge'];
+            //    $boxXEdge    = $wrapRight['boxXEdge'];
+            //    $boxYEdge    = $wrapRight['boxYEdge'];
+            //    $font        = $this->fontReferences[$txt['font']];
+            //    $fontObject  = $this->fonts[$txt['font']];
+            //    $stream      = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
+            //    $stream     .= $txt['text']->getPartialStreamWrapRight($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
+            //    $stream     .= $txt['text']->endStream();
+            //    $contentObject->appendStream($stream);
+            //} else if ($txt['text']->hasAutoWrap()) {
+            //    $wrapStart   = $coordinates['x'];
+            //    $wrapStop    = $pageObject->getWidth() - $txt['text']->getAutoWrap();
+            //    $wrapLength  = $wrapStop - $wrapStart;
+            //    $font        = $this->fontReferences[$txt['font']];
+            //    $fontObject  = $this->fonts[$txt['font']];
+            //    $stream      = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
+            //    $stream     .= $txt['text']->getPartialStream($font, $fontObject, $wrapLength);
+            //    $stream     .= $txt['text']->endStream();
+            //    $contentObject->appendStream($stream);
+
+            // Left/right text wrap around a boundary
+            if (($txt['text']->hasWrap()) && ($txt['text']->getWrap()->hasBoundary())) {
+
+            // Auto-wrap text by character length
+            } else if (($txt['text']->hasWrap()) && ($txt['text']->getWrap()->hasCharWrap())) {
+
+            // Left/right/center align text
+            } else if ($txt['text']->hasAlignment()) {
+
+            // Else, just append text stream
             } else {
                 $contentObject->appendStream(
                     $txt['text']->getStream($this->fontReferences[$txt['font']], $coordinates['x'], $coordinates['y'])
@@ -361,29 +375,29 @@ class Compiler extends AbstractCompiler
                 $stream  = $txt->startStream($font, $coordinates['x'], $coordinates['y']);
             }
 
-            if ($txt->hasWrapLeft()) {
-                $wrapLeft    = $txt->getWrapLeft();
-                $wrapEdge    = $wrapLeft['wrapEdge'];
-                $boxXEdge    = $wrapLeft['boxXEdge'];
-                $boxYEdge    = $wrapLeft['boxYEdge'];
-                $fontObject  = $this->fonts[$font];
-                $stream     .= $txt->getPartialStreamWrapLeft($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
-            } else if ($txt->hasWrapRight()) {
-                $wrapRight = $txt->getWrapRight();
-                $wrapEdge    = $wrapRight['wrapEdge'];
-                $boxXEdge    = $wrapRight['boxXEdge'];
-                $boxYEdge    = $wrapRight['boxYEdge'];
-                $fontObject  = $this->fonts[$font];
-                $stream     .= $txt->getPartialStreamWrapRight($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
-            } else if ($txt->hasAutoWrap()) {
-                $wrapStart   = $coordinates['x'];
-                $wrapStop    = $pageObject->getWidth() - $txt->getAutoWrap();
-                $wrapLength  = $wrapStop - $wrapStart;
-                $fontObject  = $this->fonts[$font];
-                $stream     .= $txt->getPartialStream($font, $fontObject, $wrapLength);
-            } else {
+            //if ($txt->hasWrapLeft()) {
+            //    $wrapLeft    = $txt->getWrapLeft();
+            //    $wrapEdge    = $wrapLeft['wrapEdge'];
+            //    $boxXEdge    = $wrapLeft['boxXEdge'];
+            //    $boxYEdge    = $wrapLeft['boxYEdge'];
+            //    $fontObject  = $this->fonts[$font];
+            //    $stream     .= $txt->getPartialStreamWrapLeft($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
+            //} else if ($txt->hasWrapRight()) {
+            //    $wrapRight = $txt->getWrapRight();
+            //    $wrapEdge    = $wrapRight['wrapEdge'];
+            //    $boxXEdge    = $wrapRight['boxXEdge'];
+            //    $boxYEdge    = $wrapRight['boxYEdge'];
+            //    $fontObject  = $this->fonts[$font];
+            //    $stream     .= $txt->getPartialStreamWrapRight($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
+            //} else if ($txt->hasAutoWrap()) {
+            //    $wrapStart   = $coordinates['x'];
+            //    $wrapStop    = $pageObject->getWidth() - $txt->getAutoWrap();
+            //    $wrapLength  = $wrapStop - $wrapStart;
+            //    $fontObject  = $this->fonts[$font];
+            //    $stream     .= $txt->getPartialStream($font, $fontObject, $wrapLength);
+            //} else {
                 $stream .= $txt->getPartialStream($font);
-            }
+            //}
         }
 
         $stream .= $txt->endStream();

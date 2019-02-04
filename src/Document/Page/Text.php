@@ -519,6 +519,7 @@ class Text
             }
             $stream .= "]TJ\n";
         } else {
+            $stream .= "    ({$this->string})Tj\n";
             /*
             if (($this->wrap > 0) && (strlen($this->string) > $this->wrap)) {
                 if ((int)$this->lineHeight == 0) {

@@ -32,54 +32,64 @@ class Alignment extends AbstractAlignment
     const CENTER = 'CENTER';
 
     /**
-     * Text justification
+     * Text alignment
      * @var string
      */
-    protected $justification = 'LEFT';
+    protected $alignment = 'LEFT';
 
     /**
      * Constructor
      *
      * Instantiate a PDF text alignment object.
      *
-     * @param string $justification
+     * @param string $alignment
      * @param int    $charWrap
      * @param int    $pageWrap
      * @param int    $leading
      */
-    public function __construct($justification = 'LEFT', $charWrap = 0, $pageWrap = 0, $leading = 0)
+    public function __construct($alignment = 'LEFT', $charWrap = 0, $pageWrap = 0, $leading = 0)
     {
         parent::__construct($charWrap, $pageWrap, $leading);
-        $this->setJustification($justification);
+        $this->setAlignment($alignment);
     }
 
     /**
-     * Set text justification
+     * Set text alignment
      *
-     * @param  string $justification
+     * @param  string $alignment
      * @throws \InvalidArgumentException
      * @return Alignment
      */
-    public function setJustification($justification)
+    public function setAlignment($alignment)
     {
-        $justification = strtoupper($justification);
+        $alignment = strtoupper($alignment);
 
-        if (($justification != self::LEFT) && ($justification != self::RIGHT) && ($justification != self::CENTER)) {
-            throw new \InvalidArgumentException('Error: The justification must be either LEFT, RIGHT or CENTER');
+        if (($alignment != self::LEFT) && ($alignment != self::RIGHT) && ($alignment != self::CENTER)) {
+            throw new \InvalidArgumentException('Error: The alignment must be either LEFT, RIGHT or CENTER');
         }
 
-        $this->justification = $justification;
+        $this->alignment = $alignment;
         return $this;
     }
 
     /**
-     * Get text justification
+     * Get text alignment
      *
      * @return string
      */
-    public function getJustification()
+    public function getAlignment()
     {
-        return $this->justification;
+        return $this->alignment;
+    }
+
+    /**
+     * Determine if text has alignment
+     *
+     * @return boolean
+     */
+    public function hasAlignment()
+    {
+        return !empty($this->alignment);
     }
 
 }

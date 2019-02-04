@@ -206,4 +206,64 @@ class Wrap extends AbstractAlignment
         return $this->bottomY;
     }
 
+    /**
+     * Determine if wrap has direction
+     *
+     * @return boolean
+     */
+    public function hasDirection()
+    {
+        return !empty($this->direction);
+    }
+
+    /**
+     * Determine if wrap has left X boundary
+     *
+     * @return boolean
+     */
+    public function hasLeftX()
+    {
+        return ($this->leftX > 0);
+    }
+
+    /**
+     * Determine if wrap has right X boundary
+     *
+     * @return boolean
+     */
+    public function hasRightX()
+    {
+        return ($this->rightX > 0);
+    }
+
+    /**
+     * Determine if wrap has top Y boundary
+     *
+     * @return boolean
+     */
+    public function hasTopY()
+    {
+        return ($this->topY > 0);
+    }
+
+    /**
+     * Determine if wrap has bottom Y boundary
+     *
+     * @return boolean
+     */
+    public function hasBottomY()
+    {
+        return ($this->bottomY > 0);
+    }
+
+    /**
+     * Determine if wrap has full boundary
+     *
+     * @return boolean
+     */
+    public function hasBoundary()
+    {
+        return ($this->hasLeftX() && $this->hasRightX() && $this->hasTopY() && $this->hasBottomY());
+    }
+
 }

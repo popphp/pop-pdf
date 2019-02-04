@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Document\Page\Text;
 
+use Pop\Pdf\Document\Page\Text as Txt;
+
 /**
  * Pdf page text alignment class
  *
@@ -131,5 +133,62 @@ abstract class AbstractAlignment implements AlignmentInterface
     {
         return $this->leading;
     }
+
+    /**
+     * Determine is there is a character wrap boundary
+     *
+     * @return boolean
+     */
+    public function hasCharWrap()
+    {
+        return ($this->charWrap > 0);
+    }
+
+    /**
+     * Determine is there is a page wrap boundary
+     *
+     * @return boolean
+     */
+    public function hasPageWrap()
+    {
+        return ($this->pageWrap > 0);
+    }
+
+    /**
+     * Determine is there is leading
+     *
+     * @return boolean
+     */
+    public function hasLeading()
+    {
+        return ($this->leading > 0);
+    }
+
+    /**
+     * Get character wrap stream
+     *
+     * @param  Txt $text
+     * @return string
+     */
+    public function getCharWrapStream(Txt $text)
+    {
+        $stream = '';
+
+        if ((int)$this->leading == 0) {
+            $this->leading = $text->getSize();
+        }
+        $strings = explode("\n", wordwrap($text->getString(), $this->charWrap, "\n"));
+
+        foreach ($strings as $i => $string) {
+            $stream .= "    ({$string})Tj\n";
+            if ($i < count($strings)) {
+                $stream .= "    0 -" . $this->leading . " Td\n";
+            }
+        }
+
+        return $stream;
+    }
+
+
 
 }
