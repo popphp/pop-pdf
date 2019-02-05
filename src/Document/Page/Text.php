@@ -13,8 +13,6 @@
  */
 namespace Pop\Pdf\Document\Page;
 
-use Pop\Pdf\Document\Font;
-
 /**
  * Pdf page text class
  *
@@ -39,12 +37,6 @@ class Text
      * @var array
      */
     protected $stringsWithOffsets = [];
-
-    /**
-     * Font
-     * @var string
-     */
-    protected $font = null;
 
     /**
      * Text font size
@@ -118,15 +110,11 @@ class Text
      *
      * @param  string $string
      * @param  string $size
-     * @param  string $font
      */
-    public function __construct($string, $size, $font = null)
+    public function __construct($string, $size)
     {
         $this->setString($string);
         $this->setSize($size);
-        if (null !== $font) {
-            $this->setFont($font);
-        }
     }
 
     /**
@@ -168,6 +156,16 @@ class Text
     }
 
     /**
+     * Get strings with offset
+     *
+     * @return array
+     */
+    public function getStringsWithOffset()
+    {
+        return $this->stringsWithOffsets;
+    }
+
+    /**
      * Set the text size
      *
      * @param  int|float $size
@@ -176,18 +174,6 @@ class Text
     public function setSize($size)
     {
         $this->size = $size;
-        return $this;
-    }
-
-    /**
-     * Set the font
-     *
-     * @param  string $font
-     * @return Text
-     */
-    public function setFont($font)
-    {
-        $this->font = $font;
         return $this;
     }
 
@@ -346,16 +332,6 @@ class Text
     public function getSize()
     {
         return $this->size;
-    }
-
-    /**
-     * Get the font
-     *
-     * @return string
-     */
-    public function getFont()
-    {
-        return $this->font;
     }
 
     /**

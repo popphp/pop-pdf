@@ -21,6 +21,12 @@ class PdfTest extends TestCase
         $this->assertInstanceOf('Pop\Pdf\Document', $pdf->importFromFile(__DIR__ . '/tmp/doc.pdf', 1));
     }
 
+    public function testImportFromData()
+    {
+        $pdf = new Pdf\Pdf();
+        $this->assertInstanceOf('Pop\Pdf\Document', $pdf->importRawData(file_get_contents(__DIR__ . '/tmp/doc.pdf'), 1));
+    }
+
     public function testWriteToFile()
     {
         $pdf = new Pdf\Pdf();

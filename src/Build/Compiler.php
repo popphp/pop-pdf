@@ -126,10 +126,6 @@ class Compiler extends AbstractCompiler
             if ($page->hasText()) {
                 $this->prepareText($page->getText(), $pageObject);
             }
-            // Prepare text objects
-            if ($page->hasMultiText()) {
-                $this->prepareMultiText($page->getMultiText(), $pageObject);
-            }
             // Prepare field objects
             if ($page->hasFields()) {
                 $this->prepareFields($page->getFields(), $pageObject);
@@ -284,7 +280,7 @@ class Compiler extends AbstractCompiler
             $contentObject = $this->objects[$pageObject->getCurrentContentIndex()];
         }
 
-        foreach ($text as  $txt) {
+        foreach ($text as $txt) {
             if (!isset($this->fontReferences[$txt['font']])) {
                 throw new Exception('Error: The font \'' . $txt['font'] . '\' has not been added to the document.');
             }
@@ -324,67 +320,6 @@ class Compiler extends AbstractCompiler
                 );
             }
         }
-    }
-
-    /**
-     * Prepare the text objects
-     *
-     * @param  array $multiText
-     * @param  PdfObject\PageObject $pageObject
-     * @throws Exception
-     * @return void
-     */
-    protected function prepareMultiText(array $multiText, PdfObject\PageObject $pageObject)
-    {
-        if (null === $pageObject->getCurrentContentIndex()) {
-            $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
-            $this->objects[$contentObject->getIndex()] = $contentObject;
-            $pageObject->addContentIndex($contentObject->getIndex());
-        } else {
-            $contentObject = $this->objects[$pageObject->getCurrentContentIndex()];
-        }
-
-        $coordinates = $this->getCoordinates($multiText['x'], $multiText['y'], $pageObject);
-        $stream      = null;
-
-        foreach ($multiText['texts'] as $txt) {
-            $fontName = $txt->getFont();
-            $font     = $this->fontReferences[$fontName];
-            if (!isset($font)) {
-                throw new Exception('Error: The font \'' . $fontName . '\' has not been added to the document.');
-            }
-
-            if (null === $stream) {
-                $stream  = $txt->startStream($font, $coordinates['x'], $coordinates['y']);
-            }
-
-            //if ($txt->hasWrapLeft()) {
-            //    $wrapLeft    = $txt->getWrapLeft();
-            //    $wrapEdge    = $wrapLeft['wrapEdge'];
-            //    $boxXEdge    = $wrapLeft['boxXEdge'];
-            //    $boxYEdge    = $wrapLeft['boxYEdge'];
-            //    $fontObject  = $this->fonts[$font];
-            //    $stream     .= $txt->getPartialStreamWrapLeft($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
-            //} else if ($txt->hasWrapRight()) {
-            //    $wrapRight = $txt->getWrapRight();
-            //    $wrapEdge    = $wrapRight['wrapEdge'];
-            //    $boxXEdge    = $wrapRight['boxXEdge'];
-            //    $boxYEdge    = $wrapRight['boxYEdge'];
-            //    $fontObject  = $this->fonts[$font];
-            //    $stream     .= $txt->getPartialStreamWrapRight($coordinates['x'], $coordinates['y'], $wrapEdge, $boxXEdge, $boxYEdge, $font, $fontObject);
-            //} else if ($txt->hasAutoWrap()) {
-            //    $wrapStart   = $coordinates['x'];
-            //    $wrapStop    = $pageObject->getWidth() - $txt->getAutoWrap();
-            //    $wrapLength  = $wrapStop - $wrapStart;
-            //    $fontObject  = $this->fonts[$font];
-            //    $stream     .= $txt->getPartialStream($font, $fontObject, $wrapLength);
-            //} else {
-                $stream .= $txt->getPartialStream($font);
-            //}
-        }
-
-        $stream .= $txt->endStream();
-        $contentObject->appendStream($stream);
     }
 
     /**

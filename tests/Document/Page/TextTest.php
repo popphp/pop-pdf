@@ -21,6 +21,14 @@ class TextTest extends TestCase
         $this->assertEquals(18, strlen($text->getString()));
     }
 
+    public function testAddStringWithOffset()
+    {
+        $text = new Text('', 12);
+        $text->addStringWithOffset('Hello', 10);
+        $text->addStringWithOffset("mb string åèä test", 10);
+        $this->assertEquals(2, count($text->getStringsWithOffset()));
+    }
+
     public function testSetFillColor()
     {
         $text = new Text('Hello World', 12);
@@ -44,16 +52,6 @@ class TextTest extends TestCase
         $this->assertEquals(15, $text->getStroke()['dashGap']);
     }
 
-    public function testSetWrapAndLineHeight()
-    {
-        $text = new Text('Hello World', 12);
-        $text->setWrap(80, 12);
-        $this->assertEquals(80, $text->getWrap());
-        $this->assertEquals(12, $text->getLineHeight());
-        $text->setLineHeight(15);
-        $this->assertEquals(15, $text->getLineHeight());
-    }
-
     public function testSetRotation()
     {
         $text = new Text('Hello World', 12);
@@ -72,6 +70,7 @@ class TextTest extends TestCase
     {
         $text = new Text('Hello World', 12);
         $text->setTextParams(10, 10, 10, 10, -45, 1);
+        $this->assertInstanceOf('Pop\Pdf\Document\Page\Text', $text);
     }
 
     public function testSetTextParamsException1()
@@ -118,15 +117,35 @@ class TextTest extends TestCase
         $this->assertContains('MF1', $text->getStream('MF1 1 0 R', 20, 200));
     }
 
-    public function testGetStreamWithWrap()
+    public function testSetAndGetCharWrap()
     {
-        $text = new Text('Hello World Hello World Hello World Hello World', 12);
-        $text->setFillColor(new Color\Rgb(255, 0, 0));
-        $text->setStrokeColor(new Color\Rgb(255, 0, 0));
-        $text->setStroke(5, 10, 15);
-        $text->setWrap(20, 0);
-        $text->setTextParams(10, 10, 10, 10, -45, 1);
-        $this->assertContains('MF1', $text->getStream('MF1 1 0 R', 20, 200));
+        $text = new Text('Hello World', 12);
+        $text->setCharWrap(10, 10);
+        $this->assertEquals(10, $text->getCharWrap());
+        $this->assertEquals(10, $text->getLeading());
+        $this->assertTrue($text->hasCharWrap());
+    }
+
+    public function testSetAndGetLeading()
+    {
+        $text = new Text('Hello World', 12);
+        $text->setLeading(10);
+        $this->assertEquals(10, $text->getLeading());
+        $this->assertTrue($text->hasLeading());
+    }
+
+    public function testSetAndGetAlignment()
+    {
+        $text = new Text('Hello World', 12);
+        $text->setAlignment(Text\Alignment::createLeft(50, 550));
+        $this->assertTrue($text->hasAlignment());
+    }
+
+    public function testSetAndGetWrap()
+    {
+        $text = new Text('Hello World', 12);
+        $text->setWrap(Text\Wrap::createLeft(50, 550));
+        $this->assertTrue($text->hasWrap());
     }
 
     public function testGetStreamWithRotation1()

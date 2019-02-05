@@ -46,15 +46,6 @@ class PageTest extends TestCase
         $this->assertEquals(1, count($page->getText()));
     }
 
-    public function testAddMultiText()
-    {
-        $text1 = new Page\Text('Hello World', 12, 'Arial');
-        $text2 = new Page\Text('Foo Bar', 12, 'Arial');
-        $page = new Page(Page::LETTER);
-        $page->addMultiText([$text1, $text2], 50, 50);
-        $this->assertEquals(3, count($page->getMultiText()));
-    }
-
     public function testAddAnnotation()
     {
         $page = new Page(Page::LETTER);

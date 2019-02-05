@@ -109,30 +109,6 @@ class Page extends AbstractPage
     }
 
     /**
-     * Add text to the PDF page
-     *
-     * @param  array $texts
-     * @param  int   $x
-     * @param  int   $y
-     * @throws Exception
-     * @return Page
-     */
-    public function addMultiText(array $texts, $x = 0, $y = 0)
-    {
-        foreach ($texts as $text) {
-            if (!($text instanceof Page\Text)) {
-                throw new Exception("Error: All texts objects must be an instance of Pop\\Pdf\\Document\\Page\\Text.");
-            }
-        }
-        $this->multiText = [
-            'texts' => $texts,
-            'x'     => (int)$x,
-            'y'     => (int)$y
-        ];
-        return $this;
-    }
-
-    /**
      * Add an annotation to the PDF page
      *
      * @param  Annotation\AbstractAnnotation $annotation
