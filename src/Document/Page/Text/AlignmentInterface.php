@@ -121,11 +121,4 @@ interface AlignmentInterface
      */
     public function isRight();
 
-    /**
-     * Is CENTER alignment
-     *
-     * @return boolean
-     */
-    public function isCenter();
-
 }

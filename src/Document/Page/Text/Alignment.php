@@ -30,6 +30,50 @@ class Alignment extends AbstractAlignment
 {
 
     /**
+     * Alignment constants
+     */
+    const CENTER = 'CENTER';
+
+    /**
+     * Create LEFT alignment object
+     *
+     * @param int    $leftX
+     * @param int    $rightX
+     * @param int    $leading
+     * @return Alignment
+     */
+    public static function createLeft($leftX = 0, $rightX = 0, $leading = 0)
+    {
+        return new self(self::LEFT, $leftX, $rightX, $leading);
+    }
+
+    /**
+     * Create RIGHT alignment object
+     *
+     * @param int    $leftX
+     * @param int    $rightX
+     * @param int    $leading
+     * @return Alignment
+     */
+    public static function createRight($leftX = 0, $rightX = 0, $leading = 0)
+    {
+        return new self(self::RIGHT, $leftX, $rightX, $leading);
+    }
+
+    /**
+     * Create CENTER alignment object
+     *
+     * @param int    $leftX
+     * @param int    $rightX
+     * @param int    $leading
+     * @return Alignment
+     */
+    public static function createCenter($leftX = 0, $rightX = 0, $leading = 0)
+    {
+        return new self(self::CENTER, $leftX, $rightX, $leading);
+    }
+
+    /**
      * Get strings
      *
      * @param  Txt  $text
@@ -88,6 +132,16 @@ class Alignment extends AbstractAlignment
         }
 
         return $strings;
+    }
+
+    /**
+     * Is CENTER alignment
+     *
+     * @return boolean
+     */
+    public function isCenter()
+    {
+        return ($this->alignment == self::CENTER);
     }
 
 }

@@ -31,7 +31,6 @@ abstract class AbstractAlignment implements AlignmentInterface
      */
     const LEFT   = 'LEFT';
     const RIGHT  = 'RIGHT';
-    const CENTER = 'CENTER';
 
     /**
      * Text alignment
@@ -92,7 +91,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      * Set the left X boundary
      *
      * @param  int $x
-     * @return AlignmentInterface
+     * @return AbstractAlignment
      */
     public function setLeftX($x)
     {
@@ -104,7 +103,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      * Set the right X boundary
      *
      * @param  int $x
-     * @return AlignmentInterface
+     * @return AbstractAlignment
      */
     public function setRightX($x)
     {
@@ -212,16 +211,6 @@ abstract class AbstractAlignment implements AlignmentInterface
     public function isRight()
     {
         return ($this->alignment == self::RIGHT);
-    }
-
-    /**
-     * Is CENTER alignment
-     *
-     * @return boolean
-     */
-    public function isCenter()
-    {
-        return ($this->alignment == self::CENTER);
     }
 
 }

@@ -90,7 +90,13 @@ class Text
      * Text alignment object
      * @var Text\Alignment
      */
-    protected $alignment = 0;
+    protected $alignment = null;
+
+    /**
+     * Text wrap object
+     * @var Text\Wrap
+     */
+    protected $wrap = null;
 
     /**
      * Text parameters
@@ -284,6 +290,18 @@ class Text
     }
 
     /**
+     * Method to set the text wrap
+     *
+     * @param  Text\Wrap $wrap
+     * @return Text
+     */
+    public function setWrap(Text\Wrap $wrap)
+    {
+        $this->wrap = $wrap;
+        return $this;
+    }
+
+    /**
      * Escape string
      *
      * @param  mixed $search
@@ -411,6 +429,16 @@ class Text
     }
 
     /**
+     * Get text wrap
+     *
+     * @return Text\Wrap
+     */
+    public function getWrap()
+    {
+        return $this->wrap;
+    }
+
+    /**
      * Has character wrap
      *
      * @return boolean
@@ -438,6 +466,16 @@ class Text
     public function hasAlignment()
     {
         return (null !== $this->alignment);
+    }
+
+    /**
+     * Has text wrap
+     *
+     * @return boolean
+     */
+    public function hasWrap()
+    {
+        return (null !== $this->wrap);
     }
 
     /**
