@@ -323,6 +323,142 @@ class Document extends AbstractDocument
     }
 
     /**
+     * Extract text from the imported objects
+     *
+     * @param  boolean $coords
+     * @param  string  $flatten
+     * @return array
+     */
+    public function extractText($coords = false, $flatten = null)
+    {
+        $streams     = [];
+        $text        = [];
+        $pageOriginX = 0;
+        $pageOriginY = 0;
+        $pageWidth   = 0;
+        $pageHeight  = 0;
+
+        if ($this->hasPages()) {
+            foreach ($this->pages as $page) {
+                if ($page->hasImportedPageObject()) {
+                    $pageWidth  = $page->getWidth();
+                    $pageHeight = $page->getHeight();
+                    break;
+                }
+            }
+        }
+
+        // Try and get the page width and height
+        foreach ($this->importedObjects as $i => $object) {
+            if ($object instanceof Build\PdfObject\ParentObject) {
+                $data     = $object->getData();
+                $mediaBox = null;
+                if ((strpos($data, '/MediaBox [') !== false) || (strpos($data, '/MediaBox[') !== false)) {
+                    $mediaBox = substr($data, (strpos($data, '/MediaBox') + 9));
+                    $mediaBox = substr($mediaBox, (strpos($mediaBox, '[') + 1));
+                    $mediaBox = trim(substr($mediaBox, 0, strpos($mediaBox, ']')));
+                } else if (strpos($data, '/MediaBox ') !== false) {
+                    $mediaBoxIndex = substr($data, (strpos($data, '/MediaBox ') + 10));
+                    $mediaBoxIndex = trim(substr($mediaBoxIndex, 0, strpos($mediaBoxIndex, ' 0 R')));
+                    if (isset($this->importedObjects[$mediaBoxIndex])) {
+                        $mediaBox = trim($this->importedObjects[$mediaBoxIndex]->getDefinition());
+                        $mediaBox = substr($mediaBox, (strpos($mediaBox, '[') + 1));
+                        $mediaBox = trim(substr($mediaBox, 0, strpos($mediaBox, ']')));
+                    }
+                }
+
+                if (null !== $mediaBox) {
+                    list($pageOriginX, $pageOriginY, $pageWidth, $pageHeight) = explode(' ', $mediaBox);
+                }
+            }
+
+            if ($object instanceof Build\PdfObject\StreamObject) {
+                $stream = trim($object->getStream());
+                if ($object->getEncoding() == 'FlateDecode') {
+                    $stream = gzuncompress($stream);
+                }
+                if (preg_match('/\((.*)\)\s*Tj/', $stream) > 0) {
+                    $streams[] = $stream;
+                }
+            }
+        }
+
+        if ($coords) {
+            foreach ($streams as $i => $string) {
+                $text[$i] = [];
+                $matches  = [];
+                preg_match_all('/BT(.*?)ET$/ms', $string, $matches);
+
+                if (isset($matches[1])) {
+                    foreach ($matches[1] as $match) {
+                        $match      = trim($match);
+                        $curXOffset = 0;
+                        $curYOffset = 0;
+                        $size       = null;
+
+                        if (strpos($match, 'Tm') !== false) {
+                            $matrix = substr($match, 0, strpos($match, 'Tm'));
+                            $matrix = trim(substr($matrix, strrpos($matrix, "\n")));
+                            $matrix = explode(' ', $matrix);
+                            if (count($matrix) == 6) {
+                                $curXOffset = $matrix[4];
+                                $curYOffset = $matrix[5];
+                            }
+                        }
+
+                        $lines   = explode("\n", $match);
+                        $x       = ($curXOffset < 0) ? $pageOriginX + $curXOffset : $curXOffset;
+                        $y       = ($curYOffset < 0) ? $pageHeight + $curYOffset : $curYOffset;
+                        $offset  = false;
+
+                        foreach ($lines as $line) {
+                            $line = trim($line);
+                            if (substr($line, -2) == 'Tf') {
+                                list($ref, $size) = explode(' ', $line);
+                            }
+
+                            if (substr($line, -2) == 'Td') {
+                                $offset = true;
+                                list($curXOffset, $curYOffset) = explode(' ', $line);
+                            }
+                            if (substr($line, -2) == 'Tj') {
+                                $txt = substr($line, (strpos($line, '(') + 1));
+                                $txt = substr($txt, 0, strrpos($txt, ')'));
+
+                                if ($offset) {
+                                    $x = $x + $curXOffset;
+                                    $y = $y + $curYOffset;
+                                }
+                                $text[$i][] = [
+                                    'text' => $txt,
+                                    'size' => $size,
+                                    'x'    => $x,
+                                    'y'    => $y
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            foreach ($streams as $i => $string) {
+                $matches = [];
+                preg_match_all('/\((.*)\)\s*Tj/', $string, $matches);
+
+                if (isset($matches[1])) {
+                    $text[$i] = $matches[1];
+                }
+
+                if (null !== $flatten) {
+                    $text[$i] = implode($flatten, $text[$i]);
+                }
+            }
+        }
+
+        return $text;
+    }
+
+    /**
      * Output the PDF document to string
      *
      * @return string

@@ -75,7 +75,7 @@ class Pdf extends AbstractPdf
      * @param  string           $filename
      * @param  boolean          $forceDownload
      * @param  array            $headers
-     * @return string
+     * @return void
      */
     public function outputToHttp(AbstractDocument $document, $filename = 'pop.pdf', $forceDownload = false, array $headers = [])
     {
