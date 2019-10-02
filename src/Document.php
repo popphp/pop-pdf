@@ -411,23 +411,61 @@ class Document extends AbstractDocument
                         $x       = ($curXOffset <= 0) ? $pageOriginX + $curXOffset : $curXOffset;
                         $y       = ($curYOffset <= 0) ? $pageHeight + $curYOffset : $curYOffset;
                         $offset  = false;
+                        $lastTj  = false;
 
-                        foreach ($lines as $line) {
+                        foreach ($lines as $l => $line) {
+                            if ($l == 8) {
+                                $var = 123;
+                            }
                             $line = trim($line);
                             if (substr($line, -2) == 'Tf') {
                                 list($ref, $size) = explode(' ', $line);
+                                $lastTj = false;
                             }
 
                             if (substr($line, -2) == 'Td') {
                                 $offset = true;
                                 list($curXOffset, $curYOffset) = explode(' ', $line);
+                                $lastTj = false;
                             }
 
+                            $txt = null;
                             // Need to figure out TJ decoding issue
-                            if (substr($line, -2) == 'Tj') {
+                            if (substr($line, -2) == 'TJ') {
+                                $txt = substr($line, (strpos($line, '[') + 1));
+                                $txt = substr($txt, 0, strrpos($txt, ']'));
+
+                                $textMatches = [];
+                                preg_match_all('/\(([^)]+)\)/', $txt, $textMatches);
+
+                                if (isset($textMatches[1])) {
+                                    $txt = implode('', $textMatches[1]);
+                                }
+                                if (!$lastTj) {
+                                    if ($offset) {
+                                        $x = $x + $curXOffset;
+                                        $y = $y + $curYOffset;
+                                    }
+                                    $text[$i][] = [
+                                        'text' => $txt,
+                                        'size' => $size,
+                                        'x'    => $x,
+                                        'y'    => $y
+                                    ];
+                                } else {
+                                    $index = count($text) - 1;
+                                    if (isset($text[$index])) {
+                                        $textIndex = count($text[$index]) - 1;
+                                        if (isset($text[$index][$textIndex])) {
+                                            $text[$index][$textIndex]['text'] .= $txt;
+                                        }
+                                    }
+                                }
+                                $lastTj = false;
+                            } else if (substr($line, -2) == 'Tj') {
                                 $txt = substr($line, (strpos($line, '(') + 1));
                                 $txt = substr($txt, 0, strrpos($txt, ')'));
-
+                                $lastTj = true;
                                 if ($offset) {
                                     $x = $x + $curXOffset;
                                     $y = $y + $curYOffset;
@@ -446,10 +484,47 @@ class Document extends AbstractDocument
         } else {
             foreach ($streams as $i => $string) {
                 $matches = [];
-                preg_match_all('/\((.*)\)\s*Tj/', $string, $matches);
+                preg_match_all('/\((.*)\)\s*Tj|\[(.*)\]\s*TJ/', $string, $matches);
 
-                if (isset($matches[1])) {
-                    $text[$i] = $matches[1];
+                if (isset($matches[0])) {
+                    $lastTj = false;
+                    foreach ($matches[0] as $match) {
+                        $txt = null;
+                        if (substr($match, -2) == 'TJ') {
+                            $txt = substr($match, (strpos($match, '[') + 1));
+                            $txt = substr($txt, 0, strrpos($txt, ']'));
+
+                            $textMatches = [];
+                            preg_match_all('/\(([^)]+)\)/', $txt, $textMatches);
+
+                            if (isset($textMatches[1])) {
+                                $txt = implode('', $textMatches[1]);
+                            }
+
+                            if (!empty($txt)) {
+                                if ($lastTj) {
+                                    $index = count($text) - 1;
+                                    if (isset($text[$index])) {
+                                        $textIndex = count($text[$index]) - 1;
+                                        if (isset($text[$index][$textIndex])) {
+                                            $text[$index][$textIndex] .= $txt;
+                                        }
+                                    }
+                                } else {
+                                    $text[$i][] = $txt;
+                                }
+                            }
+                            $lastTj = false;
+
+                        } else if (substr($match, -2) == 'Tj') {
+                            $txt = substr($match, (strpos($match, '(') + 1));
+                            $txt = substr($txt, 0, strrpos($txt, ')'));
+                            $lastTj = true;
+                            if (!empty($txt)) {
+                                $text[$i][] = $txt;
+                            }
+                        }
+                    }
                 }
 
                 if (null !== $flatten) {
