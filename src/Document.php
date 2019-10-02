@@ -407,8 +407,8 @@ class Document extends AbstractDocument
                         }
 
                         $lines   = explode("\n", $match);
-                        $x       = ($curXOffset < 0) ? $pageOriginX + $curXOffset : $curXOffset;
-                        $y       = ($curYOffset < 0) ? $pageHeight + $curYOffset : $curYOffset;
+                        $x       = ($curXOffset <= 0) ? $pageOriginX + $curXOffset : $curXOffset;
+                        $y       = ($curYOffset <= 0) ? $pageHeight + $curYOffset : $curYOffset;
                         $offset  = false;
 
                         foreach ($lines as $line) {
