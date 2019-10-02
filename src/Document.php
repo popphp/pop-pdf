@@ -374,10 +374,11 @@ class Document extends AbstractDocument
 
             if ($object instanceof Build\PdfObject\StreamObject) {
                 $stream = trim($object->getStream());
-                if ($object->getEncoding() == 'FlateDecode') {
+                if ((strpos($object->getDefinition(), '/Image') === false) && ($object->getEncoding() == 'FlateDecode')) {
                     $stream = gzuncompress($stream);
                 }
-                if (preg_match('/\((.*)\)\s*Tj/', $stream) > 0) {
+                // TJ operator not functioning yet
+                if ((preg_match('/\((.*)\)\s*Tj/', $stream) > 0) || (preg_match('/\[(.*)\]\s*TJ/', $stream) > 0)) {
                     $streams[] = $stream;
                 }
             }
@@ -421,6 +422,8 @@ class Document extends AbstractDocument
                                 $offset = true;
                                 list($curXOffset, $curYOffset) = explode(' ', $line);
                             }
+
+                            // Need to figure out TJ decoding issue
                             if (substr($line, -2) == 'Tj') {
                                 $txt = substr($line, (strpos($line, '(') + 1));
                                 $txt = substr($txt, 0, strrpos($txt, ')'));
