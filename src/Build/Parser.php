@@ -307,6 +307,31 @@ class Parser extends AbstractParser
                 }
             }
         }
+
+        $fontFileObjects = [];
+        foreach ($this->objectStreams as $stream) {
+            if (strpos($stream, '/FontFile') !== false) {
+                $fontFileObject = substr($stream, strpos($stream, '/FontFile'));
+                $fontFileObject = substr($fontFileObject, (strpos($fontFileObject, ' ') + 1));
+                $fontFileObject = trim(substr($fontFileObject, 0, strpos($fontFileObject, '0 R')));
+                $fontFileObjects[] = $fontFileObject;
+            }
+        }
+
+        if (!empty($fontFileObjects)) {
+            foreach ($fontFileObjects as $fontFileObject) {
+                if (($fontFileObject == 13) && isset($this->objectMap['streams'][$fontFileObject])) {
+                    $fontFile = $this->objectMap['streams'][$fontFileObject];
+                    $contents = ($fontFile['object']->getEncoding() == 'FlateDecode') ?
+                        gzuncompress(trim($fontFile['object']->getStream())) : $fontFile['object']->getStream();
+
+                    file_put_contents('/home/nick/Desktop/font.ttf', $contents);
+
+                    $fontParser = new \Pop\Pdf\Build\Font\TrueType(null, $contents);
+                    $var = 123;
+                }
+            }
+        }
     }
 
     /**

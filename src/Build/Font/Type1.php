@@ -62,11 +62,12 @@ class Type1 extends AbstractFont
      *
      * Instantiate a Type1 font file object based on a pre-existing font file on disk.
      *
-     * @param  string $font
+     * @param  string $fontFile
+     * @param  string $fontStream
      */
-    public function __construct($font)
+    public function __construct($fontFile = null, $fontStream = null)
     {
-        parent::__construct($font);
+        parent::__construct($fontFile, $fontStream);
 
         $dir = realpath($this->dir);
 

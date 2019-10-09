@@ -103,6 +103,17 @@ class Parser
     }
 
     /**
+     * Load font from stream
+     *
+     * @param  string $stream
+     * @return void
+     */
+    public static function loadFromStream($stream)
+    {
+        $var = 123;
+    }
+
+    /**
      * Set the font index
      *
      * @param  int $index

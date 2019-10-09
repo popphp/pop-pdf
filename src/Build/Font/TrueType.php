@@ -60,11 +60,12 @@ class TrueType extends AbstractFont
      *
      * Instantiate a TrueType font file object based on a pre-existing font file on disk.
      *
-     * @param  string $font
+     * @param  string $fontFile
+     * @param  string $fontStream
      */
-    public function __construct($font)
+    public function __construct($fontFile = null, $fontStream = null)
     {
-        parent::__construct($font);
+        parent::__construct($fontFile, $fontStream);
 
         $this->parseTtfTable();
         $this->parseName();
@@ -101,12 +102,12 @@ class TrueType extends AbstractFont
         $this->properties['ttfHeader'] = new \ArrayObject($ttfHeader, \ArrayObject::ARRAY_AS_PROPS);
         $this->properties['ttfTable']  = new \ArrayObject($ttfTable, \ArrayObject::ARRAY_AS_PROPS);
 
-        $nameByteOffset = 28;
+        $nameByteOffset  = 28;
         $tableByteOffset = 32;
 
         for ($i = 0; $i < $this->properties['ttfHeader']['numberOfTables']; $i++) {
             $ttfTableName = $this->read($nameByteOffset, 4);
-            $ttfTable = unpack(
+            $ttfTable     = unpack(
                 'Nchecksum/' .
                 'Noffset/' .
                 'Nlength', $this->read($tableByteOffset, 12)

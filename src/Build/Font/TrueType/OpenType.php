@@ -31,11 +31,12 @@ class OpenType extends \Pop\Pdf\Build\Font\TrueType
      *
      * Instantiate a OpenType font file object based on a pre-existing font file on disk.
      *
-     * @param  string $font
+     * @param  string $fontFile
+     * @param  string $fontStream
      */
-    public function __construct($font)
+    public function __construct($fontFile = null, $fontStream = null)
     {
-        parent::__construct($font);
+        parent::__construct($fontFile, $fontStream);
     }
 
     /**
