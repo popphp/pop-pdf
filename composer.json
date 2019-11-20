@@ -24,8 +24,7 @@
     "require": {
         "php": ">=7.1.0",
         "popphp/pop-css" : "^1.0.7",
-        "popphp/pop-dom" : "^3.2.6",
-        "smalot/pdfparser": "^0.14.0"
+        "popphp/pop-dom" : "^3.2.6"
     },
     "require-dev": {
         "phpunit/phpunit": "^7.0.0"
@@ -45,7 +44,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "3.2.x-dev"
+            "dev-master": "4.0.x-dev"
         }
     }
 }
