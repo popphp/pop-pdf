@@ -202,6 +202,20 @@ class StreamObject extends AbstractObject
     }
 
     /**
+     * Method to decode the PDF stream contents with FlateDecode (gzuncompress)
+     *
+     * @return boolean|string
+     */
+    public function decode()
+    {
+        $decoded = false;
+        if (($this->stream != '') && function_exists('gzuncompress')) {
+            $decoded = @gzuncompress(trim($this->stream));
+        }
+        return $decoded;
+    }
+
+    /**
      * Determine whether or not the PDF stream object is encoded
      *
      * @return boolean
