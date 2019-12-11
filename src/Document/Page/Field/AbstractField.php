@@ -140,7 +140,7 @@ abstract class AbstractField implements FieldInterface
      * Set the font
      *
      * @param  string $font
-     * @return Text
+     * @return AbstractField
      */
     public function setFont($font)
     {
@@ -162,7 +162,7 @@ abstract class AbstractField implements FieldInterface
      * Set the font size
      *
      * @param  int $size
-     * @return Text
+     * @return AbstractField
      */
     public function setSize($size)
     {
@@ -184,7 +184,7 @@ abstract class AbstractField implements FieldInterface
      * Set the font color
      *
      * @param  Color\ColorInterface $color
-     * @return Text
+     * @return AbstractField
      */
     public function setFontColor(Color\ColorInterface $color)
     {
@@ -275,7 +275,7 @@ abstract class AbstractField implements FieldInterface
      * Set the field width
      *
      * @param  int $width
-     * @return Text
+     * @return AbstractField
      */
     public function setWidth($width)
     {
@@ -297,7 +297,7 @@ abstract class AbstractField implements FieldInterface
      * Set the field height
      *
      * @param  int $height
-     * @return Text
+     * @return AbstractField
      */
     public function setHeight($height)
     {
