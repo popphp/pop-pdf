@@ -99,8 +99,8 @@ class TrueType extends AbstractFont
 
         $ttfTable['name'] = $tableName;
 
-        $this->properties['ttfHeader'] = new \ArrayObject($ttfHeader, \ArrayObject::ARRAY_AS_PROPS);
-        $this->properties['ttfTable']  = new \ArrayObject($ttfTable, \ArrayObject::ARRAY_AS_PROPS);
+        $this->properties['ttfHeader'] = new Data($ttfHeader);
+        $this->properties['ttfTable']  = new Data($ttfTable);
 
         $nameByteOffset  = 28;
         $tableByteOffset = 32;
@@ -113,7 +113,7 @@ class TrueType extends AbstractFont
                 'Nlength', $this->read($tableByteOffset, 12)
             );
 
-            $this->properties['tableInfo'][trim($ttfTableName)] = new \ArrayObject($ttfTable, \ArrayObject::ARRAY_AS_PROPS);
+            $this->properties['tableInfo'][trim($ttfTableName)] = new Data($ttfTable);
 
             $nameByteOffset = $tableByteOffset + 12;
             $tableByteOffset = $nameByteOffset + 4;
@@ -158,12 +158,12 @@ class TrueType extends AbstractFont
             $this->properties['tables']['head']['xMax'] = $this->toEmSpace($this->properties['tables']['head']['xMax']);
             $this->properties['tables']['head']['yMax'] = $this->toEmSpace($this->properties['tables']['head']['yMax']);
 
-            $this->properties['bBox'] = new \ArrayObject([
+            $this->properties['bBox'] = new Data([
                 'xMin' => $this->properties['tables']['head']['xMin'],
                 'yMin' => $this->properties['tables']['head']['yMin'],
                 'xMax' => $this->properties['tables']['head']['xMax'],
                 'yMax' => $this->properties['tables']['head']['yMax']
-            ], \ArrayObject::ARRAY_AS_PROPS);
+            ]);
 
             $this->properties['header'] = $this->properties['tables']['head'];
         }

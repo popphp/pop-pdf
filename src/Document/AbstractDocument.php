@@ -11,11 +11,7 @@
 /**
  * @namespace
  */
-namespace Pop\Pdf;
-
-use Pop\Pdf\Document\Page;
-use Pop\Pdf\Document\Font;
-use Pop\Pdf\Document\Metadata;
+namespace Pop\Pdf\Document;
 
 /**
  * Abstract Pdf document class
@@ -47,7 +43,7 @@ abstract class AbstractDocument
 
     /**
      * PDF metadata for the info object
-     * @var Document\Metadata
+     * @var Metadata
      */
     protected $metadata = null;
 
@@ -125,7 +121,7 @@ abstract class AbstractDocument
      */
     public function setOrigin($origin)
     {
-        if (defined('Pop\Pdf\AbstractDocument::' . $origin)) {
+        if (defined('Pop\Pdf\Document\AbstractDocument::' . $origin)) {
             $this->origin = $origin;
         }
         return $this;
@@ -175,13 +171,13 @@ abstract class AbstractDocument
      * Get a PDF page object
      *
      * @param  int $p
-     * @throws Exception
+     * @throws \Pop\Pdf\Exception
      * @return Page
      */
     public function getPage($p)
     {
         if (!isset($this->pages[$p - 1])) {
-            throw new Exception('Error: That page does not exist.');
+            throw new \Pop\Pdf\Exception('Error: That page (' . $p . ') does not exist.');
         }
         return $this->pages[$p - 1];
     }
@@ -210,13 +206,13 @@ abstract class AbstractDocument
      * Get a PDF font object
      *
      * @param  string $name
-     * @throws Exception
+     * @throws \Pop\Pdf\Exception
      * @return Font
      */
     public function getFont($name)
     {
         if (!isset($this->fonts[$name])) {
-            throw new Exception('Error: That font has not been added to the PDF document.');
+            throw new \Pop\Pdf\Exception("Error: The font '" . $name . "' has not been added to the PDF document.");
         }
         return $this->fonts[$name];
     }
@@ -317,7 +313,7 @@ abstract class AbstractDocument
      * Get form objects
      *
      * @param string $name
-     * @return Document\Form
+     * @return Form
      */
     public function getForm($name)
     {
@@ -337,10 +333,10 @@ abstract class AbstractDocument
     /**
      * Add form
      *
-     * @param  Document\Form $form
+     * @param  Form $form
      * @return AbstractDocument
      */
-    public function addForm(Document\Form $form)
+    public function addForm(Form $form)
     {
         $this->forms[$form->getName()] = $form;
         return $this;

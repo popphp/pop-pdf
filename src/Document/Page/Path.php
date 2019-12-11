@@ -373,7 +373,7 @@ class Path
 
         foreach ($points as $coord) {
             if (!isset($coord['x']) || !isset($coord['y'])) {
-                throw new Exception('Error: The array of points must contain arrays with an \'x\' and \'y\' values.');
+                throw new Exception("Error: The array of points must contain arrays with an 'x' and 'y' values.");
             }
             $stream['points'][] = [
                 'x' . $i => $coord['x'],
@@ -655,16 +655,16 @@ class Path
      *
      * @param  int $start
      * @param  int $end
-     * @throws Exception
+     * @throws \OutOfRangeException
      * @return array
      */
     protected function calculateDegrees($start, $end)
     {
         if (($start < 0) || ($end > 360)) {
-            throw new Exception('The start and end angles must be between 0 and 360.');
+            throw new \OutOfRangeException('The start and end angles must be between 0 and 360.');
         }
         if ($start >= $end) {
-            throw new Exception('The start angle must be less than the end angle.');
+            throw new \OutOfRangeException('The start angle must be less than the end angle.');
         }
 
         if (($end - $start) > 90) {

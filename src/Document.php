@@ -13,6 +13,7 @@
  */
 namespace Pop\Pdf;
 
+use Pop\Pdf\Document\AbstractDocument;
 use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Font;
 use Pop\Pdf\Document\Metadata;
@@ -110,7 +111,7 @@ class Document extends AbstractDocument
     public function copyPage($p)
     {
         if (!isset($this->pages[$p - 1])) {
-            throw new Exception('Error: That page does not exist.');
+            throw new Exception("Error: That page (" . $p . ") does not exist.");
         }
         $page = $this->pages[$p - 1];
         $this->addPage($page);
@@ -160,7 +161,7 @@ class Document extends AbstractDocument
     public function deletePage($p)
     {
         if (!isset($this->pages[$p - 1])) {
-            throw new Exception('Error: That page does not exist.');
+            throw new Exception("Error: That page (" . $p . ") does not exist.");
         }
 
         unset($this->pages[$p - 1]);
@@ -176,20 +177,21 @@ class Document extends AbstractDocument
     /**
      * Add a font
      *
-     * @param  Font $font
-     * @throws Exception
+     * @param  Font    $font
+     * @param  boolean $embedOverride
      * @return Document
      */
-    public function addFont(Font $font)
+    public function addFont(Font $font, $embedOverride = false)
     {
         if (!$font->isStandard()) {
-            throw new Exception('Error: The \'addFont\' method is for adding standard PDF fonts only.');
+            $this->embedFont($font, $embedOverride);
+        } else {
+            if (!array_key_exists($font->getName(), $this->fonts)) {
+                $this->fonts[$font->getName()] = $font;
+                $this->currentFont = $font->getName();
+            }
         }
 
-        if (!array_key_exists($font->getName(), $this->fonts)) {
-            $this->fonts[$font->getName()] = $font;
-            $this->currentFont = $font->getName();
-        }
         return $this;
     }
 
@@ -198,24 +200,24 @@ class Document extends AbstractDocument
      *
      * @param  Font    $font
      * @param  boolean $embedOverride
-     * @throws Exception
      * @return Document
      */
     public function embedFont(Font $font, $embedOverride = false)
     {
         if (!$font->isEmbedded()) {
-            throw new Exception('Error: The \'embedFont\' method is for embedding external fonts only.');
+            $this->addFont($font);
+        } else {
+            if (!$font->parser()->isEmbeddable() && !$embedOverride) {
+                throw new Exception('Error: The font license does not allow for it to be embedded.');
+            }
+
+            if (!array_key_exists($font->parser()->getFontName(), $this->fonts)) {
+                $font->parser()->setCompression($this->compression);
+                $this->fonts[$font->parser()->getFontName()] = $font;
+                $this->currentFont = $font->parser()->getFontName();
+            }
         }
 
-        if (!$font->parser()->isEmbeddable() && !$embedOverride) {
-            throw new Exception('Error: The font license does not allow for it to be embedded.');
-        }
-
-        if (!array_key_exists($font->parser()->getFontName(), $this->fonts)) {
-            $font->parser()->setCompression($this->compression);
-            $this->fonts[$font->parser()->getFontName()] = $font;
-            $this->currentFont = $font->parser()->getFontName();
-        }
         return $this;
     }
 
@@ -230,7 +232,7 @@ class Document extends AbstractDocument
     {
         // Check if the page exists.
         if (!isset($this->pages[$p - 1])) {
-            throw new Exception('Error: That page does not exist.');
+            throw new Exception("Error: That page (" . $p . ") does not exist.");
         }
         $this->currentPage = $p;
 
@@ -248,7 +250,7 @@ class Document extends AbstractDocument
     {
         // Check if the font exists.
         if (!isset($this->fonts[$name])) {
-            throw new Exception('Error: That font has not been added to the PDF document.');
+            throw new Exception("Error: The font '" . $name . "' has not been added to the PDF document.");
         }
         $this->currentFont = $name;
 
@@ -320,220 +322,6 @@ class Document extends AbstractDocument
     public function getImportedFonts()
     {
         return $this->importedFonts;
-    }
-
-    /**
-     * Extract text from the imported objects
-     *
-     * @param  boolean $coords
-     * @param  string  $flatten
-     * @return array
-     */
-    public function extractText($coords = false, $flatten = null)
-    {
-        $streams     = [];
-        $text        = [];
-        $pageOriginX = 0;
-        $pageOriginY = 0;
-        $pageWidth   = 0;
-        $pageHeight  = 0;
-
-        if ($this->hasPages()) {
-            foreach ($this->pages as $page) {
-                if ($page->hasImportedPageObject()) {
-                    $pageWidth  = $page->getWidth();
-                    $pageHeight = $page->getHeight();
-                    break;
-                }
-            }
-        }
-
-        // Try and get the page width and height
-        foreach ($this->importedObjects as $i => $object) {
-            if ($object instanceof Build\PdfObject\ParentObject) {
-                $data     = $object->getData();
-                $mediaBox = null;
-                if ((strpos($data, '/MediaBox [') !== false) || (strpos($data, '/MediaBox[') !== false)) {
-                    $mediaBox = substr($data, (strpos($data, '/MediaBox') + 9));
-                    $mediaBox = substr($mediaBox, (strpos($mediaBox, '[') + 1));
-                    $mediaBox = trim(substr($mediaBox, 0, strpos($mediaBox, ']')));
-                } else if (strpos($data, '/MediaBox ') !== false) {
-                    $mediaBoxIndex = substr($data, (strpos($data, '/MediaBox ') + 10));
-                    $mediaBoxIndex = trim(substr($mediaBoxIndex, 0, strpos($mediaBoxIndex, ' 0 R')));
-                    if (isset($this->importedObjects[$mediaBoxIndex])) {
-                        $mediaBox = trim($this->importedObjects[$mediaBoxIndex]->getDefinition());
-                        $mediaBox = substr($mediaBox, (strpos($mediaBox, '[') + 1));
-                        $mediaBox = trim(substr($mediaBox, 0, strpos($mediaBox, ']')));
-                    }
-                }
-
-                if (null !== $mediaBox) {
-                    list($pageOriginX, $pageOriginY, $pageWidth, $pageHeight) = explode(' ', $mediaBox);
-                }
-            }
-
-            if ($object instanceof Build\PdfObject\StreamObject) {
-                $stream = trim($object->getStream());
-                if ((strpos($object->getDefinition(), '/Image') === false) && ($object->getEncoding() == 'FlateDecode')) {
-                    $stream = gzuncompress($stream);
-                }
-                // TJ operator not functioning yet
-                if ((preg_match('/\((.*)\)\s*Tj/', $stream) > 0) || (preg_match('/\[(.*)\]\s*TJ/', $stream) > 0)) {
-                    $streams[] = $stream;
-                }
-            }
-        }
-
-        if ($coords) {
-            foreach ($streams as $i => $string) {
-                $text[$i] = [];
-                $matches  = [];
-                preg_match_all('/BT(.*?)ET$/ms', $string, $matches);
-
-                if (isset($matches[1])) {
-                    foreach ($matches[1] as $match) {
-                        $match      = trim($match);
-                        $curXOffset = 0;
-                        $curYOffset = 0;
-                        $size       = null;
-
-                        if (strpos($match, 'Tm') !== false) {
-                            $matrix = substr($match, 0, strpos($match, 'Tm'));
-                            $matrix = trim(substr($matrix, strrpos($matrix, "\n")));
-                            $matrix = explode(' ', $matrix);
-                            if (count($matrix) == 6) {
-                                $curXOffset = $matrix[4];
-                                $curYOffset = $matrix[5];
-                            }
-                        }
-
-                        $lines   = explode("\n", $match);
-                        $x       = ($curXOffset <= 0) ? $pageOriginX + $curXOffset : $curXOffset;
-                        $y       = ($curYOffset <= 0) ? $pageHeight + $curYOffset : $curYOffset;
-                        $offset  = false;
-                        $lastTj  = false;
-
-                        foreach ($lines as $l => $line) {
-                            if ($l == 8) {
-                                $var = 123;
-                            }
-                            $line = trim($line);
-                            if (substr($line, -2) == 'Tf') {
-                                list($ref, $size) = explode(' ', $line);
-                                $lastTj = false;
-                            }
-
-                            if (substr($line, -2) == 'Td') {
-                                $offset = true;
-                                list($curXOffset, $curYOffset) = explode(' ', $line);
-                                $lastTj = false;
-                            }
-
-                            $txt = null;
-                            // Need to figure out TJ decoding issue
-                            if (substr($line, -2) == 'TJ') {
-                                $txt = substr($line, (strpos($line, '[') + 1));
-                                $txt = substr($txt, 0, strrpos($txt, ']'));
-
-                                $textMatches = [];
-                                preg_match_all('/\(([^)]+)\)/', $txt, $textMatches);
-
-                                if (isset($textMatches[1])) {
-                                    $txt = implode('', $textMatches[1]);
-                                }
-                                if (!$lastTj) {
-                                    if ($offset) {
-                                        $x = $x + $curXOffset;
-                                        $y = $y + $curYOffset;
-                                    }
-                                    $text[$i][] = [
-                                        'text' => $txt,
-                                        'size' => $size,
-                                        'x'    => $x,
-                                        'y'    => $y
-                                    ];
-                                } else {
-                                    $index = count($text) - 1;
-                                    if (isset($text[$index])) {
-                                        $textIndex = count($text[$index]) - 1;
-                                        if (isset($text[$index][$textIndex])) {
-                                            $text[$index][$textIndex]['text'] .= $txt;
-                                        }
-                                    }
-                                }
-                                $lastTj = false;
-                            } else if (substr($line, -2) == 'Tj') {
-                                $txt = substr($line, (strpos($line, '(') + 1));
-                                $txt = substr($txt, 0, strrpos($txt, ')'));
-                                $lastTj = true;
-                                if ($offset) {
-                                    $x = $x + $curXOffset;
-                                    $y = $y + $curYOffset;
-                                }
-                                $text[$i][] = [
-                                    'text' => $txt,
-                                    'size' => $size,
-                                    'x'    => $x,
-                                    'y'    => $y
-                                ];
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            foreach ($streams as $i => $string) {
-                $matches = [];
-                preg_match_all('/\((.*)\)\s*Tj|\[(.*)\]\s*TJ/', $string, $matches);
-
-                if (isset($matches[0])) {
-                    $lastTj = false;
-                    foreach ($matches[0] as $match) {
-                        $txt = null;
-                        if (substr($match, -2) == 'TJ') {
-                            $txt = substr($match, (strpos($match, '[') + 1));
-                            $txt = substr($txt, 0, strrpos($txt, ']'));
-
-                            $textMatches = [];
-                            preg_match_all('/\(([^)]+)\)/', $txt, $textMatches);
-
-                            if (isset($textMatches[1])) {
-                                $txt = implode('', $textMatches[1]);
-                            }
-
-                            if (!empty($txt)) {
-                                if ($lastTj) {
-                                    $index = count($text) - 1;
-                                    if (isset($text[$index])) {
-                                        $textIndex = count($text[$index]) - 1;
-                                        if (isset($text[$index][$textIndex])) {
-                                            $text[$index][$textIndex] .= $txt;
-                                        }
-                                    }
-                                } else {
-                                    $text[$i][] = $txt;
-                                }
-                            }
-                            $lastTj = false;
-
-                        } else if (substr($match, -2) == 'Tj') {
-                            $txt = substr($match, (strpos($match, '(') + 1));
-                            $txt = substr($txt, 0, strrpos($txt, ')'));
-                            $lastTj = true;
-                            if (!empty($txt)) {
-                                $text[$i][] = $txt;
-                            }
-                        }
-                    }
-                }
-
-                if (null !== $flatten) {
-                    $text[$i] = implode($flatten, $text[$i]);
-                }
-            }
-        }
-
-        return $text;
     }
 
     /**

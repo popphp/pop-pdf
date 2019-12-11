@@ -65,7 +65,6 @@ abstract class AbstractAlignment implements AlignmentInterface
      * @param int    $leftX
      * @param int    $rightX
      * @param int    $leading
-     * @param int $leading
      */
     public function __construct($alignment = self::LEFT, $leftX = 0, $rightX = 0, $leading = 0)
     {

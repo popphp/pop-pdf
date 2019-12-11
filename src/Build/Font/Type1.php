@@ -167,19 +167,19 @@ class Type1 extends AbstractFont
             $info['copyright'] = $this->strip($copyright);
         }
 
-        $this->properties['info'] = new \ArrayObject($info, \ArrayObject::ARRAY_AS_PROPS);
+        $this->properties['info'] = new Data($info);
 
         if (stripos($this->properties['dict'], '/FontBBox') !== false) {
             $bBox = substr($this->properties['dict'], (stripos($this->properties['dict'], '/FontBBox') + 9));
             $bBox = substr($bBox, 0, stripos($bBox, 'readonly def'));
             $bBox = trim($this->strip($bBox));
             $bBoxAry = explode(' ', $bBox);
-            $this->properties['bBox'] = new \ArrayObject([
+            $this->properties['bBox'] = new Data([
                 'xMin' => str_replace('{', '', $bBoxAry[0]),
                 'yMin' => $bBoxAry[1],
                 'xMax' => $bBoxAry[2],
                 'yMax' => str_replace('}', '', $bBoxAry[3])
-            ], \ArrayObject::ARRAY_AS_PROPS);
+            ]);
         }
 
         if (stripos($this->properties['dict'], '/Ascent') !== false) {
@@ -238,12 +238,12 @@ class Type1 extends AbstractFont
             $bBox = substr($bBox, 0, stripos($bBox, "\n"));
             $bBox = trim($bBox);
             $bBoxAry = explode(' ', $bBox);
-            $this->properties['bBox'] = new \ArrayObject([
+            $this->properties['bBox'] = new Data([
                 'xMin' => $bBoxAry[0],
                 'yMin' => $bBoxAry[1],
                 'xMax' => $bBoxAry[2],
                 'yMax' => $bBoxAry[3]
-            ], \ArrayObject::ARRAY_AS_PROPS);
+            ]);
         }
 
         if (stripos($data, 'ItalicAngle') !== false) {

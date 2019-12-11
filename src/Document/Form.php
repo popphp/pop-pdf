@@ -27,8 +27,8 @@ class Form
 {
 
     /**
-     * Form fields
-     * @var array
+     * Form name
+     * @var string
      */
     protected $name = null;
 

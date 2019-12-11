@@ -129,7 +129,7 @@ class Font
      * Set font
      *
      * @param  string $font
-     * @throws Exception
+     * @throws \InvalidArgumentException
      * @return Font
      */
     public function setFont($font)
@@ -143,7 +143,9 @@ class Font
             $this->parser     = new Parser($this->font);
             $this->name       = $this->parser->getFontName();
         } else {
-            throw new Exception('Error: The font is not valid. It must be a standard PDF font or a font file.');
+            throw new \InvalidArgumentException(
+                "Error: The font '" . $font . "' is not valid. It must be a standard PDF font or a font file."
+            );
         }
 
         return $this;

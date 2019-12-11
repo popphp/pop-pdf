@@ -8,30 +8,20 @@ use PHPUnit\Framework\TestCase;
 class PdfTest extends TestCase
 {
 
-    public function testConstructor()
-    {
-        $pdf = new Pdf\Pdf();
-        $this->assertInstanceOf('Pop\Pdf\Pdf', $pdf);
-
-    }
-
     public function testImportFromFile()
     {
-        $pdf = new Pdf\Pdf();
-        $this->assertInstanceOf('Pop\Pdf\Document', $pdf->importFromFile(__DIR__ . '/tmp/doc.pdf', 1));
+        $this->assertInstanceOf('Pop\Pdf\Document', Pdf\Pdf::importFromFile(__DIR__ . '/tmp/doc.pdf', 1));
     }
 
     public function testImportFromData()
     {
-        $pdf = new Pdf\Pdf();
-        $this->assertInstanceOf('Pop\Pdf\Document', $pdf->importRawData(file_get_contents(__DIR__ . '/tmp/doc.pdf'), 1));
+        $this->assertInstanceOf('Pop\Pdf\Document', Pdf\Pdf::importRawData(file_get_contents(__DIR__ . '/tmp/doc.pdf'), 1));
     }
 
     public function testWriteToFile()
     {
-        $pdf = new Pdf\Pdf();
-        $doc = $pdf->importFromFile(__DIR__ . '/tmp/doc.pdf', 1);
-        $pdf->writeToFile($doc, __DIR__ . '/tmp/mytest.pdf');
+        $doc = Pdf\Pdf::importFromFile(__DIR__ . '/tmp/doc.pdf', 1);
+        Pdf\Pdf::writeToFile($doc, __DIR__ . '/tmp/mytest.pdf');
         $this->assertFileExists(__DIR__ . '/tmp/mytest.pdf');
         unlink(__DIR__ . '/tmp/mytest.pdf');
     }
@@ -41,13 +31,11 @@ class PdfTest extends TestCase
      */
     public function testOutputToHttp()
     {
-        $_SERVER['SERVER_PORT'] = 443;
-
         $pdf = new Pdf\Pdf();
-        $doc = $pdf->importFromFile(__DIR__ . '/tmp/doc.pdf', 1);
+        $doc = Pdf\Pdf::importFromFile(__DIR__ . '/tmp/doc.pdf', 1);
 
         ob_start();
-        $pdf->outputToHttp($doc);
+        Pdf\Pdf::outputToHttp($doc);
         $result = ob_get_clean();
 
         $this->assertContains('%PDF', $result);
@@ -58,8 +46,7 @@ class PdfTest extends TestCase
      */
     public function testToString()
     {
-        $pdf = new Pdf\Pdf();
-        $doc = $pdf->importFromFile(__DIR__ . '/tmp/doc.pdf', 1);
+        $doc = Pdf\Pdf::importFromFile(__DIR__ . '/tmp/doc.pdf', 1);
 
         ob_start();
         echo $doc;

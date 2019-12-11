@@ -319,13 +319,10 @@ abstract class AbstractPage implements PageInterface
      *
      * Instantiate a PDF page.
      *
-     * @param  mixed $size
-     * @param  mixed $height
-     * @param  int   $i
      * @throws Exception
      * @return AbstractPage
      */
-    abstract public function __construct($size, $height = null, $i = null);
+    abstract public function __construct();
 
     /**
      * Add an image to the PDF page

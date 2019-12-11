@@ -125,7 +125,7 @@ abstract class AbstractFont implements \ArrayAccess
      */
     public function __construct($fontFile = null, $fontStream = null)
     {
-        $this->properties['flags'] = new \ArrayObject([
+        $this->properties['flags'] = new Data([
             'isFixedPitch'  => false,
             'isSerif'       => false,
             'isSymbolic'    => false,
@@ -135,7 +135,7 @@ abstract class AbstractFont implements \ArrayAccess
             'isAllCap'      => false,
             'isSmallCap'    => false,
             'isForceBold'   => false
-        ], \ArrayObject::ARRAY_AS_PROPS);
+        ]);
 
         if (null !== $fontFile) {
             if (!file_exists($fontFile)) {

@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build\Font\TrueType\Table;
 
+use Pop\Pdf\Build\Font;
+
 /**
  * CMAP table class
  *
@@ -40,9 +42,9 @@ class Cmap extends AbstractTable
      *
      * Instantiate a TTF 'cmap' table object.
      *
-     * @param  \Pop\Pdf\Build\Font\TrueType $font
+     * @param  Font\TrueType $font
      */
-    public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
+    public function __construct(Font\TrueType $font)
     {
         $bytePos = $font->tableInfo['cmap']->offset;
 
@@ -52,7 +54,7 @@ class Cmap extends AbstractTable
             'nnumberOfTables', $font->read($bytePos, 4)
         );
 
-        $this->properties['header'] = new \ArrayObject($cmapTableHeader, \ArrayObject::ARRAY_AS_PROPS);
+        $this->properties['header'] = new Font\Data($cmapTableHeader);
         $this->parseSubTables($font);
     }
 
@@ -84,7 +86,7 @@ class Cmap extends AbstractTable
             } else {
                 $ary['encoding'] = 'Unknown';
             }
-            $this->properties['subTables'][] = new \ArrayObject($ary, \ArrayObject::ARRAY_AS_PROPS);
+            $this->properties['subTables'][] = new Font\Data($ary);
             $bytePos += 8;
         }
 

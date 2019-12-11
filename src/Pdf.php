@@ -14,6 +14,7 @@
 namespace Pop\Pdf;
 
 use Pop\Pdf\Build;
+use Pop\Pdf\Document\AbstractDocument;
 
 /**
  * Pop Pdf class
@@ -25,7 +26,7 @@ use Pop\Pdf\Build;
  * @license    http://www.popphp.org/license     New BSD License
  * @version    4.0.0
  */
-class Pdf extends AbstractPdf
+class Pdf
 {
 
     /**
@@ -35,20 +36,20 @@ class Pdf extends AbstractPdf
      * @param  mixed  $pages
      * @return AbstractDocument
      */
-    public function importFromFile($file, $pages = null)
+    public static function importFromFile($file, $pages = null)
     {
         $parser = new Build\Parser();
         return $parser->parseFile($file, $pages);
     }
 
     /**
-     * Import from raw data
+     * Import from raw data stream
      *
      * @param  string $data
      * @param  mixed  $pages
      * @return AbstractDocument
      */
-    public function importRawData($data, $pages = null)
+    public static function importRawData($data, $pages = null)
     {
         $parser = new Build\Parser();
         return $parser->parseData($data, $pages);
@@ -61,7 +62,7 @@ class Pdf extends AbstractPdf
      * @param  string           $filename
      * @return void
      */
-    public function writeToFile(AbstractDocument $document, $filename)
+    public static function writeToFile(AbstractDocument $document, $filename)
     {
         $compiler = new Build\Compiler();
         $compiler->finalize($document);
@@ -77,7 +78,7 @@ class Pdf extends AbstractPdf
      * @param  array            $headers
      * @return void
      */
-    public function outputToHttp(AbstractDocument $document, $filename = 'pop.pdf', $forceDownload = false, array $headers = [])
+    public static function outputToHttp(AbstractDocument $document, $filename = 'pop.pdf', $forceDownload = false, array $headers = [])
     {
         $headers['Content-type']        = 'application/pdf';
         $headers['Content-disposition'] = (($forceDownload) ? 'attachment; ' : null) . 'filename=' . $filename;

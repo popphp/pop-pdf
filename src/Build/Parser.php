@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build;
 
+use Pop\Pdf\Document\AbstractDocument;
+
 /**
  * Pdf parser class
  *
@@ -79,7 +81,7 @@ class Parser extends AbstractParser
      *
      * @param  string $file
      * @param  mixed  $pages
-     * @return \Pop\Pdf\AbstractDocument
+     * @return AbstractDocument
      */
     public function parseFile($file, $pages = null)
     {
@@ -92,7 +94,7 @@ class Parser extends AbstractParser
      *
      * @param  string $data
      * @param  mixed  $pages
-     * @return \Pop\Pdf\AbstractDocument
+     * @return AbstractDocument
      */
     public function parseData($data, $pages = null)
     {
@@ -104,7 +106,7 @@ class Parser extends AbstractParser
      * Parse the data stream
      *
      * @param  mixed  $pages
-     * @return \Pop\Pdf\AbstractDocument
+     * @return AbstractDocument
      */
     public function parse($pages = null)
     {

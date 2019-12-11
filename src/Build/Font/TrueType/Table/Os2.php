@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build\Font\TrueType\Table;
 
+use Pop\Pdf\Build\Font;
+
 /**
  * OS/2 table class
  *
@@ -41,11 +43,11 @@ class Os2 extends AbstractTable
      *
      * Instantiate a OTF 'OS/2' table object.
      *
-     * @param  \Pop\Pdf\Build\Font\TrueType $font
+     * @param  Font\TrueType $font
      */
-    public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
+    public function __construct(Font\TrueType $font)
     {
-        $this->properties['flags'] = new \ArrayObject([
+        $this->properties['flags'] = new Font\Data([
             'isFixedPitch'  => false,
             'isSerif'       => false,
             'isSymbolic'    => false,
@@ -55,7 +57,7 @@ class Os2 extends AbstractTable
             'isAllCap'      => false,
             'isSmallCap'    => false,
             'isForceBold'   => false
-        ], \ArrayObject::ARRAY_AS_PROPS);
+        ]);
 
         $bytePos = $font->tableInfo['OS/2']->offset + 8;
         $ary     = unpack("nfsType", $font->read($bytePos, 2));

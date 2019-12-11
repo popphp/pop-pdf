@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build;
 
+use Pop\Pdf\Document;
+
 /**
  * Compiler interface
  *
@@ -29,7 +31,7 @@ interface CompilerInterface
     /**
      * Get the document object
      *
-     * @return \Pop\Pdf\Document
+     * @return Document
      */
     public function getDocument();
 
@@ -71,17 +73,17 @@ interface CompilerInterface
     /**
      * Set the document object
      *
-     * @param  \Pop\Pdf\Document $document
+     * @param  Document $document
      * @return Compiler
      */
-    public function setDocument(\Pop\Pdf\Document $document);
+    public function setDocument(Document $document);
 
     /**
      * Compile and finalize the PDF document
      *
-     * @param  \Pop\Pdf\AbstractDocument $document
+     * @param  Document\AbstractDocument $document
      * @return void
      */
-    public function finalize(\Pop\Pdf\AbstractDocument $document);
+    public function finalize(Document\AbstractDocument $document);
 
 }

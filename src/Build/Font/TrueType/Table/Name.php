@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build\Font\TrueType\Table;
 
+use Pop\Pdf\Build\Font;
+
 /**
  * NAME table class
  *
@@ -63,9 +65,9 @@ class Name extends AbstractTable
      *
      * Instantiate a TTF 'name' table object.
      *
-     * @param  \Pop\Pdf\Build\Font\TrueType $font
+     * @param  Font\TrueType $font
      */
-    public function __construct(\Pop\Pdf\Build\Font\TrueType $font)
+    public function __construct(Font\TrueType $font)
     {
         $tableInfo = $font->tableInfo;
 
@@ -73,12 +75,12 @@ class Name extends AbstractTable
             $tableInfo['name'] = [];
         }
 
-        $tableInfo['name']['header'] = new \ArrayObject(
+        $tableInfo['name']['header'] = new Font\Data(
             unpack(
                 'nformatSelector/' .
                 'nnameRecordsCount/' .
                 'nstorageOffset', $font->read($font->tableInfo['name']->offset, 6)
-            ), \ArrayObject::ARRAY_AS_PROPS
+            )
         );
 
         $font->tableInfo = $tableInfo;

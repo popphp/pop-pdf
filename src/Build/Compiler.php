@@ -15,6 +15,7 @@ namespace Pop\Pdf\Build;
 
 use Pop\Pdf\Build\Image;
 use Pop\Pdf\Build\PdfObject;
+use Pop\Pdf\Document\AbstractDocument;
 use Pop\Pdf\Document\Page\Text;
 
 /**
@@ -87,10 +88,10 @@ class Compiler extends AbstractCompiler
     /**
      * Compile and finalize the PDF document
      *
-     * @param  \Pop\Pdf\AbstractDocument $document
+     * @param  AbstractDocument $document
      * @return void
      */
-    public function finalize(\Pop\Pdf\AbstractDocument $document)
+    public function finalize(AbstractDocument $document)
     {
         $this->setDocument($document);
         $this->prepareFonts();

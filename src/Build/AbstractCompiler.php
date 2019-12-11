@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build;
 
+use Pop\Pdf\Document;
+
 /**
  * Abstract Pdf compiler class
  *
@@ -46,7 +48,7 @@ abstract class AbstractCompiler implements CompilerInterface
 
     /**
      * Document object
-     * @var \Pop\Pdf\Document $document
+     * @var Document $document
      */
     protected $document = null;
 
@@ -101,7 +103,7 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Get the document object
      *
-     * @return \Pop\Pdf\Document
+     * @return Document
      */
     public function getDocument()
     {
@@ -262,18 +264,18 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Set the document object
      *
-     * @param  \Pop\Pdf\Document $document
+     * @param  Document $document
      * @return Compiler
      */
-    abstract public function setDocument(\Pop\Pdf\Document $document);
+    abstract public function setDocument(Document $document);
 
     /**
      * Compile and finalize the PDF document
      *
-     * @param  \Pop\Pdf\AbstractDocument $document
+     * @param  Document\AbstractDocument $document
      * @return void
      */
-    abstract public function finalize(\Pop\Pdf\AbstractDocument $document);
+    abstract public function finalize(Document\AbstractDocument $document);
 
     /**
      * Prepare the font objects

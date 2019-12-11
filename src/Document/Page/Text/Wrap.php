@@ -13,7 +13,7 @@
  */
 namespace Pop\Pdf\Document\Page\Text;
 
-use Pop\Pdf\Document\Page\Text as Txt;
+use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Font;
 
 /**
@@ -50,7 +50,6 @@ class Wrap extends AbstractAlignment
      * @param int    $rightX
      * @param array  $box
      * @param int    $leading
-     * @param int $leading
      */
     public function __construct($alignment = self::LEFT, $leftX = 0, $rightX = 0, $box = [], $leading = 0)
     {
@@ -143,12 +142,12 @@ class Wrap extends AbstractAlignment
     /**
      * Get strings
      *
-     * @param  Txt  $text
-     * @param  Font $font
-     * @param  int  $startY
+     * @param  Page\Text $text
+     * @param  Font      $font
+     * @param  int       $startY
      * @return array
      */
-    public function getStrings(Txt $text, Font $font, $startY)
+    public function getStrings(Page\Text $text, Font $font, $startY)
     {
         $strings    = [];
         $curString  = '';

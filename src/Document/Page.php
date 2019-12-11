@@ -14,6 +14,7 @@
 namespace Pop\Pdf\Document;
 
 use Pop\Pdf\Document\Page\Annotation;
+use \Pop\Pdf\Build\PdfObject;
 
 /**
  * Pdf page class
@@ -30,7 +31,7 @@ class Page extends AbstractPage
 
     /**
      * Imported page object
-     * @var \Pop\Pdf\Build\PdfObject\PageObject
+     * @var PdfObject\PageObject
      */
     protected $importedPageObject = null;
 
@@ -39,27 +40,41 @@ class Page extends AbstractPage
      *
      * Instantiate a PDF page.
      *
-     * @param  mixed $size
-     * @param  mixed $height
-     * @param  int   $i
      * @throws Exception
      */
-    public function __construct($size, $height = null, $i = null)
+    public function __construct()
     {
-        // Numeric width and height is passed
-        if ((null !== $height) && is_numeric($height) && is_numeric($size)) {
-            $this->setWidth($size);
-            $this->setHeight($height);
-        // Else, a pre-defined page size is passed
-        } else if (array_key_exists($size, $this->sizes)) {
-            $this->setWidth($this->sizes[$size]['width']);
-            $this->setHeight($this->sizes[$size]['height']);
-        } else {
-            throw new Exception('Error: The page size was not valid.');
+        $args   = func_get_args();
+        $width  = null;
+        $height = null;
+        $index  = null;
+
+        if (array_key_exists($args[0], $this->sizes)) {
+            $width  = $this->sizes[$args[0]]['width'];
+            $height = $this->sizes[$args[0]]['height'];
+
+            if (isset($args[1]) && is_numeric($args[1])) {
+                $index = $args[1];
+            }
         }
 
-        if (null !== $i) {
-            $this->setIndex($i);
+        if ((null === $width) && (null === $height) && (count($args) >= 2)) {
+            $width  = $args[0];
+            $height = $args[1];
+
+            if (isset($args[2]) && is_numeric($args[2])) {
+                $index = $args[2];
+            }
+        }
+
+        if ((null === $width) && (null === $height)) {
+            throw new Exception('Error: The page size was not correctly passed or was not valid.');
+        } else {
+            $this->setWidth($width);
+            $this->setHeight($height);
+            if (null !== $index) {
+                $this->setIndex($index);
+            }
         }
     }
 
@@ -88,17 +103,10 @@ class Page extends AbstractPage
      * @param  string    $font
      * @param  int       $x
      * @param  int       $y
-     * @throws Exception
      * @return Page
      */
-    public function addText(Page\Text $text, $font = null, $x = 0, $y = 0)
+    public function addText(Page\Text $text, $font, $x = 0, $y = 0)
     {
-        if (null === $font) {
-            $font = $text->getFont();
-        }
-        if (null === $font) {
-            throw new Exception('Error: You must either pass a font or set the font in the text object.');
-        }
         $this->text[] = [
             'text' => $text,
             'font' => $font,
@@ -187,10 +195,10 @@ class Page extends AbstractPage
     /**
      * Import page object into the page
      *
-     * @param \Pop\Pdf\Build\PdfObject\PageObject $page
+     * @param PdfObject\PageObject $page
      * @return Page
      */
-    public function importPageObject(\Pop\Pdf\Build\PdfObject\PageObject $page)
+    public function importPageObject(PdfObject\PageObject $page)
     {
         $this->importedPageObject = $page;
         return $this;
@@ -209,7 +217,7 @@ class Page extends AbstractPage
     /**
      * Get the import page object
      *
-     * @return \Pop\Pdf\Build\PdfObject\PageObject
+     * @return PdfObject\PageObject
      */
     public function getImportedPageObject()
     {
