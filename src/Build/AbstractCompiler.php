@@ -213,7 +213,7 @@ abstract class AbstractCompiler implements CompilerInterface
      */
     protected function calculateByteLength($string)
     {
-        return strlen(str_replace("\n", "", $string));
+        return strlen($string);
     }
 
     /**

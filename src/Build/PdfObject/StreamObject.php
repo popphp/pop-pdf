@@ -284,7 +284,7 @@ class StreamObject extends AbstractObject
      */
     protected function calculateByteLength($string)
     {
-        return strlen(str_replace("\n", "", $string));
+        return strlen($string);
     }
 
     /**
