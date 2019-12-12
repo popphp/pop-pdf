@@ -120,6 +120,26 @@ class Text extends AbstractField
     }
 
     /**
+     * Is multiline
+     *
+     * @return boolean
+     */
+    public function isMultiline()
+    {
+        return in_array(13, $this->flagBits);
+    }
+
+    /**
+     * Is password
+     *
+     * @return boolean
+     */
+    public function isPassword()
+    {
+        return in_array(14, $this->flagBits);
+    }
+
+    /**
      * Get the field stream
      *
      * @param  int    $i

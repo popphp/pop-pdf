@@ -316,7 +316,7 @@ abstract class AbstractField implements FieldInterface
     }
 
     /**
-     * Get the field name
+     * Get the flags value
      *
      * @return int
      */

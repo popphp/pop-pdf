@@ -47,6 +47,16 @@ class Choice extends AbstractField
     }
 
     /**
+     * Has options
+     *
+     * @return boolean
+     */
+    public function hasOptions()
+    {
+        return (count($this->options) > 0);
+    }
+
+    /**
      * Set combo
      *
      * @return Choice
@@ -86,7 +96,7 @@ class Choice extends AbstractField
     }
 
     /**
-     * Set multiselect
+     * Set multi-select
      *
      * @return Choice
      */
@@ -125,6 +135,26 @@ class Choice extends AbstractField
     }
 
     /**
+     * Is combo
+     *
+     * @return boolean
+     */
+    public function isCombo()
+    {
+        return in_array(18, $this->flagBits);
+    }
+
+    /**
+     * Is multi-select
+     *
+     * @return boolean
+     */
+    public function isMultiSelect()
+    {
+        return in_array(22, $this->flagBits);
+    }
+
+    /**
      * Get the field stream
      *
      * @param  int    $i
@@ -136,7 +166,10 @@ class Choice extends AbstractField
      */
     public function getStream($i, $pageIndex, $fontReference, $x, $y)
     {
-        $color = '0 g';
+        $text    = null;
+        $options = null;
+        $color   = '0 g';
+
         if (null !== $this->fontColor) {
             if ($this->fontColor instanceof Color\Rgb) {
                 $color = $this->fontColor . " rg";
@@ -150,23 +183,19 @@ class Choice extends AbstractField
         if (null !== $fontReference) {
             $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
             $text          = '    /DA(' . $fontReference . ' ' . $this->size . ' Tf ' . $color . ')';
-        } else {
-            $text = null;
         }
 
-        $name  = (null !== $this->name) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')/TM(' . $this->name . ')' : '';
-        $flags = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
+        $name    = (null !== $this->name) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')/TM(' . $this->name . ')' : '';
+        $flags   = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
         $value   = (null !== $this->value) ? "\n    /V " . $this->value . "\n" : null;
         $default = (null !== $this->defaultValue) ? "\n    /DV " . $this->defaultValue . "\n" : null;
 
         if (count($this->options) > 0) {
             $options = "    /Opt [ ";
             foreach ($this->options as $option) {
-                $options .= '(' . $option . ') ';
+                $options .= '[ (' . $option . ') (' . $option . ') ]';
             }
             $options .= " ]\n";
-        } else {
-            $options = null;
         }
 
         // Return the stream
