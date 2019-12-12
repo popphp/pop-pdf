@@ -34,6 +34,7 @@ See the [Set Origin](#set-origin) section for more details on that.
 * [Draw a Shape](#draw-a-shape)
 * [Add a URL link](#add-a-url-link)
 * [Import another PDF](#import-from-another-pdf-document)
+* [Forms](#forms)
 * [Set Origin](#set-origin)
 
 ### Create and add pages
@@ -239,6 +240,118 @@ $doc = Pdf::importFromFile('/path/to/six-page-document.pdf', [2, 4, 6]);
 $doc->getPage(3)->addImage(Image::createImageFromFile('/path/to/some/image.jpg'), 100, 600);
 
 $pdf->outputToHttp($doc);
+```
+
+[Top](#basic-usage)
+
+### Forms
+
+Forms and form fields are supported in Pop PDF, however, please note that not all browsers
+consistently support forms and form fields in their default PDF readers. It is recommended
+that if you generate a PDF with a form in it using Pop PDF, that your end user views it
+in an Adobe product.
+
+The types of fields that are currently supported in Pop PDF are:
+
+- Single-line text fields
+- Multi-line text fields
+- Single-select choice fields (e.g., an HTML select drop-down)
+- Multi-select choice fields (e.g., an HTML multi-select drop-down)
+- Push buttons (by default, display and act like a checkbox)
+- Radio buttons
+
+*NOTE: A group of radio buttons is not supported at this time.*
+
+The following script below demonstrates how to add the various fields to a form in a
+PDF object. While lengthy, it includes text and graphic support for field names and
+borders:
+
+```php
+use Pop\Pdf\Pdf;
+use Pop\Pdf\Document;
+use Pop\Pdf\Document\Font;
+use Pop\Pdf\Document\Form;
+use Pop\Pdf\Document\Page;
+use Pop\Pdf\Document\Page\Path;
+use Pop\Pdf\Document\Page\Text;
+
+$form = new Form('contact_form');
+
+$document = new Document();
+$document->addForm($form);
+$document->addFont(new Font(Font::ARIAL));
+$document->addFont(new Font(Font::ARIAL_BOLD));
+
+$firstName = new Page\Field\Text('first_name');
+$firstName->setWidth(200)
+    ->setHeight(20);
+
+$lastName = new Page\Field\Text('last_name');
+$lastName->setWidth(200)
+    ->setHeight(20);
+
+$colors = new Page\Field\Choice('colors');
+$colors->addOption('Red')
+    ->addOption('Green')
+    ->addOption('Blue')
+    ->setMultiSelect()
+    ->setWidth(200)
+    ->setHeight(50)
+    ->setFont(Font::ARIAL)
+    ->setSize(11);
+
+$city = new Page\Field\Choice('city');
+$city->addOption('New Orleans')
+    ->addOption('New York')
+    ->addOption('Los Angeles')
+    ->setCombo()
+    ->setWidth(200)
+    ->setHeight(20)
+    ->setFont(Font::ARIAL)
+    ->setSize(11);
+
+$lovePhp = new Page\Field\Button('love_php');
+$lovePhp->addOption('PHP')->setWidth(20)
+    ->setHeight(20);
+
+$lovePdf = new Page\Field\Button('love_pdf');
+$lovePdf->addOption('PDF')->setRadio()
+    ->setWidth(20)
+    ->setHeight(20);
+
+$comments = new Page\Field\Text('comments');
+$comments->setWidth(500)
+    ->setHeight(150)
+    ->setMultiline();
+
+$page = new Page(Page::LETTER);
+
+$page->addText(new Text('First Name:', 14), Font::ARIAL_BOLD, 50, 680);
+$page->addText(new Text('Last Name:', 14), Font::ARIAL_BOLD, 300, 680);
+$page->addText(new Text('Favorite Colors?', 14), Font::ARIAL_BOLD, 50, 580);
+$page->addText(new Text('Favorite City?', 14), Font::ARIAL_BOLD, 300, 580);
+$page->addText(new Text('Love PHP?', 14), Font::ARIAL_BOLD, 80, 330);
+$page->addText(new Text('Love PDF?', 14), Font::ARIAL_BOLD, 80, 290);
+$page->addText(new Text('Comments:', 14), Font::ARIAL_BOLD, 50, 260);
+$page->addPath((new Path())->drawRectangle(50, 650, 200, 20));
+$page->addPath((new Path())->drawRectangle(300, 650, 200, 20));
+$page->addPath((new Path())->drawRectangle(50, 520, 200, 50));
+$page->addPath((new Path())->drawRectangle(300, 550, 200, 20));
+$page->addPath((new Path())->drawSquare(50, 325, 20));
+$page->addPath((new Path())->drawCircle(60, 295, 10));
+$page->addPath((new Path())->drawRectangle(50, 100, 500, 150));
+
+$page->addField($firstName, 'contact_form', 50, 650)
+    ->addField($lastName, 'contact_form', 300, 650)
+    ->addField($colors, 'contact_form', 50, 520)
+    ->addField($city, 'contact_form', 300, 550)
+    ->addField($lovePhp, 'contact_form', 50, 325)
+    ->addField($lovePdf, 'contact_form', 50, 285)
+    ->addField($comments, 'contact_form', 50, 100);
+
+$document->addPage($page);
+
+Pdf::outputToHttp($document);
 ```
 
 [Top](#basic-usage)
