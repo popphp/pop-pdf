@@ -356,7 +356,7 @@ Pdf::outputToHttp($document);
 
 The above code produces a PDF with a form like this:
 
-![Pop PDF Form](tests/tmp/pdf-form.jpg)
+![Pop PDF Form](tests/tmp/pop-pdf-form.jpg)
 
 [Top](#basic-usage)
 
