@@ -193,9 +193,9 @@ class Choice extends AbstractField
         if (count($this->options) > 0) {
             $options = "    /Opt [ ";
             foreach ($this->options as $option) {
-                $options .= '[ (' . $option . ') (' . $option . ') ]';
+                $options .= '(' . $option . ') ';
             }
-            $options .= " ]\n";
+            $options .= "]\n";
         }
 
         // Return the stream

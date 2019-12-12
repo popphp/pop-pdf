@@ -68,8 +68,7 @@ $custom = new Page(1000, 500);
 $doc->addPage($letter);
 $doc->addPage($custom);
 
-$pdf = new Pdf();
-$pdf->outputToHttp($doc);
+Pdf::outputToHttp($doc);
 ```
 
 Alternatively, you can use the document object as a page factory, which will automatically
@@ -86,8 +85,7 @@ $legal = $doc->createPage(Page::LEGAL);
 
 // Do some things to the pages, add text, images, etc.
 
-$pdf = new Pdf();
-$pdf->outputToHttp($doc);
+Pdf::outputToHttp($doc);
 ```
 
 ### Add a standard font and add some text
@@ -120,8 +118,7 @@ $page->addText(new Page\Text('Hello World', 36), 'Arial', 50, 600);
 
 $doc->addPage($page);
 
-$pdf = new Pdf();
-$pdf->outputToHttp($doc);
+Pdf::outputToHttp($doc);
 ```
 
 [Top](#basic-usage)
@@ -153,8 +150,7 @@ $page->addText(new Page\Text('Hello World', 36), $font->getName(), 50, 600);
 
 $doc->addPage($page);
 
-$pdf = new Pdf();
-$pdf->outputToHttp($doc);
+Pdf::outputToHttp($doc);
 ```
 
 [Top](#basic-usage)
@@ -174,8 +170,7 @@ $page->addImage(Image::createImageFromFile('/path/to/some/image.jpg'), 100, 600)
 
 $doc->addPage($page);
 
-$pdf = new Pdf();
-$pdf->outputToHttp($doc);
+Pdf::outputToHttp($doc);
 ```
 
 [Top](#basic-usage)
@@ -202,8 +197,7 @@ $page->addPath($path);
 
 $doc->addPage($page);
 
-$pdf = new Pdf();
-$pdf->outputToHttp($doc);
+Pdf::outputToHttp($doc);
 ```
 
 [Top](#basic-usage)
@@ -225,8 +219,7 @@ $page->addUrl($url, 50, 500);
 
 $doc->addPage($page);
 
-$pdf = new Pdf();
-$pdf->outputToHttp($doc);
+Pdf::outputToHttp($doc);
 ```
 
 [Top](#basic-usage)
@@ -240,8 +233,7 @@ use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Page\Image;
 
 // Import pages 2, 4 and 6 from a six page document
-$pdf = new Pdf();
-$doc = $pdf->importFromFile('/path/to/six-page-document.pdf', [2, 4, 6]);
+$doc = Pdf::importFromFile('/path/to/six-page-document.pdf', [2, 4, 6]);
 
 // Add an image to page 3 (formerly page 6)
 $doc->getPage(3)->addImage(Image::createImageFromFile('/path/to/some/image.jpg'), 100, 600);

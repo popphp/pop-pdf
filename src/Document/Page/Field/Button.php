@@ -174,9 +174,9 @@ class Button extends AbstractField
         if (count($this->options) > 0) {
             $options = "    /Opt [ ";
             foreach ($this->options as $option) {
-                $options .= '[ (' . $option['option'] . ') (' . $option['option'] . ') ]';
+                $options .= '(' . $option['option'] . ') ';
             }
-            $options .= " ]\n";
+            $options .= "]\n";
         }
 
         // Return the stream
