@@ -149,57 +149,71 @@ class Wrap extends AbstractAlignment
      */
     public function getStrings(Page\Text $text, Font $font, $startY)
     {
-        $strings    = [];
-        $curString  = '';
-        $words      = explode(' ', $text->getString());
-        $startX     = $this->leftX;
+        $stringAry = ($text->hasStrings()) ? $text->getStrings() : [$text->getString()];
+        $strings   = [];
+        $append    = false;
 
-        if ((int)$this->leading == 0) {
-            $this->leading = $text->getSize();
-        }
+        foreach ($stringAry as $key => $string) {
+            $stringValue = ($string instanceof Page\Text) ? $string->getString() : $string;
+            if (($append) && !empty($curString)) {
+                $stringValue = $curString . ' ' . $stringValue;
+                $append      = false;
+            }
+            $curString  = '';
+            $words      = explode(' ', $stringValue);
+            $startX     = $this->leftX;
 
-        foreach ($words as $word) {
-            if ($this->isRight()) {
-                if (($startY <= $this->box['top']) && ($startY >= $this->box['bottom'])) {
-                    $wrapLength = abs($this->rightX - $this->box['right']);
-                    $x          = $this->box['right'];
+            if ((int)$this->leading == 0) {
+                $this->leading = $text->getSize();
+            }
+
+            foreach ($words as $word) {
+                if ($this->isRight()) {
+                    if (($startY <= $this->box['top']) && ($startY >= $this->box['bottom'])) {
+                        $wrapLength = abs($this->rightX - $this->box['right']);
+                        $x          = $this->box['right'];
+                    } else {
+                        $wrapLength = abs($this->rightX - $this->leftX);
+                        $x          = $startX;
+                    }
                 } else {
-                    $wrapLength = abs($this->rightX - $this->leftX);
                     $x          = $startX;
+                    $wrapLength = (($startY <= $this->box['top']) && ($startY >= $this->box['bottom'])) ?
+                        abs($this->box['left'] - $this->leftX) : abs($this->rightX - $this->leftX);
                 }
-            } else {
-                $x          = $startX;
-                $wrapLength = (($startY <= $this->box['top']) && ($startY >= $this->box['bottom'])) ?
-                    abs($this->box['left'] - $this->leftX) : abs($this->rightX - $this->leftX);
+
+                $newString = ($curString != '') ? $curString . ' ' . $word : $word;
+                if ($font->getStringWidth($newString, $text->getSize()) <= $wrapLength) {
+                    $curString = $newString;
+                } else {
+                    $strings[] = [
+                        'string' => $curString,
+                        'x'      => $x,
+                        'y'      => $startY
+                    ];
+                    $curString = $word;
+                    $startY   -= $this->leading;
+                }
             }
 
-            $newString = ($curString != '') ? $curString . ' ' . $word : $word;
-            if ($font->getStringWidth($newString, $text->getSize()) <= $wrapLength) {
-                $curString = $newString;
-            } else {
-                $strings[] = [
-                    'string' => $curString,
-                    'x'      => $x,
-                    'y'      => $startY
-                ];
-                $curString = $word;
-                $startY   -= $this->leading;
-            }
-        }
+            if (!empty($curString)) {
+                if ($key == (count($stringAry) - 1)) {
+                    if ($this->isRight()) {
+                        $x = (($startY <= $this->box['top']) && ($startY >= $this->box['bottom'])) ?
+                            $this->box['right'] : $startX;
+                    } else {
+                        $x = $startX;
+                    }
 
-        if (!empty($curString)) {
-            if ($this->isRight()) {
-                $x = (($startY <= $this->box['top']) && ($startY >= $this->box['bottom'])) ?
-                    $this->box['right'] : $startX;
-            } else {
-                $x = $startX;
+                    $strings[] = [
+                        'string' => $curString,
+                        'x'      => $x,
+                        'y'      => $startY
+                    ];
+                } else {
+                    $append = true;
+                }
             }
-
-            $strings[] = [
-                'string' => $curString,
-                'x'      => $x,
-                'y'      => $startY
-            ];
         }
 
         return $strings;

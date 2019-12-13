@@ -33,6 +33,12 @@ class Text
     protected $string = null;
 
     /**
+     * Text strings as array for streaming
+     * @var array
+     */
+    protected $strings = [];
+
+    /**
      * Text strings with offset values
      * @var array
      */
@@ -135,6 +141,33 @@ class Text
             }
         }
         $this->string = $string;
+        return $this;
+    }
+
+    /**
+     * Set the text strings
+     *
+     * @param  array $strings
+     * @return Text
+     */
+    public function setStrings(array $strings)
+    {
+        if (function_exists('mb_strlen')) {
+            $strings = array_map(function($value) {
+                if ($value instanceof Text) {
+                    $v = $value->getString();
+                    if (mb_strlen($v, 'UTF-8') < strlen($v)) {
+                        return utf8_decode($v);
+                    }
+                    $value->setString($v);
+                } else if (mb_strlen($value, 'UTF-8') < strlen($value)) {
+                    $value = utf8_decode($value);
+                }
+                return $value;
+            }, $strings);
+
+        }
+        $this->strings = $strings;
         return $this;
     }
 
@@ -329,6 +362,16 @@ class Text
     }
 
     /**
+     * Get the text string array
+     *
+     * @return array
+     */
+    public function getStrings()
+    {
+        return $this->strings;
+    }
+
+    /**
      * Get the text size
      *
      * @return int|float
@@ -426,6 +469,26 @@ class Text
     public function getWrap()
     {
         return $this->wrap;
+    }
+
+    /**
+     * Has text string
+     *
+     * @return boolean
+     */
+    public function hasString()
+    {
+        return (null !== $this->string);
+    }
+
+    /**
+     * Has text string array
+     *
+     * @return boolean
+     */
+    public function hasStrings()
+    {
+        return !empty($this->strings);
     }
 
     /**
