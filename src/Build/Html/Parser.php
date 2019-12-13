@@ -529,11 +529,11 @@ class Parser
     }
 
     /**
-     * Process conversion of HTML into PDF objects
+     * Prepare for conversion of HTML into PDF objects
      *
-     * @return Document
+     * @return array|Child
      */
-    public function process()
+    public function prepare()
     {
         $htmlNodes = null;
         if ($this->html instanceof Child) {
@@ -559,6 +559,18 @@ class Parser
         if (null === $htmlNodes) {
             $htmlNodes = $this->html;
         }
+
+        return $htmlNodes;
+    }
+
+    /**
+     * Process conversion of HTML into PDF objects
+     *
+     * @return Document
+     */
+    public function process()
+    {
+        $htmlNodes = $this->prepare();
 
         if ($htmlNodes instanceof Child) {
             foreach ($htmlNodes->getChildNodes() as $child) {
