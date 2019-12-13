@@ -629,24 +629,28 @@ class Parser
             if ($align == 'LEFT') {
                 $box = [
                     'left'   => $currentX,
-                    'right'  => $currentX + $width + 10,
+                    'right'  => $currentX + $width + ($styles['marginRight'] ?? 0),
                     'top'    => $currentY,
-                    'bottom' => $currentY - $height - 10
+                    'bottom' => $currentY - $height - ($styles['marginBottom'] ?? 0)
                 ];
                 $this->textWrap = new Document\Page\Text\Wrap('RIGHT', $this->pageMargins['left'], $this->page->getWidth() - $this->pageMargins['right'], $box);
             } else if ($align == 'RIGHT') {
                 $box = [
-                    'left'   => $this->page->getWidth() - $width,
+                    'left'   => $this->page->getWidth() - $this->pageMargins['right'] - $width - ($styles['marginLeft'] ?? 0),
                     'right'  => $this->page->getWidth() - $this->pageMargins['right'],
                     'top'    => $currentY,
-                    'bottom' => $currentY - $height
+                    'bottom' => $currentY - $height - ($styles['marginBottom'] ?? 0)
                 ];
                 $this->textWrap = new Document\Page\Text\Wrap('LEFT', $this->pageMargins['left'], $this->page->getWidth() - $this->pageMargins['right'], $box);
             }
 
             if (null !== $this->textWrap) {
                 $newY = $currentY - ((null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight());
-                $this->page->addImage($image, $currentX, $newY);
+                if ($align == 'RIGHT') {
+                    $this->page->addImage($image, ($this->page->getWidth() - $this->pageMargins['right'] - $width), $newY);
+                } else {
+                    $this->page->addImage($image, $currentX, $newY);
+                }
                 $currentY -= $styles['lineHeight'];
                 $this->y  += $styles['lineHeight'];
             } else {
