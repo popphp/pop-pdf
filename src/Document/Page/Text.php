@@ -385,6 +385,16 @@ class Text
     }
 
     /**
+     * Get number of wrapped lines
+     *
+     * @return int
+     */
+    public function getNumberOfWrappedLines()
+    {
+        return count(explode("\n", wordwrap($this->string, $this->charWrap, "\n")));
+    }
+
+    /**
      * Get character wrap leading
      *
      * @return int

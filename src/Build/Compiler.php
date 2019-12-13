@@ -264,6 +264,40 @@ class Compiler extends AbstractCompiler
     }
 
     /**
+     * Prepare the path objects
+     *
+     * @param  array $paths
+     * @param  PdfObject\PageObject $pageObject
+     * @return void
+     */
+    protected function preparePaths(array $paths, PdfObject\PageObject $pageObject)
+    {
+        $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
+        $this->objects[$contentObject->getIndex()] = $contentObject;
+        $pageObject->addContentIndex($contentObject->getIndex());
+
+        foreach ($paths as $path) {
+            $stream  = null;
+            $streams = $path->getStreams();
+            foreach ($streams as $str) {
+                $s = $str['stream'];
+                if (isset($str['points'])) {
+                    foreach ($str['points'] as $points) {
+                        $keys = array_keys($points);
+                        $coordinates = $this->getCoordinates($points[$keys[0]], $points[$keys[1]], $pageObject);
+                        $s = str_replace(
+                            ['[{' . $keys[0] . '}]', '[{' . $keys[1] . '}]'], [$coordinates['x'], $coordinates['y']], $s
+                        );
+                    }
+                }
+                $stream .= $s;
+            }
+
+            $contentObject->appendStream($stream);
+        }
+    }
+
+    /**
      * Prepare the text objects
      *
      * @param  array $text
@@ -273,13 +307,9 @@ class Compiler extends AbstractCompiler
      */
     protected function prepareText(array $text, PdfObject\PageObject $pageObject)
     {
-        if (null === $pageObject->getCurrentContentIndex()) {
-            $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
-            $this->objects[$contentObject->getIndex()] = $contentObject;
-            $pageObject->addContentIndex($contentObject->getIndex());
-        } else {
-            $contentObject = $this->objects[$pageObject->getCurrentContentIndex()];
-        }
+        $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
+        $this->objects[$contentObject->getIndex()] = $contentObject;
+        $pageObject->addContentIndex($contentObject->getIndex());
 
         foreach ($text as $txt) {
             if (!isset($this->fontReferences[$txt['font']])) {
@@ -320,43 +350,6 @@ class Compiler extends AbstractCompiler
                     $txt['text']->getStream($this->fontReferences[$txt['font']], $coordinates['x'], $coordinates['y'])
                 );
             }
-        }
-    }
-
-    /**
-     * Prepare the path objects
-     *
-     * @param  array $paths
-     * @param  PdfObject\PageObject $pageObject
-     * @return void
-     */
-    protected function preparePaths(array $paths, PdfObject\PageObject $pageObject)
-    {
-        if (null === $pageObject->getCurrentContentIndex()) {
-            $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
-            $this->objects[$contentObject->getIndex()] = $contentObject;
-            $pageObject->addContentIndex($contentObject->getIndex());
-        } else {
-            $contentObject = $this->objects[$pageObject->getCurrentContentIndex()];
-        }
-        foreach ($paths as $path) {
-            $stream  = null;
-            $streams = $path->getStreams();
-            foreach ($streams as $str) {
-                $s = $str['stream'];
-                if (isset($str['points'])) {
-                    foreach ($str['points'] as $points) {
-                        $keys = array_keys($points);
-                        $coordinates = $this->getCoordinates($points[$keys[0]], $points[$keys[1]], $pageObject);
-                        $s = str_replace(
-                            ['[{' . $keys[0] . '}]', '[{' . $keys[1] . '}]'], [$coordinates['x'], $coordinates['y']], $s
-                        );
-                    }
-                }
-                $stream .= $s;
-            }
-
-            $contentObject->appendStream($stream);
         }
     }
 
