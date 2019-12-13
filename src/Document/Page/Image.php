@@ -106,8 +106,11 @@ class Image
         $imgSize = getimagesize($file);
 
         if (!isset($imgSize['mime']) ||
-            (isset($imgSize['mime']) && ($imgSize['mime'] != 'image/jpeg') && ($imgSize['mime'] != 'image/gif') && ($imgSize['mime'] != 'image/png'))) {
-            throw new Exception('Error: That image type is not supported. Only GIF, JPG and PNG image types are supported.');
+            (isset($imgSize['mime']) && ($imgSize['mime'] != 'image/jpeg') &&
+                ($imgSize['mime'] != 'image/gif') && ($imgSize['mime'] != 'image/png'))) {
+            throw new Exception(
+                'Error: That image type is not supported. Only GIF, JPG and PNG image types are supported.'
+            );
         }
 
         // Set image properties.
@@ -130,8 +133,11 @@ class Image
         $imgSize = getimagesizefromstring($stream);
 
         if (!isset($imgSize['mime']) ||
-            (isset($imgSize['mime']) && ($imgSize['mime'] != 'image/jpeg') && ($imgSize['mime'] != 'image/gif') && ($imgSize['mime'] != 'image/png'))) {
-            throw new Exception('Error: That image type is not supported. Only GIF, JPG and PNG image types are supported.');
+            (isset($imgSize['mime']) && ($imgSize['mime'] != 'image/jpeg') &&
+                ($imgSize['mime'] != 'image/gif') && ($imgSize['mime'] != 'image/png'))) {
+            throw new Exception(
+                'Error: That image type is not supported. Only GIF, JPG and PNG image types are supported.'
+            );
         }
 
         $this->stream = $stream;

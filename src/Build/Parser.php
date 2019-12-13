@@ -287,7 +287,12 @@ class Parser extends AbstractParser
             if (isset($page['fonts']) && (count($page['fonts']) > 0)) {
                 foreach ($page['fonts'] as $i => $font) {
                     if (strpos($this->objectMap['streams'][$i]['stream'], '/BaseFont') !== false) {
-                        $fontName = trim(substr($this->objectMap['streams'][$i]['stream'], (strpos($this->objectMap['streams'][$i]['stream'], '/BaseFont') + 9)));
+                        $fontName = trim(
+                            substr(
+                                $this->objectMap['streams'][$i]['stream'],
+                                (strpos($this->objectMap['streams'][$i]['stream'], '/BaseFont') + 9)
+                            )
+                        );
 
                         if (substr($fontName, 0, 1) == '/') {
                             $fontName = substr($fontName, 1);

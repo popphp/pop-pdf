@@ -15,7 +15,7 @@ namespace Pop\Pdf\Build;
 
 use Pop\Pdf\Build\Image;
 use Pop\Pdf\Build\PdfObject;
-use Pop\Pdf\Document\AbstractDocument;
+use Pop\Pdf\Document;
 use Pop\Pdf\Document\Page\Text;
 
 /**
@@ -34,10 +34,10 @@ class Compiler extends AbstractCompiler
     /**
      * Set the document object
      *
-     * @param  \Pop\Pdf\Document $document
+     * @param  Document\AbstractDocument $document
      * @return Compiler
      */
-    public function setDocument(\Pop\Pdf\Document $document)
+    public function setDocument(Document\AbstractDocument $document)
     {
         $this->document = $document;
 
@@ -88,10 +88,10 @@ class Compiler extends AbstractCompiler
     /**
      * Compile and finalize the PDF document
      *
-     * @param  AbstractDocument $document
+     * @param  Document\AbstractDocument $document
      * @return void
      */
-    public function finalize(AbstractDocument $document)
+    public function finalize(Document\AbstractDocument $document)
     {
         $this->setDocument($document);
         $this->prepareFonts();
@@ -196,11 +196,12 @@ class Compiler extends AbstractCompiler
                         $font->getName() . "\n    /Encoding /WinAnsiEncoding\n>>\nendobj\n\n"
                     );
                 } else {
-                    $font->parser()->setCompression($this->compression)
-                                   ->setFontIndex($f)
-                                   ->setFontObjectIndex($i)
-                                   ->setFontDescIndex($i + 1)
-                                   ->setFontFileIndex($i + 2);
+                    $font->parser()
+                        ->setCompression($this->compression)
+                        ->setFontIndex($f)
+                        ->setFontObjectIndex($i)
+                        ->setFontDescIndex($i + 1)
+                        ->setFontFileIndex($i + 2);
 
                     $font->parser()->parse();
 
@@ -225,13 +226,11 @@ class Compiler extends AbstractCompiler
     protected function prepareImages(array $images, PdfObject\PageObject $pageObject)
     {
         $imgs = [];
-        if (null === $pageObject->getCurrentContentIndex()) {
-            $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
-            $this->objects[$contentObject->getIndex()] = $contentObject;
-            $pageObject->addContentIndex($contentObject->getIndex());
-        } else {
-            $contentObject = $this->objects[$pageObject->getCurrentContentIndex()];
-        }
+
+        $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
+        $this->objects[$contentObject->getIndex()] = $contentObject;
+        $pageObject->addContentIndex($contentObject->getIndex());
+
         foreach ($images as $key => $image) {
             $coordinates = $this->getCoordinates($image['x'], $image['y'], $pageObject);
             if (!array_key_exists($key, $imgs)) {

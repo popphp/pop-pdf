@@ -17,7 +17,7 @@ use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Font;
 
 /**
- * Pdf page text alignment class
+ * Pdf page text wrap class
  *
  * @category   Pop
  * @package    Pop\Pdf

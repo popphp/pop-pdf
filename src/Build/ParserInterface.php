@@ -44,7 +44,7 @@ interface ParserInterface
      * Parse the pdf data
      *
      * @param  mixed  $pages
-     * @return \Pop\Pdf\AbstractDocument
+     * @return \Pop\Pdf\Document\AbstractDocument
      */
     public function parse($pages = null);
 

@@ -54,7 +54,7 @@ abstract class AbstractCompiler implements CompilerInterface
 
     /**
      * Pages array
-     * @var array
+     * @var Document\Page[]
      */
     protected $pages = [];
 
@@ -264,10 +264,10 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Set the document object
      *
-     * @param  Document $document
+     * @param  Document\AbstractDocument $document
      * @return Compiler
      */
-    abstract public function setDocument(Document $document);
+    abstract public function setDocument(Document\AbstractDocument $document);
 
     /**
      * Compile and finalize the PDF document

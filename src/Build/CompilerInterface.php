@@ -73,10 +73,10 @@ interface CompilerInterface
     /**
      * Set the document object
      *
-     * @param  Document $document
+     * @param  Document\AbstractDocument $document
      * @return Compiler
      */
-    public function setDocument(Document $document);
+    public function setDocument(Document\AbstractDocument $document);
 
     /**
      * Compile and finalize the PDF document

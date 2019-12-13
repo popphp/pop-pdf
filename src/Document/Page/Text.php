@@ -385,7 +385,7 @@ class Text
     }
 
     /**
-     * Get number of wrapped lines
+     * Get number of wrapped lines from character wrap
      *
      * @return int
      */
