@@ -188,14 +188,14 @@ class PathTest extends TestCase
 
     public function testCalculateDegreesException1()
     {
-        $this->expectException('Pop\Pdf\Document\Page\Exception');
+        $this->expectException('OutOfRangeException');
         $path = new Path();
         $path->drawArc(320, 240, -50, 100, 200);
     }
 
     public function testCalculateDegreesException2()
     {
-        $this->expectException('Pop\Pdf\Document\Page\Exception');
+        $this->expectException('OutOfRangeException');
         $path = new Path();
         $path->drawArc(320, 240, 150, 100, 200);
     }

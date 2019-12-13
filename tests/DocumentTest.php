@@ -114,11 +114,11 @@ class DocumentTest extends TestCase
         $this->assertEquals(1, $doc->getNumberOfFonts());
     }
 
-    public function testAddFontException()
+    public function testAddFontWithEmbedFont()
     {
-        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->addFont(new Font(__DIR__ . '/tmp/fonts/times.ttf'));
+        $this->assertInstanceOf('Pop\Pdf\Build\Font\AbstractFont', $doc->getFont('Times-Bold')->getParsedFont());
     }
 
     public function testEmbedFont()
@@ -133,11 +133,11 @@ class DocumentTest extends TestCase
         $this->assertEquals(0, count($doc->getImportedFonts()));
     }
 
-    public function testEmbedFontException()
+    public function testEmbedFontWithStandardFont()
     {
-        $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $doc->embedFont(new Font('Arial'));
+        $this->assertEquals(1, $doc->getNumberOfFonts());
     }
 
     public function testGetFont()

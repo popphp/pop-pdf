@@ -45,6 +45,9 @@ class FieldTest extends TestCase
               ->setComb()
               ->setRichText();
 
+
+        $this->assertTrue($field->isPassword());
+        $this->assertTrue($field->isMultiline());
         $this->assertContains('/FT /Tx', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
     }
 
@@ -110,6 +113,9 @@ class FieldTest extends TestCase
               ->setPushButton()
               ->setRadiosInUnison();
 
+        $this->assertTrue($field->isRadio());
+        $this->assertTrue($field->isPushButton());
+        $this->assertTrue($field->hasOptions());
         $this->assertContains('/FT /Btn', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
     }
 
@@ -156,6 +162,9 @@ class FieldTest extends TestCase
               ->setDoNotSpellCheck()
               ->setCommitOnSelChange();
 
+        $this->assertTrue($field->isCombo());
+        $this->assertTrue($field->isMultiSelect());
+        $this->assertTrue($field->hasOptions());
         $this->assertContains('/FT /Ch', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
     }
 

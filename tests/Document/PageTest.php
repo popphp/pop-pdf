@@ -22,8 +22,9 @@ class PageTest extends TestCase
 
     public function testGetWidth()
     {
-        $page = new Page(Page::LETTER);
+        $page = new Page(Page::LETTER, 1);
         $this->assertEquals(612, $page->getWidth());
+        $this->assertEquals(1, $page->getIndex());
     }
 
     public function testGetIndex()

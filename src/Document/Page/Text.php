@@ -111,10 +111,14 @@ class Text
      * @param  string $string
      * @param  string $size
      */
-    public function __construct($string, $size)
+    public function __construct($string = null, $size = null)
     {
-        $this->setString($string);
-        $this->setSize($size);
+        if (null !== $string) {
+            $this->setString($string);
+        }
+        if (null !== $size) {
+            $this->setSize($size);
+        }
     }
 
     /**
@@ -299,7 +303,7 @@ class Text
         $searchAry  = ['(', ')'];
         $replaceAry = ['\(', '\)'];
 
-        if (!empty($search) && !empty($replace)) {
+        if ((null !== $search) && (null !== $replace)) {
             if (!is_array($search)) {
                 $search = [$search];
             }

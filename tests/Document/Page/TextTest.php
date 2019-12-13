@@ -21,6 +21,13 @@ class TextTest extends TestCase
         $this->assertEquals(18, strlen($text->getString()));
     }
 
+    public function testEscape()
+    {
+        $text = new Text("Testing (Hello World) What's up!", 12);
+        $text->escape("'", "");
+        $this->assertEquals("Testing \(Hello World\) Whats up!", $text->getString());
+    }
+
     public function testAddStringWithOffset()
     {
         $text = new Text('', 12);
@@ -119,11 +126,12 @@ class TextTest extends TestCase
 
     public function testSetAndGetCharWrap()
     {
-        $text = new Text('Hello World', 12);
-        $text->setCharWrap(10, 10);
-        $this->assertEquals(10, $text->getCharWrap());
+        $text = new Text('Hello World Hello World Hello World Hello World Hello World Hello World ', 12);
+        $text->setCharWrap(24, 10);
+        $this->assertEquals(24, $text->getCharWrap());
         $this->assertEquals(10, $text->getLeading());
         $this->assertTrue($text->hasCharWrap());
+        $this->assertEquals(3, $text->getNumberOfWrappedLines());
     }
 
     public function testSetAndGetLeading()
@@ -139,6 +147,7 @@ class TextTest extends TestCase
         $text = new Text('Hello World', 12);
         $text->setAlignment(Text\Alignment::createLeft(50, 550));
         $this->assertTrue($text->hasAlignment());
+        $this->assertInstanceOf('Pop\Pdf\Document\Page\Text\Alignment', $text->getAlignment());
     }
 
     public function testSetAndGetWrap()
@@ -146,6 +155,7 @@ class TextTest extends TestCase
         $text = new Text('Hello World', 12);
         $text->setWrap(Text\Wrap::createLeft(50, 550));
         $this->assertTrue($text->hasWrap());
+        $this->assertInstanceOf('Pop\Pdf\Document\Page\Text\Wrap', $text->getWrap());
     }
 
     public function testGetStreamWithRotation1()
@@ -167,6 +177,29 @@ class TextTest extends TestCase
         $text = new Text('Hello World', 12);
         $text->setRotation(-80);
         $this->assertContains('MF1', $text->getStream('MF1 1 0 R', 20, 200));
+    }
+
+    public function testGetPartialStreamWithFontRef()
+    {
+        $text = new Text('Hello World', 12);
+        $this->assertContains('/MF1 12 Tf', $text->getPartialStream('/MF1 1 0 R'));
+    }
+
+    public function testGetPartialStreamWithStringOffsets()
+    {
+        $text = new Text('Hello World', 12);
+        $text->addStringWithOffset("What's up?", 12);
+        $stream = $text->getPartialStream();
+        $this->assertContains("[(Hello World) -12 (What's up?)]TJ", $stream);
+    }
+
+    public function testGetPartialStreamWithCharWrap()
+    {
+        $text = new Text('Hello World Hello World Hello World Hello World Hello World Hello World', 12);
+        $text->setCharWrap(24);
+        $stream = $text->getPartialStream();
+        $this->assertContains("0 -12 Td", $stream);
+        $this->assertContains(")Tj", $stream);
     }
 
 }

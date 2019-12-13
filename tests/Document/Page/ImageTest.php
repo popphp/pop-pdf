@@ -31,8 +31,11 @@ class ImageTest extends TestCase
     public function testLoadImageFromStream()
     {
         $image = Image::createImageFromStream(file_get_contents(__DIR__ . '/../../tmp/images/logo-rgb.jpg'));
-        $image->resizeToWidth(200);
-        $this->assertEquals(200, $image->getResizeDimensions()['width']);
+        $this->assertEquals(240, $image->getWidth());
+        $this->assertEquals(100, $image->getHeight());
+        $image->resizeToWidth(120);
+        $this->assertEquals(120, $image->getResizedWidth());
+        $this->assertEquals(50, $image->getResizedHeight());
         $this->assertNotEmpty($image->getStream());
     }
 

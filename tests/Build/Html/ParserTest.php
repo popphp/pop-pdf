@@ -41,6 +41,16 @@ class ParserTest extends TestCase
         $html = Parser::parseFile(__DIR__ . '/../../tmp/bad.html', $doc);
     }
 
+    public function testDefaultStyles()
+    {
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseFile(__DIR__ . '/../../tmp/test.html', $doc);
+        $html->setDefaultStyle('font-family', 'Times');
+        $this->assertEquals('Times', $html->getDefaultStyle('font-family'));
+        $this->assertIsArray($html->getDefaultStyles());
+    }
+
     public function testCssString()
     {
         $doc = new Document();
@@ -105,6 +115,15 @@ class ParserTest extends TestCase
 
         $this->assertEquals(50, $html->getX());
         $this->assertEquals(75, $html->getY());
+    }
+
+    public function testProcess()
+    {
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseFile(__DIR__ . '/../../tmp/test.html', $doc);
+        $html->process();
+        $this->assertInstanceOf('Pop\Pdf\Build\Html\Parser', $html);
     }
 
 }

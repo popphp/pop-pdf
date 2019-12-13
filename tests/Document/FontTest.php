@@ -10,7 +10,7 @@ class FontTest extends TestCase
 
     public function testSetFontException()
     {
-        $this->expectException('Pop\Pdf\Document\Exception');
+        $this->expectException('InvalidArgumentException');
         $font = new Font('BAD_FONT');
     }
 
