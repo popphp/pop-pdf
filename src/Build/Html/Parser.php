@@ -102,6 +102,12 @@ class Parser
     protected $fileDir = null;
 
     /**
+     * Text wrap object
+     * @var Document\Page\Text\Wrap
+     */
+    protected $textWrap = null;
+
+    /**
      * Constructor
      *
      * Instantiate the HTML parser object
@@ -177,10 +183,14 @@ class Parser
      * Parse HTML string
      *
      * @param  string $htmlString
+     * @param  string $basePath
      * @return self
      */
-    public function parseHtml($htmlString)
+    public function parseHtml($htmlString, $basePath = null)
     {
+        if (null !== $basePath) {
+            $this->fileDir = $basePath;
+        }
         $this->html = Child::parseString($htmlString);
         return $this;
     }
@@ -197,8 +207,7 @@ class Parser
         if (!file_exists($htmlFile)) {
             throw new Exception('Error: That file does not exist.');
         }
-        $this->fileDir = dirname(realpath($htmlFile));
-        return $this->parseHtml(file_get_contents($htmlFile));
+        return $this->parseHtml(file_get_contents($htmlFile), dirname(realpath($htmlFile)));
     }
 
     /**
@@ -585,6 +594,8 @@ class Parser
             $image  = Document\Page\Image::createImageFromFile($this->fileDir . '/' . $child->getAttribute('src'));
             $width  = null;
             $height = null;
+            $align  = null;
+
             if ($child->hasAttribute('width')) {
                 $width = (strpos($child->getAttribute('width'), '%')) ?
                     $this->page->getWidth() * ((int)$child->getAttribute('width') / 100) : (int)$child->getAttribute('width');
@@ -598,35 +609,87 @@ class Parser
                 $height = (strpos($styles['height'], '%')) ?
                     $this->page->getHeight() * ((int)$styles['height'] / 100) : (int)$styles['height'];
             }
+
             if (null !== $width) {
                 $image->resizeToWidth($width);
             } else if (null !== $height) {
                 $image->resizeToHeight($height);
             }
-            $currentY -= (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
-            $this->y  += (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
-            $this->page->addImage($image, $currentX, $currentY);
-            $currentY -= $styles['lineHeight'];
-            $this->y  += $styles['lineHeight'];
+
+            if (null === $height) {
+                $height = (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
+            }
+
+            if ($child->hasAttribute('align')) {
+                $align = strtoupper($child->getAttribute('align'));
+            } else if (isset($styles['float'])) {
+                $align = strtoupper($styles['float']);
+            }
+
+            if ($align == 'LEFT') {
+                $box = [
+                    'left'   => $currentX,
+                    'right'  => $currentX + $width + 10,
+                    'top'    => $currentY,
+                    'bottom' => $currentY - $height - 10
+                ];
+                $this->textWrap = new Document\Page\Text\Wrap('RIGHT', $this->pageMargins['left'], $this->page->getWidth() - $this->pageMargins['right'], $box);
+            } else if ($align == 'RIGHT') {
+                $box = [
+                    'left'   => $this->page->getWidth() - $width,
+                    'right'  => $this->page->getWidth() - $this->pageMargins['right'],
+                    'top'    => $currentY,
+                    'bottom' => $currentY - $height
+                ];
+                $this->textWrap = new Document\Page\Text\Wrap('LEFT', $this->pageMargins['left'], $this->page->getWidth() - $this->pageMargins['right'], $box);
+            }
+
+            if (null !== $this->textWrap) {
+                $newY = $currentY - ((null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight());
+                $this->page->addImage($image, $currentX, $newY);
+                $currentY -= $styles['lineHeight'];
+                $this->y  += $styles['lineHeight'];
+            } else {
+                $currentY -= (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
+                $this->y  += (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
+                $this->page->addImage($image, $currentX, $currentY);
+                $currentY -= $styles['lineHeight'];
+                $this->y  += $styles['lineHeight'];
+            }
+
         } else {
             $string = $child->getNodeValue();
             $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
             if ($stringWidth > $wrapLength) {
-                $strings = $this->getStringLines($string, $styles['fontSize'], $wrapLength, $fontObject);
-                foreach ($strings as $i => $string) {
+                if (null !== $this->textWrap) {
                     $text = new Document\Page\Text($string, $styles['fontSize']);
                     $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+                    if (null !== $this->textWrap) {
+                        $text->setWrap($this->textWrap);
+                        $this->textWrap = null;
+                    }
                     $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
-                    if ($currentY <= $this->pageMargins['bottom']) {
-                        $currentY = $this->newPage();
-                    } else {
-                        $currentY -= $styles['lineHeight'];
-                        $this->y  += $styles['lineHeight'];
+                } else {
+                    $strings = $this->getStringLines($string, $styles['fontSize'], $wrapLength, $fontObject);
+                    foreach ($strings as $i => $string) {
+                        $text = new Document\Page\Text($string, $styles['fontSize']);
+                        $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+                        $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                        if ($currentY <= $this->pageMargins['bottom']) {
+                            $currentY = $this->newPage();
+                        } else {
+                            $currentY -= $styles['lineHeight'];
+                            $this->y  += $styles['lineHeight'];
+                        }
                     }
                 }
             } else {
                 $text = new Document\Page\Text($string, $styles['fontSize']);
                 $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+                if (null !== $this->textWrap) {
+                    $text->setWrap($this->textWrap);
+                    $this->textWrap = null;
+                }
                 $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
             }
 

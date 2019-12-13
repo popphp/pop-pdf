@@ -561,24 +561,7 @@ class Text
             $stream       .= "    {$fontReference} {$this->size} Tf\n";
         }
 
-        if (null !== $this->fillColor) {
-            if ($this->fillColor instanceof Color\Rgb) {
-                $stream .= '    ' . $this->fillColor . " rg\n";
-            } else if ($this->fillColor instanceof Color\Cmyk) {
-                $stream .= '    ' . $this->fillColor . " k\n";
-            } else if ($this->fillColor instanceof Color\Gray) {
-                $stream .= '    ' . $this->fillColor . " g\n";
-            }
-        }
-        if (null !== $this->strokeColor) {
-            if ($this->strokeColor instanceof Color\Rgb) {
-                $stream .= '    ' . $this->strokeColor . " RG\n";
-            } else if ($this->strokeColor instanceof Color\Cmyk) {
-                $stream .= '    ' . $this->strokeColor . " K\n";
-            } else if ($this->strokeColor instanceof Color\Gray) {
-                $stream .= '    ' . $this->strokeColor . " G\n";
-            }
-        }
+        $stream .= $this->getColorStream();
 
         if (count($this->stringsWithOffsets) > 0) {
             $stream .= "    [({$this->string})";
@@ -602,6 +585,37 @@ class Text
                 }
             } else {
                 $stream .= "    ({$this->string})Tj\n";
+            }
+        }
+
+        return $stream;
+    }
+
+    /**
+     * Get the partial color stream
+     *
+     * @return string
+     */
+    public function getColorStream()
+    {
+        $stream = '';
+
+        if (null !== $this->fillColor) {
+            if ($this->fillColor instanceof Color\Rgb) {
+                $stream .= '    ' . $this->fillColor . " rg\n";
+            } else if ($this->fillColor instanceof Color\Cmyk) {
+                $stream .= '    ' . $this->fillColor . " k\n";
+            } else if ($this->fillColor instanceof Color\Gray) {
+                $stream .= '    ' . $this->fillColor . " g\n";
+            }
+        }
+        if (null !== $this->strokeColor) {
+            if ($this->strokeColor instanceof Color\Rgb) {
+                $stream .= '    ' . $this->strokeColor . " RG\n";
+            } else if ($this->strokeColor instanceof Color\Cmyk) {
+                $stream .= '    ' . $this->strokeColor . " K\n";
+            } else if ($this->strokeColor instanceof Color\Gray) {
+                $stream .= '    ' . $this->strokeColor . " G\n";
             }
         }
 

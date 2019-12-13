@@ -337,6 +337,10 @@ class Compiler extends AbstractCompiler
             } else if ($txt['text']->hasWrap()) {
                 $fontObject = $this->fonts[$txt['font']];
                 $strings    = $txt['text']->getWrap()->getStrings($txt['text'], $fontObject, $coordinates['y']);
+                $stream     = $txt['text']->getColorStream();
+                if (!empty($stream)) {
+                    $contentObject->appendStream($stream);
+                }
                 foreach ($strings as $string) {
                     $textString = new Text($string['string'], $txt['text']->getSize());
                     $contentObject->appendStream(
