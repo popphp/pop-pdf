@@ -42,6 +42,7 @@
             "Pop\\Pdf\\Test\\": "tests/"
         }
     },
+    "minimum-stability": "beta",
     "extra": {
         "branch-alias": {
             "dev-master": "4.0.x-dev"
