@@ -97,6 +97,12 @@ class Text
     protected $wrap = null;
 
     /**
+     * Text stream object
+     * @var Text\Stream
+     */
+    protected $stream = null;
+
+    /**
      * Text parameters
      * @var array
      */
@@ -325,6 +331,18 @@ class Text
     }
 
     /**
+     * Method to set the text stream
+     *
+     * @param  Text\Stream $stream
+     * @return Text
+     */
+    public function setTextStream(Text\Stream $stream)
+    {
+        $this->stream = $stream;
+        return $this;
+    }
+
+    /**
      * Escape string
      *
      * @param  mixed $search
@@ -472,6 +490,16 @@ class Text
     }
 
     /**
+     * Get text stream
+     *
+     * @return Text\Stream
+     */
+    public function getTextStream()
+    {
+        return $this->stream;
+    }
+
+    /**
      * Has text string
      *
      * @return boolean
@@ -529,6 +557,16 @@ class Text
     public function hasWrap()
     {
         return (null !== $this->wrap);
+    }
+
+    /**
+     * Has text stream
+     *
+     * @return boolean
+     */
+    public function hasTextStream()
+    {
+        return (null !== $this->stream);
     }
 
     /**

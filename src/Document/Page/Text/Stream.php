@@ -13,7 +13,7 @@
  */
 namespace Pop\Pdf\Document\Page\Text;
 
-use Pop\Pdf\Document\Page\Color\ColorInterface;
+use Pop\Pdf\Document\Page\Color;
 
 /**
  * Pdf page text stream class
@@ -96,12 +96,12 @@ class Stream
     /**
      * Set the current style
      *
-     * @param  string         $font
-     * @param  int            $size
-     * @param  ColorInterface $color
+     * @param  string               $font
+     * @param  int                  $size
+     * @param  Color\ColorInterface $color
      * @return Stream
      */
-    public function setCurrentStyle($font, $size, ColorInterface $color = null)
+    public function setCurrentStyle($font, $size, Color\ColorInterface $color = null)
     {
         $key = (!empty($this->streams)) ? count($this->streams) : 0;
         $this->styles[$key] = [
@@ -113,25 +113,36 @@ class Stream
         return $this;
     }
 
-
     /**
-     * Get stream
+     * Get text stream
      *
-     * @return string
+     * @return array
      */
-    public function getStream()
+    public function getTextStreams()
     {
-        $stream = '';
+        $streams      = $this->streams;
+        $currentFont  = 'Arial';
+        $currentSize  = 10;
+        $currentColor = new Color\Rgb(0, 0, 0);
 
-        foreach ($this->streams as $i => $string) {
-            $stream .= "    ({$string})Tj\n";
-            //if ($i < count($strings)) {
-            //    $stream .= "    0 -" . $this->leading . " Td\n";
-            //}
+        if (isset($this->styles[0])) {
+            $currentFont  = $this->styles[0]['font'] ?? 'Arial';
+            $currentSize  = $this->styles[0]['size'] ?? 10;
+            $currentColor = $this->styles[0]['color'] ?? new Color\Rgb(0, 0, 0);
         }
 
-        return $stream;
-    }
+        foreach ($streams as $i => $stream) {
+            if (isset($this->styles[$i])) {
+                $currentFont  = $this->styles[$i]['font'] ?? $currentFont;
+                $currentSize  = $this->styles[$i]['size'] ?? $currentSize;
+                $currentColor = $this->styles[$i]['color'] ?? $currentColor;
+            }
+            $streams[$i]['font']  = $currentFont;
+            $streams[$i]['size']  = $currentSize;
+            $streams[$i]['color'] = $currentColor;
+        }
 
+        return $streams;
+    }
 
 }

@@ -347,6 +347,9 @@ class Compiler extends AbstractCompiler
                         $textString->getStream($this->fontReferences[$txt['font']], $string['x'], $string['y'])
                     );
                 }
+            // Text stream
+            } else if ($txt['text']->hasTextStream()) {
+
             // Else, just append the text stream
             } else {
                 $contentObject->appendStream(
