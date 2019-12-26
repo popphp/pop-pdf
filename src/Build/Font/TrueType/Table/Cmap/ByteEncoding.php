@@ -15,6 +15,8 @@ namespace Pop\Pdf\Build\Font\TrueType\Table\Cmap;
 
 use Pop\Pdf\Build\Font;
 
+use Pop\Utils\ArrayObject as Data;
+
 /**
  * CMAP byte-encoding class
  *
@@ -39,7 +41,7 @@ class ByteEncoding
         $ary = array();
 
         for ($i = 0; $i < strlen($data); $i++) {
-            $ary[$i] = new Font\Data(array(
+            $ary[$i] = new Data(array(
                 'hex'   => bin2hex($data[$i]),
                 'ascii' => ord($data[$i]),
                 'char'  => chr(ord($data[$i]))

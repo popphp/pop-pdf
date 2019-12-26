@@ -14,6 +14,7 @@
 namespace Pop\Pdf\Build\Font\TrueType\Table;
 
 use Pop\Pdf\Build\Font;
+use Pop\Utils\ArrayObject as Data;
 
 /**
  * OS/2 table class
@@ -47,7 +48,7 @@ class Os2 extends AbstractTable
      */
     public function __construct(Font\TrueType $font)
     {
-        $this->properties['flags'] = new Font\Data([
+        $this->properties['flags'] = new Data([
             'isFixedPitch'  => false,
             'isSerif'       => false,
             'isSymbolic'    => false,

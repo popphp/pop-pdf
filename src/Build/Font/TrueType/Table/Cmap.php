@@ -15,6 +15,8 @@ namespace Pop\Pdf\Build\Font\TrueType\Table;
 
 use Pop\Pdf\Build\Font;
 
+use Pop\Utils\ArrayObject as Data;
+
 /**
  * CMAP table class
  *
@@ -54,7 +56,7 @@ class Cmap extends AbstractTable
             'nnumberOfTables', $font->read($bytePos, 4)
         );
 
-        $this->properties['header'] = new Font\Data($cmapTableHeader);
+        $this->properties['header'] = new Data($cmapTableHeader);
         $this->parseSubTables($font);
     }
 
@@ -86,7 +88,7 @@ class Cmap extends AbstractTable
             } else {
                 $ary['encoding'] = 'Unknown';
             }
-            $this->properties['subTables'][] = new Font\Data($ary);
+            $this->properties['subTables'][] = new Data($ary);
             $bytePos += 8;
         }
 

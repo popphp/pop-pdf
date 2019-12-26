@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build\Font;
 
+use Pop\Utils\ArrayObject as Data;
+
 /**
  * Font abstract class
  *

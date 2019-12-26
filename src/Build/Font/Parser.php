@@ -110,7 +110,7 @@ class Parser
      */
     public static function loadFromStream($stream)
     {
-        $var = 123;
+        //$var = 123;
     }
 
     /**

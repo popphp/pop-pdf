@@ -14,6 +14,7 @@
 namespace Pop\Pdf\Build\Font\TrueType\Table;
 
 use Pop\Pdf\Build\Font;
+use Pop\Utils\ArrayObject as Data;
 
 /**
  * NAME table class
@@ -75,7 +76,7 @@ class Name extends AbstractTable
             $tableInfo['name'] = [];
         }
 
-        $tableInfo['name']['header'] = new Font\Data(
+        $tableInfo['name']['header'] = new Data(
             unpack(
                 'nformatSelector/' .
                 'nnameRecordsCount/' .
