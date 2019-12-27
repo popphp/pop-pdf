@@ -160,7 +160,7 @@ class Stream
         $fontSize      = null;
         foreach ($this->styles as $style) {
             if ((null === $fontReference) && !empty($style['font']) && isset($fontReferences[$style['font']])) {
-                $fontReference = $fontReferences[$style['font']];
+                $fontReference = substr($fontReferences[$style['font']], 0, strpos($fontReferences[$style['font']], ' '));
             }
             if ((null === $fontSize) && !empty($style['size'])) {
                 $fontSize = $style['size'];
@@ -171,9 +171,9 @@ class Stream
 
         foreach ($this->streams as $i => $str) {
             if (isset($this->styles[$i]) && !empty($this->styles[$i]['font']) && isset($fontReferences[$this->styles[$i]['font']])) {
-                $fRef    = $fontReferences[$this->styles[$i]['font']];
+                $fRef    = substr($fontReferences[$this->styles[$i]['font']], 0, strpos($fontReferences[$this->styles[$i]['font']], ' '));
                 $fSize   = (!empty($this->styles[$i]['size'])) ? $this->styles[$i]['size'] : $fontSize;
-                //$stream .= "    {$fRef} {$fSize} Tf\n";
+                $stream .= "    {$fRef} {$fSize} Tf\n";
             }
             if (isset($this->styles[$i]) && !empty($this->styles[$i]['color'])) {
                 $stream .= $this->getColorStream($this->styles[$i]['color']);
