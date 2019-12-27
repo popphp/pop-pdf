@@ -375,7 +375,7 @@ class Compiler extends AbstractCompiler
         $pageObject->addContentIndex($contentObject->getIndex());
 
         foreach ($textStreams as $txt) {
-            $contentObject->appendStream($txt->getStream($this->fontReferences));
+            $contentObject->appendStream($txt->getStream($this->fonts, $this->fontReferences));
         }
     }
 

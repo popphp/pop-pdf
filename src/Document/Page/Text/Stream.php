@@ -148,37 +148,57 @@ class Stream
     /**
      * Get stream
      *
+     * @param  array $fonts
      * @param  array $fontReferences
      * @return string
      */
-    public function getStream(array $fontReferences)
+    public function getStream(array $fonts, array $fontReferences)
     {
-        $x = $this->startX;
-        $y = $this->startY;
-
+        $startX        = $this->startX;
+        $startY        = $this->startY;
+        $fontName      = null;
         $fontReference = null;
         $fontSize      = null;
+        $curFont       = null;
+        $curX          = $startX;
+
         foreach ($this->styles as $style) {
             if ((null === $fontReference) && !empty($style['font']) && isset($fontReferences[$style['font']])) {
-                $fontReference = substr($fontReferences[$style['font']], 0, strpos($fontReferences[$style['font']], ' '));
+                $fontName      = $style['font'];
+                $fontReference = substr($fontReferences[$fontName], 0, strpos($fontReferences[$fontName], ' '));
+                $curFont       = $fonts[$fontName] ?? null;
             }
             if ((null === $fontSize) && !empty($style['size'])) {
                 $fontSize = $style['size'];
             }
         }
 
-        $stream = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$x} {$y} Tm\n    0 Tc 0 Tw 0 Tr\n";
+        $stream  = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$startX} {$startY} Tm\n    0 Tc 0 Tw 0 Tr\n";
 
         foreach ($this->streams as $i => $str) {
             if (isset($this->styles[$i]) && !empty($this->styles[$i]['font']) && isset($fontReferences[$this->styles[$i]['font']])) {
-                $fRef    = substr($fontReferences[$this->styles[$i]['font']], 0, strpos($fontReferences[$this->styles[$i]['font']], ' '));
-                $fSize   = (!empty($this->styles[$i]['size'])) ? $this->styles[$i]['size'] : $fontSize;
-                $stream .= "    {$fRef} {$fSize} Tf\n";
+                $fontName      = $this->styles[$i]['font'];
+                $fontReference = substr($fontReferences[$fontName], 0, strpos($fontReferences[$fontName], ' '));
+                $fontSize      = (!empty($this->styles[$i]['size'])) ? $this->styles[$i]['size'] : $fontSize;
+                $curFont       = $fonts[$fontName] ?? null;
+                $stream       .= "    {$fontReference} {$fontSize} Tf\n";
             }
             if (isset($this->styles[$i]) && !empty($this->styles[$i]['color'])) {
                 $stream .= $this->getColorStream($this->styles[$i]['color']);
             }
-            $stream .= "    (" . $str['string'] . ")Tj\n";
+            $curString = explode(' ', $str['string']);
+
+            foreach ($curString as $j => $string) {
+                if ((null !== $this->edgeX) && ($curX >= $this->edgeX)) {
+                    $stream .= "    0 -" . $fontSize . " Td\n";
+                    $curX = $this->startX;
+                }
+
+                $stream .= "    (" . $string . " )Tj\n";
+                if (null !== $curFont) {
+                    $curX += $curFont->getStringWidth($string, $fontSize);
+                }
+            }
         }
 
         $stream .= "ET\n";
