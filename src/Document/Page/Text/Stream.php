@@ -46,8 +46,8 @@ class Stream
      */
     protected $edgeX = null;
 
-   /**
-     * Text streams
+    /**
+    * Text streams
      * @var array
      */
     protected $streams = [];
@@ -143,6 +143,68 @@ class Stream
         }
 
         return $streams;
+    }
+
+    /**
+     * Get stream
+     *
+     * @param  array $fontReferences
+     * @return string
+     */
+    public function getStream(array $fontReferences)
+    {
+        $x = $this->startX;
+        $y = $this->startY;
+
+        $fontReference = null;
+        $fontSize      = null;
+        foreach ($this->styles as $style) {
+            if ((null === $fontReference) && !empty($style['font']) && isset($fontReferences[$style['font']])) {
+                $fontReference = $fontReferences[$style['font']];
+            }
+            if ((null === $fontSize) && !empty($style['size'])) {
+                $fontSize = $style['size'];
+            }
+        }
+
+        $stream = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$x} {$y} Tm\n    0 Tc 0 Tw 0 Tr\n";
+
+        foreach ($this->streams as $i => $str) {
+            if (isset($this->styles[$i]) && !empty($this->styles[$i]['font']) && isset($fontReferences[$this->styles[$i]['font']])) {
+                $fRef    = $fontReferences[$this->styles[$i]['font']];
+                $fSize   = (!empty($this->styles[$i]['size'])) ? $this->styles[$i]['size'] : $fontSize;
+                //$stream .= "    {$fRef} {$fSize} Tf\n";
+            }
+            if (isset($this->styles[$i]) && !empty($this->styles[$i]['color'])) {
+                $stream .= $this->getColorStream($this->styles[$i]['color']);
+            }
+            $stream .= "    (" . $str['string'] . ")Tj\n";
+        }
+
+        $stream .= "ET\n";
+
+        return $stream;
+    }
+
+    /**
+     * Get the partial color stream
+     *
+     * @param  Color\ColorInterface $color
+     * @return string
+     */
+    public function getColorStream(Color\ColorInterface $color)
+    {
+        $stream = '';
+
+        if ($color instanceof Color\Rgb) {
+            $stream .= '    ' . $color . " rg\n";
+        } else if ($color instanceof Color\Cmyk) {
+            $stream .= '    ' . $color . " k\n";
+        } else if ($color instanceof Color\Gray) {
+            $stream .= '    ' . $color . " g\n";
+        }
+
+        return $stream;
     }
 
 }

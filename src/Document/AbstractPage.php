@@ -131,6 +131,12 @@ abstract class AbstractPage implements PageInterface
     protected $text = [];
 
     /**
+     * Text streams array
+     * @var array
+     */
+    protected $textStreams = [];
+
+    /**
      * Annotations array
      * @var array
      */
@@ -235,6 +241,16 @@ abstract class AbstractPage implements PageInterface
     }
 
     /**
+     * Get text stream objects
+     *
+     * @return array
+     */
+    public function getTextStreams()
+    {
+        return $this->textStreams;
+    }
+
+    /**
      * Get annotation objects
      *
      * @return array
@@ -282,6 +298,16 @@ abstract class AbstractPage implements PageInterface
     public function hasText()
     {
         return (count($this->text) > 0);
+    }
+
+    /**
+     * Determine if the page has text stream objects
+     *
+     * @return boolean
+     */
+    public function hasTextStreams()
+    {
+        return (count($this->textStreams) > 0);
     }
 
     /**
@@ -344,6 +370,14 @@ abstract class AbstractPage implements PageInterface
      * @return Page
      */
     abstract public function addText(Page\Text $text, $font, $x = 0, $y = 0);
+
+    /**
+     * Add text stream to the PDF page
+     *
+     * @param  Page\Text\Stream $textStream
+     * @return Page
+     */
+    abstract public function addTextStream(Page\Text\Stream $textStream);
 
     /**
      * Add an annotation to the PDF page

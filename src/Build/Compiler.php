@@ -127,6 +127,10 @@ class Compiler extends AbstractCompiler
             if ($page->hasText()) {
                 $this->prepareText($page->getText(), $pageObject);
             }
+            // Prepare text objects
+            if ($page->hasTextStreams()) {
+                $this->prepareTextStreams($page->getTextStreams(), $pageObject);
+            }
             // Prepare field objects
             if ($page->hasFields()) {
                 $this->prepareFields($page->getFields(), $pageObject);
@@ -347,15 +351,31 @@ class Compiler extends AbstractCompiler
                         $textString->getStream($this->fontReferences[$txt['font']], $string['x'], $string['y'])
                     );
                 }
-            // Text stream
-            } else if ($txt['text']->hasTextStream()) {
-
             // Else, just append the text stream
             } else {
                 $contentObject->appendStream(
                     $txt['text']->getStream($this->fontReferences[$txt['font']], $coordinates['x'], $coordinates['y'])
                 );
             }
+        }
+    }
+
+    /**
+     * Prepare the text streams objects
+     *
+     * @param  array $textStreams
+     * @param  PdfObject\PageObject $pageObject
+     * @throws Exception
+     * @return void
+     */
+    protected function prepareTextStreams(array $textStreams, PdfObject\PageObject $pageObject)
+    {
+        $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
+        $this->objects[$contentObject->getIndex()] = $contentObject;
+        $pageObject->addContentIndex($contentObject->getIndex());
+
+        foreach ($textStreams as $txt) {
+            $contentObject->appendStream($txt->getStream($this->fontReferences));
         }
     }
 

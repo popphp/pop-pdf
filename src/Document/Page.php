@@ -117,6 +117,18 @@ class Page extends AbstractPage
     }
 
     /**
+     * Add text to the PDF page
+     *
+     * @param  Page\Text\Stream $textStream
+     * @return Page
+     */
+    public function addTextStream(Page\Text\Stream $textStream)
+    {
+        $this->textStreams[] = $textStream;
+        return $this;
+    }
+
+    /**
      * Add an annotation to the PDF page
      *
      * @param  Annotation\AbstractAnnotation $annotation
