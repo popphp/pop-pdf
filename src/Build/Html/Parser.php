@@ -602,6 +602,7 @@ class Parser
             $this->page->getWidth() - $this->pageMargins['right'] - $this->x :
             $this->page->getWidth() - $this->pageMargins['right'] - $this->pageMargins['left'];
 
+        // Image node
         if ($child->getNodeName() == 'img') {
             $image  = Document\Page\Image::createImageFromFile($this->fileDir . '/' . $child->getAttribute('src'));
             $width  = null;
@@ -672,8 +673,32 @@ class Parser
                 $currentY -= $styles['lineHeight'];
                 $this->y  += $styles['lineHeight'];
             }
-
+        // Text node
         } else {
+            $textStream = new Document\Page\Text\Stream($currentX, $currentY, $wrapLength);
+            $textStream->setCurrentStyle(
+                $styles['currentFont'],
+                $styles['fontSize'],
+                new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2])
+            );
+            $streamY = $styles['lineHeight'] ?? null;
+            $textStream->addText($child->getNodeValue(), $streamY);
+
+            if ($child->hasChildNodes()) {
+                foreach ($child->getChildNodes() as $grandChild) {
+                    $gcStyles = $this->prepareNodeStyles($grandChild->getNodeName(), $grandChild->getAttributes(), $styles);
+                    $textStream->setCurrentStyle(
+                        $gcStyles['currentFont'],
+                        $gcStyles['fontSize'],
+                        new Document\Page\Color\Rgb($gcStyles['color'][0], $gcStyles['color'][1], $gcStyles['color'][2])
+                    );
+                    $streamY = $gcStyles['lineHeight'] ?? null;
+                    $textStream->addText($grandChild->getNodeValue(), $streamY);
+                }
+            }
+
+            $this->page->addTextStream($textStream);
+            /*
             $string = $child->getNodeValue();
             $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
             if ($stringWidth > $wrapLength) {
@@ -724,6 +749,7 @@ class Parser
 
             $this->resetX();
             $this->goToNextLine($styles);
+            */
         }
     }
 
@@ -877,21 +903,22 @@ class Parser
      *
      * @param  string $name
      * @param  array  $attribs
+     * @param  array  $currentStyles
      * @throws Exception
      * @return array
      */
-    protected function prepareNodeStyles($name, array $attribs = [])
+    protected function prepareNodeStyles($name, array $attribs = [], $currentStyles = [])
     {
         $styles = [
             'currentFont'   => null,
-            'fontFamily'    => $this->defaultStyles['font-family'],
-            'fontSize'      => $this->defaultStyles['font-size'],
-            'fontWeight'    => $this->defaultStyles['font-weight'],
+            'fontFamily'    => $currentStyles['fontFamily'] ?? $this->defaultStyles['font-family'],
+            'fontSize'      => $currentStyles['fontSize'] ?? $this->defaultStyles['font-size'],
+            'fontWeight'    => $currentStyles['fontWeight'] ?? $this->defaultStyles['font-weight'],
             'float'         => null,
             'width'         => null,
             'height'        => null,
-            'color'         => $this->defaultStyles['color'],
-            'lineHeight'    => $this->defaultStyles['line-height'],
+            'color'         => $currentStyles['color'] ?? $this->defaultStyles['color'],
+            'lineHeight'    => $currentStyles['lineHeight'] ?? $this->defaultStyles['line-height'],
             'marginTop'     => 0,
             'paddingTop'    => 0,
             'marginRight'   => 0,
@@ -902,7 +929,7 @@ class Parser
             'paddingLeft'   => 0
         ];
 
-        if (($name == 'h1') || ($name == 'h2') || ($name == 'h3') || ($name == 'h4') || ($name == 'h5') || ($name == 'h6')) {
+        if (in_array($name, ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])) {
             switch ($name) {
                 case 'h1':
                     $styles['fontSize']   = round($styles['fontSize'] * 2.67); // 32
@@ -935,7 +962,7 @@ class Parser
                 $styles['fontFamily'] = str_replace('"', '', $this->css[$name]['font-family']);
             }
             if ($this->css[$name]->hasProperty('font-size')) {
-                $styles['fontSize'] = (int)$this->css[$name]['font-size'];
+                //$styles['fontSize'] = (int)$this->css[$name]['font-size'];
             }
             if ($this->css[$name]->hasProperty('font-weight')) {
                 $styles['fontWeight'] = $this->css[$name]['font-weight'];

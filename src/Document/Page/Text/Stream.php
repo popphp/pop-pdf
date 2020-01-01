@@ -47,6 +47,12 @@ class Stream
     protected $edgeX = null;
 
     /**
+     * Edge Y boundary
+     * @var int
+     */
+    protected $edgeY = null;
+
+    /**
     * Text streams
      * @var array
      */
@@ -59,6 +65,12 @@ class Stream
     protected $styles = [];
 
     /**
+     * Orphan index
+     * @var int
+     */
+    protected $orphanIndex = null;
+
+    /**
      * Constructor
      *
      * Instantiate a PDF text stream object.
@@ -66,27 +78,67 @@ class Stream
      * @param int $startX
      * @param int $startY
      * @param int $edgeX
+     * @param int $edgeY
      */
-    public function __construct($startX, $startY, $edgeX)
+    public function __construct($startX, $startY, $edgeX, $edgeY = null)
     {
         $this->startX = $startX;
         $this->startY = $startY;
         $this->edgeX  = $edgeX;
+        $this->edgeY  = $edgeY;
+    }
+
+    /**
+     * Get start X
+     *
+     * @return int
+     */
+    public function getStartX()
+    {
+        return $this->startX;
+    }
+
+    /**
+     * Get start Y
+     *
+     * @return int
+     */
+    public function getStartY()
+    {
+        return $this->startY;
+    }
+
+    /**
+     * Get edge X boundary
+     *
+     * @return int
+     */
+    public function getEdgeX()
+    {
+        return $this->edgeX;
+    }
+
+    /**
+     * Get edge Y boundary
+     *
+     * @return int
+     */
+    public function getEdgeY()
+    {
+        return $this->edgeY;
     }
 
     /**
      * Add text to the stream
      *
      * @param string $string
-     * @param int    $x
      * @param int    $y
      * @return Stream
      */
-    public function addText($string, $x = null, $y = null)
+    public function addText($string, $y = null)
     {
         $this->streams[] = [
             'string' => $string,
-            'x'      => $x,
             'y'      => $y
         ];
 
@@ -161,6 +213,7 @@ class Stream
         $fontSize      = null;
         $curFont       = null;
         $curX          = $startX;
+        $curY          = $startY;
 
         foreach ($this->styles as $style) {
             if ((null === $fontReference) && !empty($style['font']) && isset($fontReferences[$style['font']])) {
@@ -190,20 +243,59 @@ class Stream
 
             foreach ($curString as $j => $string) {
                 if ((null !== $this->edgeX) && ($curX >= $this->edgeX)) {
-                    $stream .= "    0 -" . $fontSize . " Td\n";
-                    $curX = $this->startX;
+                    $nextY   = (null !== $str['y']) ? $str['y'] : $fontSize;
+                    $stream .= "    0 -" . $nextY . " Td\n";
+                    $curX    = $this->startX;
+                    $curY   -= $nextY;
+                    if ((null !== $this->edgeY) && ($curY <= $this->edgeY) && ($curX == $this->startX)) {
+                        break;
+                    }
                 }
 
-                $stream .= "    (" . $string . " )Tj\n";
+                if (!isset($curString[$j + 1])) {
+                    if (isset($this->streams[$i + 1]) &&
+                        preg_match('/[a-zA-Z0-9]/', substr($this->streams[$i + 1]['string'], 0, 1))) {
+                        $string .= ' ';
+                    }
+                } else {
+                    $string .= ' ';
+                }
+
+                $stream .= "    (" . $string . ")Tj\n";
                 if (null !== $curFont) {
                     $curX += $curFont->getStringWidth($string, $fontSize);
                 }
+            }
+            if ((null !== $this->edgeY) && ($curY <= $this->edgeY) && ($curX == $this->startX)) {
+                $this->orphanIndex = $i;
+                break;
             }
         }
 
         $stream .= "ET\n";
 
         return $stream;
+    }
+
+    /**
+     * Resume stream from orphaned index
+     *
+     * @param  array $fonts
+     * @param  array $fontReferences
+     * @throws Exception
+     * @return string
+     */
+    public function resumeStream(array $fonts, array $fontReferences)
+    {
+        if (null === $this->orphanIndex) {
+            throw new Exception('Error: This text stream object does not have an orphan index.');
+        }
+        if (!isset($this->streams[$this->orphanIndex])) {
+            throw new Exception('Error: The orphan index (' . $this->orphanIndex . ') does not exist.');
+        }
+
+        $this->streams = array_slice($this->streams, $this->orphanIndex, null, true);
+        return $this->getStream($fonts, $fontReferences);
     }
 
     /**
@@ -225,6 +317,16 @@ class Stream
         }
 
         return $stream;
+    }
+
+    /**
+     * Check if the text stream has orphan streams due to the page bottom
+     *
+     * @return boolean
+     */
+    public function hasOrphanIndex()
+    {
+        return (null !== $this->orphanIndex);
     }
 
 }
