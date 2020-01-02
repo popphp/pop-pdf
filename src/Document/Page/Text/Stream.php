@@ -51,6 +51,17 @@ class Stream
      * @var int
      */
     protected $edgeY = null;
+    /**
+     * Current X
+     * @var int
+     */
+    protected $currentX = null;
+
+    /**
+     * Current Y
+     * @var int
+     */
+    protected $currentY = null;
 
     /**
     * Text streams
@@ -126,6 +137,26 @@ class Stream
     public function getEdgeY()
     {
         return $this->edgeY;
+    }
+
+    /**
+     * Get current X
+     *
+     * @return int
+     */
+    public function getCurrentX()
+    {
+        return $this->currentX;
+    }
+
+    /**
+     * Get current Y
+     *
+     * @return int
+     */
+    public function getCurrentY()
+    {
+        return $this->currentY;
     }
 
     /**
@@ -206,14 +237,12 @@ class Stream
      */
     public function getStream(array $fonts, array $fontReferences)
     {
-        $startX        = $this->startX;
-        $startY        = $this->startY;
-        $fontName      = null;
-        $fontReference = null;
-        $fontSize      = null;
-        $curFont       = null;
-        $curX          = $startX;
-        $curY          = $startY;
+        $this->currentX = $this->startX;
+        $this->currentY = $this->startY;
+        $fontName       = null;
+        $fontReference  = null;
+        $fontSize       = null;
+        $curFont        = null;
 
         foreach ($this->styles as $style) {
             if ((null === $fontReference) && !empty($style['font']) && isset($fontReferences[$style['font']])) {
@@ -226,7 +255,7 @@ class Stream
             }
         }
 
-        $stream  = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$startX} {$startY} Tm\n    0 Tc 0 Tw 0 Tr\n";
+        $stream  = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$this->startX} {$this->startY} Tm\n    0 Tc 0 Tw 0 Tr\n";
 
         foreach ($this->streams as $i => $str) {
             if (isset($this->styles[$i]) && !empty($this->styles[$i]['font']) && isset($fontReferences[$this->styles[$i]['font']])) {
@@ -242,12 +271,12 @@ class Stream
             $curString = explode(' ', $str['string']);
 
             foreach ($curString as $j => $string) {
-                if ((null !== $this->edgeX) && ($curX >= $this->edgeX)) {
+                if ((null !== $this->edgeX) && ($this->currentX >= $this->edgeX)) {
                     $nextY   = (null !== $str['y']) ? $str['y'] : $fontSize;
                     $stream .= "    0 -" . $nextY . " Td\n";
-                    $curX    = $this->startX;
-                    $curY   -= $nextY;
-                    if ((null !== $this->edgeY) && ($curY <= $this->edgeY) && ($curX == $this->startX)) {
+                    $this->currentX    = $this->startX;
+                    $this->currentY   -= $nextY;
+                    if ((null !== $this->edgeY) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
                         break;
                     }
                 }
@@ -263,10 +292,10 @@ class Stream
 
                 $stream .= "    (" . $string . ")Tj\n";
                 if (null !== $curFont) {
-                    $curX += $curFont->getStringWidth($string, $fontSize);
+                    $this->currentX += $curFont->getStringWidth($string, $fontSize);
                 }
             }
-            if ((null !== $this->edgeY) && ($curY <= $this->edgeY) && ($curX == $this->startX)) {
+            if ((null !== $this->edgeY) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
                 $this->orphanIndex = $i;
                 break;
             }

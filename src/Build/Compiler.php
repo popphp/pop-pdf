@@ -91,9 +91,11 @@ class Compiler extends AbstractCompiler
      * @param  Document\AbstractDocument $document
      * @return void
      */
-    public function finalize(Document\AbstractDocument $document)
+    public function finalize(Document\AbstractDocument $document = null)
     {
-        $this->setDocument($document);
+        if (null !== $document) {
+            $this->setDocument($document);
+        }
         $this->prepareFonts();
 
         $pageObjects = [];
@@ -186,7 +188,7 @@ class Compiler extends AbstractCompiler
      *
      * @return void
      */
-    protected function prepareFonts()
+    public function prepareFonts()
     {
         foreach ($this->fonts as $font) {
             if ($font instanceof \Pop\Pdf\Document\Font) {

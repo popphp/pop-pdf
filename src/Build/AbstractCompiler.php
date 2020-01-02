@@ -141,6 +141,26 @@ abstract class AbstractCompiler implements CompilerInterface
     }
 
     /**
+     * Get the fonts
+     *
+     * @return array
+     */
+    public function getFonts()
+    {
+        return $this->fonts;
+    }
+
+    /**
+     * Get the font references
+     *
+     * @return array
+     */
+    public function getFontReferences()
+    {
+        return $this->fontReferences;
+    }
+
+    /**
      * Return the last object index.
      *
      * @return int
@@ -275,14 +295,14 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  Document\AbstractDocument $document
      * @return void
      */
-    abstract public function finalize(Document\AbstractDocument $document);
+    abstract public function finalize(Document\AbstractDocument $document = null);
 
     /**
      * Prepare the font objects
      *
      * @return void
      */
-    abstract protected function prepareFonts();
+    abstract public function prepareFonts();
 
     /**
      * Prepare the image objects

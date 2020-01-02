@@ -15,6 +15,7 @@ namespace Pop\Pdf\Build\Html;
 
 use Pop\Css;
 use Pop\Dom\Child;
+use Pop\Pdf\Build\Compiler;
 use Pop\Pdf\Document;
 
 /**
@@ -675,7 +676,7 @@ class Parser
             }
         // Text node
         } else {
-            $textStream = new Document\Page\Text\Stream($currentX, $currentY, $wrapLength);
+            $textStream = new Document\Page\Text\Stream($currentX, $currentY, $wrapLength, $this->pageMargins['bottom']);
             $textStream->setCurrentStyle(
                 $styles['currentFont'],
                 $styles['fontSize'],
@@ -697,7 +698,18 @@ class Parser
                 }
             }
 
+            //$compiler = new Compiler();
+            //$compiler->setDocument($this->document);
+            //$compiler->prepareFonts();
+
+            //$textStream->getStream($compiler->getFonts(), $compiler->getFontReferences());
+
             $this->page->addTextStream($textStream);
+
+            //if ($textStream->hasOrphanIndex()) {
+            //    $currentY = $this->newPage();
+            //    $this->page->addTextStream($textStream);
+            //}
             /*
             $string = $child->getNodeValue();
             $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
@@ -1231,7 +1243,6 @@ class Parser
     protected function getCurrentY()
     {
         if (!($this->document->hasPages())) {
-
             $this->page = (is_array($this->pageSize)) ?
                 new Document\Page($this->pageSize['width'], $this->pageSize['height']) : new Document\Page($this->pageSize);
             $this->document->addPage($this->page);

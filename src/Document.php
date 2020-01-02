@@ -104,16 +104,23 @@ class Document extends AbstractDocument
     /**
      * Copy and return a page of the PDF, adding it to the PDF document
      *
-     * @param  int $p
+     * @param  int     $p
+     * @param  boolean $preserveContent
      * @throws Exception
      * @return Page
      */
-    public function copyPage($p)
+    public function copyPage($p, $preserveContent = true)
     {
         if (!isset($this->pages[$p - 1])) {
             throw new Exception("Error: That page (" . $p . ") does not exist.");
         }
-        $page = $this->pages[$p - 1];
+
+        $page = clone $this->pages[$p - 1];
+
+        if (!$preserveContent) {
+            $page->clearContent();
+        }
+
         $this->addPage($page);
         return $page;
     }

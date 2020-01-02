@@ -341,6 +341,23 @@ abstract class AbstractPage implements PageInterface
     }
 
     /**
+     * Clear page content
+     *
+     * @return AbstractPage
+     */
+    public function clearContent()
+    {
+        $this->images      = [];
+        $this->text        = [];
+        $this->textStreams = [];
+        $this->annotations = [];
+        $this->paths       = [];
+        $this->fields      = [];
+
+        return $this;
+    }
+
+    /**
      * Constructor
      *
      * Instantiate a PDF page.
