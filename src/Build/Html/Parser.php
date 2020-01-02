@@ -676,6 +676,7 @@ class Parser
             }
         // Text node
         } else {
+            /* New text stream code */
             $textStream = new Document\Page\Text\Stream($currentX, $currentY, $wrapLength, $this->pageMargins['bottom']);
             $textStream->setCurrentStyle(
                 $styles['currentFont'],
@@ -698,19 +699,23 @@ class Parser
                 }
             }
 
-            //$compiler = new Compiler();
-            //$compiler->setDocument($this->document);
-            //$compiler->prepareFonts();
-
-            //$textStream->getStream($compiler->getFonts(), $compiler->getFontReferences());
 
             $this->page->addTextStream($textStream);
 
-            //if ($textStream->hasOrphanIndex()) {
-            //    $currentY = $this->newPage();
-            //    $this->page->addTextStream($textStream);
-            //}
-            /*
+            $orphanStream = clone $textStream;
+
+            while ($orphanStream->hasOrphans($this->document->getFonts())) {
+                $currentY = $this->newPage();
+                $orphanStream = $orphanStream->getOrphanStream();
+                $orphanStream->setCurrentX($currentX);
+                $orphanStream->setCurrentY($currentY);
+                $this->page->addTextStream($orphanStream);
+
+                $orphanStream = clone $orphanStream;
+            }
+
+/*
+            // Old code
             $string = $child->getNodeValue();
             $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
             if ($stringWidth > $wrapLength) {
@@ -761,7 +766,7 @@ class Parser
 
             $this->resetX();
             $this->goToNextLine($styles);
-            */
+*/
         }
     }
 

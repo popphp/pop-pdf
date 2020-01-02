@@ -77,9 +77,9 @@ class Stream
 
     /**
      * Orphan index
-     * @var int
+     * @var array
      */
-    protected $orphanIndex = null;
+    protected $orphanIndex = [];
 
     /**
      * Constructor
@@ -97,6 +97,78 @@ class Stream
         $this->startY = $startY;
         $this->edgeX  = $edgeX;
         $this->edgeY  = $edgeY;
+    }
+
+    /**
+     * Set start X
+     *
+     * @param  int $startX
+     * @return Stream
+     */
+    public function setStartX($startX)
+    {
+        $this->startX = $startX;
+        return $this;
+    }
+
+    /**
+     * Set start Y
+     *
+     * @param  int $startY
+     * @return Stream
+     */
+    public function setStartY($startY)
+    {
+        $this->startY = $startY;
+        return $this;
+    }
+
+    /**
+     * Set edge X boundary
+     *
+     * @param  int $edgeX
+     * @return Stream
+     */
+    public function setEdgeX($edgeX)
+    {
+        $this->edgeX = $edgeX;
+        return $this;
+    }
+
+    /**
+     * Set edge Y boundary
+     *
+     * @param  int $edgeY
+     * @return Stream
+     */
+    public function setEdgeY($edgeY)
+    {
+        $this->edgeY = $edgeY;
+        return $this;
+    }
+
+    /**
+     * Set current X
+     *
+     * @param  int $currentX
+     * @return Stream
+     */
+    public function setCurrentX($currentX)
+    {
+        $this->currentX = $currentX;
+        return $this;
+    }
+
+    /**
+     * Set current Y
+     *
+     * @param  int $currentY
+     * @return Stream
+     */
+    public function setCurrentY($currentY)
+    {
+        $this->currentY = $currentY;
+        return $this;
     }
 
     /**
@@ -272,8 +344,8 @@ class Stream
 
             foreach ($curString as $j => $string) {
                 if ((null !== $this->edgeX) && ($this->currentX >= $this->edgeX)) {
-                    $nextY   = (null !== $str['y']) ? $str['y'] : $fontSize;
-                    $stream .= "    0 -" . $nextY . " Td\n";
+                    $nextY             = (null !== $str['y']) ? $str['y'] : $fontSize;
+                    $stream           .= "    0 -" . $nextY . " Td\n";
                     $this->currentX    = $this->startX;
                     $this->currentY   -= $nextY;
                     if ((null !== $this->edgeY) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
@@ -296,7 +368,7 @@ class Stream
                 }
             }
             if ((null !== $this->edgeY) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
-                $this->orphanIndex = $i;
+                $this->orphanIndex = (isset($j)) ? [$i, $j] : [$i, 0];
                 break;
             }
         }
@@ -309,22 +381,85 @@ class Stream
     /**
      * Resume stream from orphaned index
      *
-     * @param  array $fonts
-     * @param  array $fontReferences
-     * @throws Exception
-     * @return string
+     * @return Stream
      */
-    public function resumeStream(array $fonts, array $fontReferences)
+    public function getOrphanStream()
     {
-        if (null === $this->orphanIndex) {
-            throw new Exception('Error: This text stream object does not have an orphan index.');
-        }
-        if (!isset($this->streams[$this->orphanIndex])) {
-            throw new Exception('Error: The orphan index (' . $this->orphanIndex . ') does not exist.');
+        $offset        = array_search($this->orphanIndex[0], array_keys($this->streams));
+        $this->streams = array_slice($this->streams, $offset, null, true);
+
+        if ($this->orphanIndex[1] > 0) {
+            $strings = array_slice(explode(' ', $this->streams[$this->orphanIndex[0]]['string']), $this->orphanIndex[1], null, true);
+            $this->streams[$this->orphanIndex[0]]['string'] = implode(' ', $strings);
         }
 
-        $this->streams = array_slice($this->streams, $this->orphanIndex, null, true);
-        return $this->getStream($fonts, $fontReferences);
+        $this->orphanIndex = [];
+        return $this;
+    }
+
+    /**
+     * Prepare stream
+     *
+     * @param  array $fonts
+     * @return boolean
+     */
+    public function hasOrphans(array $fonts)
+    {
+        $this->currentX = $this->startX;
+        $this->currentY = $this->startY;
+        $fontName       = null;
+        $fontSize       = null;
+        $curFont        = null;
+
+        foreach ($this->styles as $style) {
+            if (!empty($style['font'])) {
+                $fontName = $style['font'];
+                $curFont  = $fonts[$fontName] ?? null;
+            }
+            if ((null === $fontSize) && !empty($style['size'])) {
+                $fontSize = $style['size'];
+            }
+        }
+
+        foreach ($this->streams as $i => $str) {
+            if (isset($this->styles[$i]) && !empty($this->styles[$i]['font'])) {
+                $fontName = $this->styles[$i]['font'];
+                $fontSize = (!empty($this->styles[$i]['size'])) ? $this->styles[$i]['size'] : $fontSize;
+                $curFont  = $fonts[$fontName] ?? null;
+            }
+
+            $curString = explode(' ', $str['string']);
+
+            foreach ($curString as $j => $string) {
+                if ((null !== $this->edgeX) && ($this->currentX >= $this->edgeX)) {
+                    $nextY             = (null !== $str['y']) ? $str['y'] : $fontSize;
+                    $this->currentX    = $this->startX;
+                    $this->currentY   -= $nextY;
+                    if ((null !== $this->edgeY) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
+                        break;
+                    }
+                }
+
+                if (!isset($curString[$j + 1])) {
+                    if (isset($this->streams[$i + 1]) &&
+                        preg_match('/[a-zA-Z0-9]/', substr($this->streams[$i + 1]['string'], 0, 1))) {
+                        $string .= ' ';
+                    }
+                } else {
+                    $string .= ' ';
+                }
+
+                if (null !== $curFont) {
+                    $this->currentX += $curFont->getStringWidth($string, $fontSize);
+                }
+            }
+            if ((null !== $this->edgeY) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
+                $this->orphanIndex = (isset($j)) ? [$i, $j] : [$i, 0];
+                break;
+            }
+        }
+
+        return (!empty($this->orphanIndex));
     }
 
     /**
