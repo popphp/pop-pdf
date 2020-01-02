@@ -109,6 +109,12 @@ class Parser
     protected $textWrap = null;
 
     /**
+     * Y-override
+     * @var int
+     */
+    protected $yOverride = null;
+
+    /**
      * Constructor
      *
      * Instantiate the HTML parser object
@@ -595,10 +601,16 @@ class Parser
      */
     protected function addNodeToDocument(Child $child)
     {
-        $styles     = $this->prepareNodeStyles($child->getNodeName(), $child->getAttributes());
-        $currentX   = $this->getCurrentX();
-        $currentY   = $this->getCurrentY();
-        $fontObject = $this->document->getFont($styles['currentFont']);
+        $styles   = $this->prepareNodeStyles($child->getNodeName(), $child->getAttributes());
+        $currentX = $this->getCurrentX();
+
+        if (null !== $this->yOverride) {
+            $currentY        = $this->yOverride;
+            $this->yOverride = null;
+        } else {
+            $currentY = $this->getCurrentY();
+        }
+
         $wrapLength = ($this->x > $this->pageMargins['left']) ?
             $this->page->getWidth() - $this->pageMargins['right'] - $this->x :
             $this->page->getWidth() - $this->pageMargins['right'] - $this->pageMargins['left'];
@@ -676,8 +688,27 @@ class Parser
             }
         // Text node
         } else {
-            /* New text stream code */
-            $textStream = new Document\Page\Text\Stream($currentX, $currentY, $wrapLength, $this->pageMargins['bottom']);
+            if (null !== $this->textWrap) {
+                $box = $this->textWrap->getBox();
+                if ($this->textWrap->isRight()) {
+                    $startX = $box['right'];
+                    $startY = $box['top'] - $styles['fontSize'];
+                    $edgeX  = $wrapLength;
+                    $edgeY  = $box['bottom'];
+                } else {
+                    $startX = $currentX;
+                    $startY = $box['top'] - $styles['fontSize'];
+                    $edgeX  = $box['left'] - 40;
+                    $edgeY  = $box['bottom'];
+                }
+            } else {
+                $startX = $currentX;
+                $startY = $currentY;
+                $edgeX  = $wrapLength;
+                $edgeY  = $this->pageMargins['bottom'];
+            }
+
+            $textStream = new Document\Page\Text\Stream($startX, $startY, $edgeX, $edgeY);
             $textStream->setCurrentStyle(
                 $styles['currentFont'],
                 $styles['fontSize'],
@@ -699,74 +730,35 @@ class Parser
                 }
             }
 
-
             $this->page->addTextStream($textStream);
 
             $orphanStream = clone $textStream;
+            $hasOrphans   = false;
 
             while ($orphanStream->hasOrphans($this->document->getFonts())) {
-                $currentY = $this->newPage();
                 $orphanStream = $orphanStream->getOrphanStream();
+                if ($orphanStream->getCurrentY() <= $this->pageMargins['bottom']) {
+                    $currentY = $this->newPage();
+                    $orphanStream->setCurrentY($currentY);
+                } else {
+                    $orphanStream->setStartX($this->pageMargins['left']);
+                    $orphanStream->setEdgeX($wrapLength);
+                    $orphanStream->setEdgeY($this->pageMargins['bottom']);
+                }
+
                 $orphanStream->setCurrentX($currentX);
-                $orphanStream->setCurrentY($currentY);
                 $this->page->addTextStream($orphanStream);
 
                 $orphanStream = clone $orphanStream;
+                $hasOrphans = true;
             }
 
-/*
-            // Old code
-            $string = $child->getNodeValue();
-            $stringWidth = $fontObject->getStringWidth($string, $styles['fontSize']);
-            if ($stringWidth > $wrapLength) {
-                if (null !== $this->textWrap) {
-                    $text = new Document\Page\Text($string, $styles['fontSize']);
-                    $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
-                    if (null !== $this->textWrap) {
-                        $text->setWrap($this->textWrap);
-                        $this->textWrap = null;
-                    }
-                    $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
-                } else {
-                    $strings = $this->getStringLines($string, $styles['fontSize'], $wrapLength, $fontObject);
-                    foreach ($strings as $i => $string) {
-                        $text = new Document\Page\Text($string, $styles['fontSize']);
-                        $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
-                        $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
-                        if ($currentY <= $this->pageMargins['bottom']) {
-                            $currentY = $this->newPage();
-                        } else {
-                            $currentY -= $styles['lineHeight'];
-                            $this->y  += $styles['lineHeight'];
-                        }
-                    }
-                }
+            if ($hasOrphans) {
+                $this->yOverride = $orphanStream->getCurrentY();
             } else {
-                $text = new Document\Page\Text($string, $styles['fontSize']);
-                $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
-                if (null !== $this->textWrap) {
-                    $text->setWrap($this->textWrap);
-                    $this->textWrap = null;
-                }
-                $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                $this->yOverride = null;
+                $this->y  += (isset($styles['marginBottom'])) ? $styles['marginBottom'] : 25;
             }
-
-            if ($child->hasChildNodes()) {
-                $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
-                foreach ($child->getChildNodes() as $grandChild) {
-                    if ((substr($grandChild->getNodeValue(), 0, 1) != '.') && (substr($grandChild->getNodeValue(), 0, 1) != ',') &&
-                        (substr($grandChild->getNodeValue(), 0, 1) != ':') && (substr($grandChild->getNodeValue(), 0, 1) != ';') &&
-                        (substr($grandChild->getNodeValue(), 0, 1) != '!') && (substr($grandChild->getNodeValue(), 0, 1) != '?') &&
-                        (substr($grandChild->getNodeValue(), 0, 1) != '"') && (substr($grandChild->getNodeValue(), 0, 1) != "'")) {
-                        $this->x += $fontObject->getStringWidth(' ', $styles['fontSize']);
-                    }
-                    $this->addNodeStreamToDocument($grandChild);
-                }
-            }
-
-            $this->resetX();
-            $this->goToNextLine($styles);
-*/
         }
     }
 
@@ -1283,9 +1275,8 @@ class Parser
         }
 
         $this->y  = 0;
-        $currentY = $this->page->getHeight() - $this->pageMargins['top'];
 
-        return $currentY;
+        return $this->page->getHeight() - $this->pageMargins['top'];
     }
 
     /**

@@ -309,8 +309,12 @@ class Stream
      */
     public function getStream(array $fonts, array $fontReferences)
     {
-        $this->currentX = $this->startX;
-        $this->currentY = $this->startY;
+        if (null === $this->currentX) {
+            $this->currentX = $this->startX;
+        }
+        if (null === $this->currentY) {
+            $this->currentY = $this->startY;
+        }
         $fontName       = null;
         $fontReference  = null;
         $fontSize       = null;
@@ -327,7 +331,7 @@ class Stream
             }
         }
 
-        $stream  = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$this->startX} {$this->startY} Tm\n    0 Tc 0 Tw 0 Tr\n";
+        $stream  = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$this->currentX} {$this->currentY} Tm\n    0 Tc 0 Tw 0 Tr\n";
 
         foreach ($this->streams as $i => $str) {
             if (isset($this->styles[$i]) && !empty($this->styles[$i]['font']) && isset($fontReferences[$this->styles[$i]['font']])) {
