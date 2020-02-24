@@ -41,6 +41,12 @@ class Parser
     protected $height = 0;
 
     /**
+     * Image resize value
+     * @var array
+     */
+    protected $resize = null;
+
+    /**
      * Image mime
      * @var string
      */
@@ -239,15 +245,12 @@ class Parser
 
         $imgSize = getimagesize($this->fullpath);
 
-        // Set image properties.
-        if ((null !== $resize) && ($preserveResolution)) {
-            $this->width  = $resize['width'];
-            $this->height = $resize['height'];
-        } else {
-            $this->width  = $imgSize[0];
-            $this->height = $imgSize[1];
+        if (null !== $resize) {
+            $this->resize = $resize;
         }
 
+        $this->width    = $imgSize[0];
+        $this->height   = $imgSize[1];
         $this->channels = (isset($imgSize['channels'])) ? $imgSize['channels'] : null;
         $this->depth    = (isset($imgSize['bits'])) ? $imgSize['bits'] : null;
 
@@ -304,15 +307,12 @@ class Parser
             $this->resizeImage($resize);
         }
 
-        // Set image properties.
-        if ((null !== $resize) && ($preserveResolution)) {
-            $this->width  = $resize['width'];
-            $this->height = $resize['height'];
-        } else {
-            $this->width  = $imgSize[0];
-            $this->height = $imgSize[1];
+        if (null !== $resize) {
+            $this->resize = $resize;
         }
 
+        $this->width    = $imgSize[0];
+        $this->height   = $imgSize[1];
         $this->channels = (isset($imgSize['channels'])) ? $imgSize['channels'] : null;
         $this->depth    = (isset($imgSize['bits'])) ? $imgSize['bits'] : null;
 
@@ -397,7 +397,9 @@ class Parser
      */
     public function getStream()
     {
-        return "\n\nq\n\n{$this->width} 0 0 {$this->height} {$this->x} {$this->y} cm\n/I{$this->index} Do\n\nQ\n\n";
+        $width  = $this->resize['width'] ?? $this->width;
+        $height = $this->resize['height'] ?? $this->height;
+        return "\n\nq\n\n1 0 0 1 {$this->x} {$this->y} cm\n{$width} 0 0 {$height} 0 0 cm\n/I{$this->index} Do\n\nQ\n\n";
     }
 
     /**
