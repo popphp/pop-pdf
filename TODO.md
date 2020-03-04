@@ -1,4 +1,4 @@
 TO-DO
 =====
+- Add support for HTML tables
 - Improve/refactor extract text feature
-- Improve HTML feature, better wrapping, text streaming, tables

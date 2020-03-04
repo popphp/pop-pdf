@@ -617,10 +617,10 @@ class Parser
 
         // Image node
         if ($child->getNodeName() == 'img') {
-            $image  = Document\Page\Image::createImageFromFile($this->fileDir . '/' . $child->getAttribute('src'));
-            $width  = null;
+            $image = Document\Page\Image::createImageFromFile($this->fileDir . '/' . $child->getAttribute('src'));
+            $width = null;
             $height = null;
-            $align  = null;
+            $align = null;
 
             if ($child->hasAttribute('width')) {
                 $width = (strpos($child->getAttribute('width'), '%')) ?
@@ -654,17 +654,17 @@ class Parser
 
             if ($align == 'LEFT') {
                 $box = [
-                    'left'   => $currentX,
-                    'right'  => $currentX + $width + ($styles['marginRight'] ?? 0),
-                    'top'    => $currentY,
+                    'left' => $currentX,
+                    'right' => $currentX + $width + ($styles['marginRight'] ?? 0),
+                    'top' => $currentY,
                     'bottom' => $currentY - $height - ($styles['marginBottom'] ?? 0)
                 ];
                 $this->textWrap = new Document\Page\Text\Wrap('RIGHT', $this->pageMargins['left'], $this->page->getWidth() - $this->pageMargins['right'], $box);
             } else if ($align == 'RIGHT') {
                 $box = [
-                    'left'   => $this->page->getWidth() - $this->pageMargins['right'] - $width - ($styles['marginLeft'] ?? 0),
-                    'right'  => $this->page->getWidth() - $this->pageMargins['right'],
-                    'top'    => $currentY,
+                    'left' => $this->page->getWidth() - $this->pageMargins['right'] - $width - ($styles['marginLeft'] ?? 0),
+                    'right' => $this->page->getWidth() - $this->pageMargins['right'],
+                    'top' => $currentY,
                     'bottom' => $currentY - $height - ($styles['marginBottom'] ?? 0)
                 ];
                 $this->textWrap = new Document\Page\Text\Wrap('LEFT', $this->pageMargins['left'], $this->page->getWidth() - $this->pageMargins['right'], $box);
@@ -678,13 +678,54 @@ class Parser
                     $this->page->addImage($image, $currentX, $newY);
                 }
                 $currentY -= $styles['lineHeight'];
-                $this->y  += $styles['lineHeight'];
+                $this->y += $styles['lineHeight'];
             } else {
                 $currentY -= (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
-                $this->y  += (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
+                $this->y += (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
                 $this->page->addImage($image, $currentX, $currentY);
                 $currentY -= $styles['lineHeight'];
-                $this->y  += $styles['lineHeight'];
+                $this->y += $styles['lineHeight'];
+            }
+        // Table node
+        } else if ($child->getNodeName() == 'table') {
+            $tableWidth  = $this->page->getWidth() - $this->pageMargins['left'] - $this->pageMargins['right'];
+            $columnCount = 0;
+            $columnWidth = 0;
+            $rowHeight   = 25;
+            foreach ($child->getChildNodes() as $childNode) {
+                if (($childNode->getNodeName() == 'tr') && ($childNode->hasChildNodes())) {
+                    if ($columnCount == 0) {
+                        $columnCount = count($childNode->getChildNodes());
+                        $columnWidth = floor($tableWidth / $columnCount);
+                    }
+                    foreach ($childNode->getChildNodes() as $grandChild) {
+                        if ($grandChild->getNodeName() == 'th') {
+                            /*
+                            $x1 = $this->pageMargins['left'];
+                            $x2 = $tableWidth + $this->pageMargins['left'];
+                            $y  = $this->getCurrentY();
+                            $topPath = new Document\Page\Path();
+                            $topPath->drawLine($x1, $y, $x2, $y);
+                            $this->page->addPath($topPath);
+                            for ($i = 0; $i < $columnCount; $i++) {
+                                $path = new Document\Page\Path();
+                                $path->drawLine($x1 + ($i * $columnWidth), $y, $x1 + ($i * $columnWidth), $y - $rowHeight);
+                                $this->page->addPath($path);
+                            }
+                            $path = new Document\Page\Path();
+                            $path->drawLine($x2, $y, $x2, $y - $rowHeight);
+                            $this->page->addPath($path);
+
+                            $bottomPath = new Document\Page\Path();
+                            $bottomPath->drawLine($x1, $y - $rowHeight, $x2, $y - $rowHeight);
+                            $this->page->addPath($bottomPath);
+                            */
+                        } else if ($grandChild->getNodeName() == 'td') {
+                            $var = 456;
+                        }
+                    }
+                }
+
             }
         // Text node
         } else {
@@ -757,7 +798,7 @@ class Parser
                 $this->yOverride = $orphanStream->getCurrentY();
             } else {
                 $this->yOverride = null;
-                $this->y  += (isset($styles['marginBottom'])) ? $styles['marginBottom'] : 25;
+                $this->y  += (!empty($styles['marginBottom'])) ? $styles['marginBottom'] : 25;
             }
         }
     }
