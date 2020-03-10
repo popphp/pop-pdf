@@ -689,44 +689,61 @@ class Parser
         // Table node
         } else if ($child->getNodeName() == 'table') {
             $tableWidth  = $this->page->getWidth() - $this->pageMargins['left'] - $this->pageMargins['right'];
-            $columnCount = 0;
-            $columnWidth = 0;
-            $rowHeight   = 25;
+            $columnCount = count($child->getChild(0)->getChildNodes());;
+            $rowCount    = 0;
+            $columnWidth = floor($tableWidth / $columnCount);
+            $fontObject  = $this->document->getFont($styles['currentFont']);
+            $currentRow  = 0;
+            $currentX    = $this->pageMargins['left'] + 10;
+
             foreach ($child->getChildNodes() as $childNode) {
                 if (($childNode->getNodeName() == 'tr') && ($childNode->hasChildNodes())) {
-                    if ($columnCount == 0) {
-                        $columnCount = count($childNode->getChildNodes());
-                        $columnWidth = floor($tableWidth / $columnCount);
-                    }
                     foreach ($childNode->getChildNodes() as $grandChild) {
                         if ($grandChild->getNodeName() == 'th') {
-                            /*
-                            $x1 = $this->pageMargins['left'];
-                            $x2 = $tableWidth + $this->pageMargins['left'];
-                            $y  = $this->getCurrentY();
-                            $topPath = new Document\Page\Path();
-                            $topPath->drawLine($x1, $y, $x2, $y);
-                            $this->page->addPath($topPath);
-                            for ($i = 0; $i < $columnCount; $i++) {
-                                $path = new Document\Page\Path();
-                                $path->drawLine($x1 + ($i * $columnWidth), $y, $x1 + ($i * $columnWidth), $y - $rowHeight);
-                                $this->page->addPath($path);
-                            }
-                            $path = new Document\Page\Path();
-                            $path->drawLine($x2, $y, $x2, $y - $rowHeight);
-                            $this->page->addPath($path);
-
-                            $bottomPath = new Document\Page\Path();
-                            $bottomPath->drawLine($x1, $y - $rowHeight, $x2, $y - $rowHeight);
-                            $this->page->addPath($bottomPath);
-                            */
-                        } else if ($grandChild->getNodeName() == 'td') {
-                            $var = 456;
+                            $text = new Document\Page\Text($grandChild->getNodeValue(), $styles['fontSize']);
+                            $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                            $currentX += $columnWidth;
                         }
                     }
                 }
-
             }
+
+            foreach ($child->getChildNodes() as $childNode) {
+                if (($childNode->getNodeName() == 'tr') && ($childNode->hasChildNodes())) {
+                    $rowCount++;
+                    $currentX  = $this->pageMargins['left'] + 10;
+                    foreach ($childNode->getChildNodes() as $grandChild) {
+                        if ($grandChild->getNodeName() == 'td') {
+                            $text = new Document\Page\Text($grandChild->getNodeValue(), $styles['fontSize']);
+                            $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                            $currentX += $columnWidth;
+                        }
+                    }
+                    $currentY -= 25;
+                }
+            }
+
+            $currentY += 15;
+
+            $x1 = $this->pageMargins['left'];
+            $finalHeight = (25 * $rowCount);
+            $path    = new Document\Page\Path();
+            $path->drawRectangle($x1, $currentY, $tableWidth, $finalHeight);
+            $this->page->addPath($path);
+
+            for ($i = 1; $i < $columnCount; $i++) {
+                $path = new Document\Page\Path();
+                $path->drawLine($x1 + ($i * $columnWidth), $currentY, $x1 + ($i * $columnWidth), $this->page->getHeight() - $finalHeight + 35);
+                $this->page->addPath($path);
+            }
+
+            for ($i = 1; $i < $rowCount; $i++) {
+                $lineY = ($currentY + ($i * 25));
+                $path  = new Document\Page\Path();
+                $path->drawLine($x1, $lineY, $tableWidth + $this->pageMargins['left'], $lineY);
+                $this->page->addPath($path);
+            }
+
         // Text node
         } else {
             if (null !== $this->textWrap) {
