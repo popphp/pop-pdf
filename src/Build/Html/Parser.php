@@ -695,13 +695,32 @@ class Parser
             $fontObject  = $this->document->getFont($styles['currentFont']);
             $currentRow  = 0;
             $currentX    = $this->pageMargins['left'] + 10;
+            $thHeight    = 0;
+            $offset      = 0;
+            $startY      = $currentY;
 
             foreach ($child->getChildNodes() as $childNode) {
                 if (($childNode->getNodeName() == 'tr') && ($childNode->hasChildNodes())) {
                     foreach ($childNode->getChildNodes() as $grandChild) {
                         if ($grandChild->getNodeName() == 'th') {
-                            $text = new Document\Page\Text($grandChild->getNodeValue(), $styles['fontSize']);
-                            $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                            $thString = $grandChild->getNodeValue();
+
+                            $thStringWidth = $fontObject->getStringWidth($thString, $styles['fontSize']);
+                            if ($thStringWidth > ($columnWidth - 20)) {
+                                $strings = $this->getStringLines($thString, $styles['fontSize'], $columnWidth - 20, $fontObject);
+                                foreach ($strings as $i => $string) {
+                                    $text = new Document\Page\Text($string, $styles['fontSize']);
+                                    $this->page->addText($text, $styles['currentFont'], $currentX, ($currentY - ($styles['fontSize'] * $i)));
+                                }
+                                $newThHeight = (count($strings) * $styles['fontSize']) + 20;
+                                if ($newThHeight > $thHeight) {
+                                    $thHeight = $newThHeight;
+                                    $offset   = $thHeight - 30;
+                                }
+                            } else {
+                                $text = new Document\Page\Text($thString, $styles['fontSize']);
+                                $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                            }
                             $currentX += $columnWidth;
                         }
                     }
@@ -715,7 +734,7 @@ class Parser
                     foreach ($childNode->getChildNodes() as $grandChild) {
                         if ($grandChild->getNodeName() == 'td') {
                             $text = new Document\Page\Text($grandChild->getNodeValue(), $styles['fontSize']);
-                            $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
+                            $this->page->addText($text, $styles['currentFont'], $currentX, $currentY - $offset);
                             $currentX += $columnWidth;
                         }
                     }
@@ -724,8 +743,9 @@ class Parser
             }
 
             $currentY += 15;
-
             $x1 = $this->pageMargins['left'];
+/*
+
             $finalHeight = (25 * $rowCount);
             $path    = new Document\Page\Path();
             $path->drawRectangle($x1, $currentY, $tableWidth, $finalHeight);
@@ -736,13 +756,29 @@ class Parser
                 $path->drawLine($x1 + ($i * $columnWidth), $currentY, $x1 + ($i * $columnWidth), $this->page->getHeight() - $finalHeight + 35);
                 $this->page->addPath($path);
             }
+            */
 
-            for ($i = 1; $i < $rowCount; $i++) {
-                $lineY = ($currentY + ($i * 25));
+            for ($i = 0; $i < $rowCount; $i++) {
+                if (($i == 0) && ($thHeight > 0)) {
+                    $lineY = $startY - $thHeight + 20;
+                } else {
+                    $lineY = ($startY - ($i * 25) - 10) - $offset;
+                }
                 $path  = new Document\Page\Path();
                 $path->drawLine($x1, $lineY, $tableWidth + $this->pageMargins['left'], $lineY);
                 $this->page->addPath($path);
+                /*
+                if (($i == 1) && ($thHeight > 0)) {
+                    $lineY = ($currentY + ($i * 25));
+                } else {
+                    $lineY = ($currentY + ($i * 25));
+                }
+                $path  = new Document\Page\Path();
+                $path->drawLine($x1, $lineY, $tableWidth + $this->pageMargins['left'], $lineY);
+                $this->page->addPath($path);
+                */
             }
+
 
         // Text node
         } else {
