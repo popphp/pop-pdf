@@ -332,10 +332,7 @@ class Parser extends AbstractParser
                     $contents = ($fontFile['object']->getEncoding() == 'FlateDecode') ?
                         gzuncompress(trim($fontFile['object']->getStream())) : $fontFile['object']->getStream();
 
-                    file_put_contents('/home/nick/Desktop/font.ttf', $contents);
-
                     $fontParser = new \Pop\Pdf\Build\Font\TrueType(null, $contents);
-                    $var = 123;
                 }
             }
         }
