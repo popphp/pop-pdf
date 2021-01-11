@@ -62,7 +62,7 @@ class Pdf
      * @param  string           $filename
      * @return void
      */
-    public static function writeToFile(AbstractDocument $document, $filename)
+    public static function writeToFile(AbstractDocument $document, $filename = 'pop.pdf')
     {
         $compiler = new Build\Compiler();
         $compiler->finalize($document);
@@ -95,6 +95,43 @@ class Pdf
         }
 
         echo $compiler->getOutput();
+    }
+
+
+    /**
+     * Import from an existing PDF file
+     *
+     * @param  string|array $images
+     * @param  int          $quality
+     * @throws Exception
+     * @return AbstractDocument
+     */
+    public static function importFromImages($images, $quality = 70)
+    {
+        if (!is_array($images)) {
+            $images = [$images];
+        }
+
+        $document = new Document();
+
+        foreach ($images as $image) {
+            if (!file_exists($image)) {
+                throw new Exception('Error: That image file does not exist.');
+            }
+
+            $imageParser = Build\Image\Parser::createImageFromFile($image, 0, 0);
+            $imageParser->convertToJpeg($quality);
+
+            $image  = $imageParser->getConvertedImage();
+            $width  = $imageParser->getWidth();
+            $height = $imageParser->getHeight();
+            $page   = new Document\Page($width, $height);
+            $page->addImage(Document\Page\Image::createImageFromFile($image), 0, 0);
+
+            $document->addPage($page);
+        }
+
+        return $document;
     }
 
 }

@@ -381,6 +381,36 @@ class Parser
     }
 
     /**
+     * Get the width
+     *
+     * @return int
+     */
+    public function getWidth()
+    {
+        return $this->width;
+    }
+
+    /**
+     * Get the height
+     *
+     * @return int
+     */
+    public function getHeight()
+    {
+        return $this->height;
+    }
+
+    /**
+     * Get the converted image
+     *
+     * @return string
+     */
+    public function getConvertedImage()
+    {
+        return $this->convertedImage;
+    }
+
+    /**
      * Get the image object index
      *
      * @return int
@@ -620,6 +650,28 @@ class Parser
                     break;
             }
         }
+    }
+
+    /**
+     * Method to convert the image to Jpg
+     *
+     * @param  int $quality
+     * @return void
+     */
+    public function convertToJpeg($quality = 70)
+    {
+        $this->convertedImage = realpath(sys_get_temp_dir()) . DIRECTORY_SEPARATOR . $this->filename . '_' . time() . '.jpg';
+
+        $result = imagecreatetruecolor($this->width, $this->height);
+        imagecopyresampled(
+            $result, $this->resource, 0, 0, 0, 0, $this->width, $this->height, $this->width, $this->height
+        );
+
+        $this->resource = $result;
+        $this->width    = imagesx($this->resource);
+        $this->height   = imagesy($this->resource);
+
+        imagejpeg($this->resource, $this->convertedImage, (int)$quality);
     }
 
     /**
