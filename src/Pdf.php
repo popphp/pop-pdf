@@ -103,7 +103,6 @@ class Pdf
      *
      * @param  string|array $images
      * @param  int          $quality
-     * @throws Exception
      * @return AbstractDocument
      */
     public static function importFromImages($images, $quality = 70)
@@ -115,20 +114,7 @@ class Pdf
         $document = new Document();
 
         foreach ($images as $image) {
-            if (!file_exists($image)) {
-                throw new Exception('Error: That image file does not exist.');
-            }
-
-            $imageParser = Build\Image\Parser::createImageFromFile($image, 0, 0);
-            $imageParser->convertToJpeg($quality);
-
-            $image  = $imageParser->getConvertedImage();
-            $width  = $imageParser->getWidth();
-            $height = $imageParser->getHeight();
-            $page   = new Document\Page($width, $height);
-            $page->addImage(Document\Page\Image::createImageFromFile($image), 0, 0);
-
-            $document->addPage($page);
+            $document->addPage(Document\Page::createFromImage($image, $quality));
         }
 
         return $document;

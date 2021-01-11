@@ -14,7 +14,8 @@
 namespace Pop\Pdf\Document;
 
 use Pop\Pdf\Document\Page\Annotation;
-use \Pop\Pdf\Build\PdfObject;
+use Pop\Pdf\Build\PdfObject;
+use Pop\Pdf\Build\Image;
 
 /**
  * Pdf page class
@@ -76,6 +77,32 @@ class Page extends AbstractPage
                 $this->setIndex($index);
             }
         }
+    }
+
+    /**
+     * Create a page from an image
+     *
+     * @param  string $image
+     * @param  int    $quality
+     * @throws Exception
+     * @return Page
+     */
+    public static function createFromImage($image, $quality = 70)
+    {
+        if (!file_exists($image)) {
+            throw new Exception('Error: That image file does not exist.');
+        }
+
+        $imageParser = Image\Parser::createImageFromFile($image, 0, 0);
+        $imageParser->convertToJpeg($quality);
+
+        $image  = $imageParser->getConvertedImage();
+        $width  = $imageParser->getWidth();
+        $height = $imageParser->getHeight();
+        $page   = new self($width, $height);
+        $page->addImage(Page\Image::createImageFromFile($image), 0, 0);
+
+        return $page;
     }
 
     /**
