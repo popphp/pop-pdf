@@ -101,7 +101,7 @@ class TextTest extends TestCase
         $text->setStrokeColor(new Color\Rgb(255, 0, 0));
         $text->setStroke(5, 10, 15);
         $text->setTextParams(10, 10, 10, 10, -45, 1);
-        $this->assertContains('MF1', $text->getStream('MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('MF1', $text->getStream('MF1 1 0 R', 20, 200));
     }
 
     public function testGetStreamCmyk()
@@ -111,7 +111,7 @@ class TextTest extends TestCase
         $text->setStrokeColor(new Color\Cmyk(100, 0, 0, 0));
         $text->setStroke(5, 10, 15);
         $text->setTextParams(10, 10, 10, 10, -45, 1);
-        $this->assertContains('MF1', $text->getStream('MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('MF1', $text->getStream('MF1 1 0 R', 20, 200));
     }
 
     public function testGetStreamGray()
@@ -121,7 +121,7 @@ class TextTest extends TestCase
         $text->setStrokeColor(new Color\Gray(50));
         $text->setStroke(5, 10, 15);
         $text->setTextParams(10, 10, 10, 10, -45, 1);
-        $this->assertContains('MF1', $text->getStream('MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('MF1', $text->getStream('MF1 1 0 R', 20, 200));
     }
 
     public function testSetAndGetCharWrap()
@@ -162,27 +162,27 @@ class TextTest extends TestCase
     {
         $text = new Text('Hello World', 12);
         $text->setRotation(40);
-        $this->assertContains('MF1', $text->getStream('MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('MF1', $text->getStream('MF1 1 0 R', 20, 200));
     }
 
     public function testGetStreamWithRotation2()
     {
         $text = new Text('Hello World', 12);
         $text->setRotation(80);
-        $this->assertContains('MF1', $text->getStream('MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('MF1', $text->getStream('MF1 1 0 R', 20, 200));
     }
 
     public function testGetStreamWithRotation3()
     {
         $text = new Text('Hello World', 12);
         $text->setRotation(-80);
-        $this->assertContains('MF1', $text->getStream('MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('MF1', $text->getStream('MF1 1 0 R', 20, 200));
     }
 
     public function testGetPartialStreamWithFontRef()
     {
         $text = new Text('Hello World', 12);
-        $this->assertContains('/MF1 12 Tf', $text->getPartialStream('/MF1 1 0 R'));
+        $this->assertStringContainsString('/MF1 12 Tf', $text->getPartialStream('/MF1 1 0 R'));
     }
 
     public function testGetPartialStreamWithStringOffsets()
@@ -190,7 +190,7 @@ class TextTest extends TestCase
         $text = new Text('Hello World', 12);
         $text->addStringWithOffset("What's up?", 12);
         $stream = $text->getPartialStream();
-        $this->assertContains("[(Hello World) -12 (What's up?)]TJ", $stream);
+        $this->assertStringContainsString("[(Hello World) -12 (What's up?)]TJ", $stream);
     }
 
     public function testGetPartialStreamWithCharWrap()
@@ -198,8 +198,8 @@ class TextTest extends TestCase
         $text = new Text('Hello World Hello World Hello World Hello World Hello World Hello World', 12);
         $text->setCharWrap(24);
         $stream = $text->getPartialStream();
-        $this->assertContains("0 -12 Td", $stream);
-        $this->assertContains(")Tj", $stream);
+        $this->assertStringContainsString("0 -12 Td", $stream);
+        $this->assertStringContainsString(")Tj", $stream);
     }
 
 }

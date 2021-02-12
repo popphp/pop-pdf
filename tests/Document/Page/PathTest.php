@@ -14,43 +14,43 @@ class PathTest extends TestCase
         $path = new Path();
         $this->assertEquals(Path::STROKE, $path->getStyle());
         $path->setFillColor(new Color\Rgb(255, 0, 0));
-        $this->assertContains('rg', $path->getStreams()[0]['stream']);
+        $this->assertStringContainsString('rg', $path->getStreams()[0]['stream']);
         $path->setFillColor(new Color\Cmyk(100, 0, 0, 0));
-        $this->assertContains('k', $path->getStreams()[1]['stream']);
+        $this->assertStringContainsString('k', $path->getStreams()[1]['stream']);
         $path->setFillColor(new Color\Gray(50));
-        $this->assertContains('g', $path->getStreams()[2]['stream']);
+        $this->assertStringContainsString('g', $path->getStreams()[2]['stream']);
     }
 
     public function testSetStrokeColor()
     {
         $path = new Path();
         $path->setStrokeColor(new Color\Rgb(255, 0, 0));
-        $this->assertContains('RG', $path->getStreams()[0]['stream']);
+        $this->assertStringContainsString('RG', $path->getStreams()[0]['stream']);
         $path->setStrokeColor(new Color\Cmyk(100, 0, 0, 0));
-        $this->assertContains('K', $path->getStreams()[1]['stream']);
+        $this->assertStringContainsString('K', $path->getStreams()[1]['stream']);
         $path->setStrokeColor(new Color\Gray(50));
-        $this->assertContains('G', $path->getStreams()[2]['stream']);
+        $this->assertStringContainsString('G', $path->getStreams()[2]['stream']);
     }
 
     public function testSetStroke()
     {
         $path = new Path();
         $path->setStroke(5, 10, 15);
-        $this->assertContains('0 d', $path->getStreams()[0]['stream']);
+        $this->assertStringContainsString('0 d', $path->getStreams()[0]['stream']);
     }
 
     public function testOpenLayer()
     {
         $path = new Path();
         $path->openLayer();
-        $this->assertContains('q', $path->getStreams()[0]['stream']);
+        $this->assertStringContainsString('q', $path->getStreams()[0]['stream']);
     }
 
     public function testCloseLayer()
     {
         $path = new Path();
         $path->closeLayer();
-        $this->assertContains('Q', $path->getStreams()[0]['stream']);
+        $this->assertStringContainsString('Q', $path->getStreams()[0]['stream']);
     }
 
     public function testDrawLine()

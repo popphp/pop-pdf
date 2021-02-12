@@ -22,13 +22,13 @@
         }
     ],
     "require": {
-        "php": ">=7.1.0",
-        "popphp/pop-css" : "^1.0.8",
-        "popphp/pop-dom" : "^3.2.7",
-        "popphp/pop-utils" : "^1.1.0"
+        "php": ">=7.3.0",
+        "popphp/pop-css" : "^1.1.0",
+        "popphp/pop-dom" : "^3.3.0",
+        "popphp/pop-utils" : "^1.2.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^7.0.0"
+        "phpunit/phpunit": "^9.0.0"
     },
     "suggest": {
         "ext-gd": "For the image parser"
@@ -43,9 +43,12 @@
             "Pop\\Pdf\\Test\\": "tests/"
         }
     },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
     "extra": {
         "branch-alias": {
-            "dev-master": "4.0.x-dev"
+            "dev-master": "4.2.x-dev"
         }
     }
 }

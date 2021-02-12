@@ -34,7 +34,7 @@ class ParserTest extends TestCase
     {
         $parser = new Parser();
         $parser->parseFile(__DIR__ . '/../tmp/doc.pdf');
-        $this->assertContains('%PDF', $parser->getData());
+        $this->assertStringContainsString('%PDF', $parser->getData());
     }
 
     public function testGetObjectStreamsAndMapFromData()
@@ -50,7 +50,7 @@ class ParserTest extends TestCase
     {
         $parser = new Parser();
         $parser->parseData(file_get_contents(__DIR__ . '/../tmp/doc.pdf'));
-        $this->assertContains('%PDF', $parser->getData());
+        $this->assertStringContainsString('%PDF', $parser->getData());
     }
 
 }

@@ -78,8 +78,8 @@ class AnnotationTest extends TestCase
         $annot->setDashGap(5);
         $annot->setZTarget(2);
         $annot->setPageTarget(2);
-        $this->assertContains('10 0 obj', $annot->getStream(10, 20, 200, 1, [1, 2]));
-        $this->assertContains('/XYZ 200 200 2', $annot->getStream(10, 20, 200, 1, [1, 2]));
+        $this->assertStringContainsString('10 0 obj', $annot->getStream(10, 20, 200, 1, [1, 2]));
+        $this->assertStringContainsString('/XYZ 200 200 2', $annot->getStream(10, 20, 200, 1, [1, 2]));
     }
 
     public function testGetUrl()
@@ -93,8 +93,8 @@ class AnnotationTest extends TestCase
         $annot = new Annotation\Url(120, 20, 'http://www.google.com');
         $annot->setDashLength(10);
         $annot->setDashGap(5);
-        $this->assertContains('10 0 obj', $annot->getStream(10, 20, 200, 1, [1, 2]));
-        $this->assertContains('<</S /URI /URI (http://www.google.com)', $annot->getStream(10, 20, 200, 1, [1, 2]));
+        $this->assertStringContainsString('10 0 obj', $annot->getStream(10, 20, 200, 1, [1, 2]));
+        $this->assertStringContainsString('<</S /URI /URI (http://www.google.com)', $annot->getStream(10, 20, 200, 1, [1, 2]));
     }
 
 }

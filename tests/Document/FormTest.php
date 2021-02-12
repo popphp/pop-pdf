@@ -14,8 +14,8 @@ class FormTest extends TestCase
         $form->addFieldIndex(1);
         $this->assertEquals(1, count($form->getFieldIndices()));
         $this->assertEquals(1, $form->getNumberOfFields());
-        $this->assertContains('1 0 obj', $form->getStream(1));
-        $this->assertContains('<</Fields', $form->getStream(1));
+        $this->assertStringContainsString('1 0 obj', $form->getStream(1));
+        $this->assertStringContainsString('<</Fields', $form->getStream(1));
     }
 
 }

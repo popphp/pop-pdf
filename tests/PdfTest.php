@@ -38,7 +38,7 @@ class PdfTest extends TestCase
         Pdf\Pdf::outputToHttp($doc);
         $result = ob_get_clean();
 
-        $this->assertContains('%PDF', $result);
+        $this->assertStringContainsString('%PDF', $result);
     }
 
     /**
@@ -52,7 +52,7 @@ class PdfTest extends TestCase
         echo $doc;
         $result = ob_get_clean();
 
-        $this->assertContains('%PDF', $result);
+        $this->assertStringContainsString('%PDF', $result);
     }
 
 }

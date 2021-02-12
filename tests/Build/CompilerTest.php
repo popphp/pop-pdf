@@ -61,7 +61,7 @@ class CompilerTest extends TestCase
         $compiler = new Compiler();
         $compiler->finalize($doc);
 
-        $this->assertContains('%PDF', $compiler->getOutput());
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
     }
 
     public function testFinalizeOriginTopLeft()
@@ -84,7 +84,7 @@ class CompilerTest extends TestCase
         $compiler = new Compiler();
         $compiler->finalize($doc);
 
-        $this->assertContains('%PDF', $compiler->getOutput());
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
     }
 
     public function testFinalizeOriginTopRight()
@@ -107,7 +107,7 @@ class CompilerTest extends TestCase
         $compiler = new Compiler();
         $compiler->finalize($doc);
 
-        $this->assertContains('%PDF', $compiler->getOutput());
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
     }
 
     public function testFinalizeOriginBottomRight()
@@ -130,7 +130,7 @@ class CompilerTest extends TestCase
         $compiler = new Compiler();
         $compiler->finalize($doc);
 
-        $this->assertContains('%PDF', $compiler->getOutput());
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
     }
 
     public function testFinalizeOriginCenter()
@@ -153,7 +153,7 @@ class CompilerTest extends TestCase
         $compiler = new Compiler();
         $compiler->finalize($doc);
 
-        $this->assertContains('%PDF', $compiler->getOutput());
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
     }
 
 }

@@ -48,7 +48,7 @@ class FieldTest extends TestCase
 
         $this->assertTrue($field->isPassword());
         $this->assertTrue($field->isMultiline());
-        $this->assertContains('/FT /Tx', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('/FT /Tx', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
     }
 
     public function testTextCmykFontColor()
@@ -65,7 +65,7 @@ class FieldTest extends TestCase
             ->setComb()
             ->setRichText();
 
-        $this->assertContains('/FT /Tx', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('/FT /Tx', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
     }
 
     public function testTextGrayFontColor()
@@ -82,7 +82,7 @@ class FieldTest extends TestCase
             ->setComb()
             ->setRichText();
 
-        $this->assertContains('/FT /Tx', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('/FT /Tx', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
     }
 
     public function testTextNoFont()
@@ -98,7 +98,7 @@ class FieldTest extends TestCase
             ->setComb()
             ->setRichText();
 
-        $this->assertContains('/FT /Tx', $field->getStream(10, 2, null, 20, 200));
+        $this->assertStringContainsString('/FT /Tx', $field->getStream(10, 2, null, 20, 200));
     }
 
     public function testButton()
@@ -116,7 +116,7 @@ class FieldTest extends TestCase
         $this->assertTrue($field->isRadio());
         $this->assertTrue($field->isPushButton());
         $this->assertTrue($field->hasOptions());
-        $this->assertContains('/FT /Btn', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('/FT /Btn', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
     }
 
     public function testButtonGrayFontColor()
@@ -131,7 +131,7 @@ class FieldTest extends TestCase
               ->setPushButton()
               ->setRadiosInUnison();
 
-        $this->assertContains('/FT /Btn', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('/FT /Btn', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
     }
 
     public function testButtonNoOptionsNoFont()
@@ -145,7 +145,7 @@ class FieldTest extends TestCase
               ->setPushButton()
               ->setRadiosInUnison();
 
-        $this->assertContains('/FT /Btn', $field->getStream(10, 2, null, 20, 200));
+        $this->assertStringContainsString('/FT /Btn', $field->getStream(10, 2, null, 20, 200));
     }
 
     public function testChoice()
@@ -165,7 +165,7 @@ class FieldTest extends TestCase
         $this->assertTrue($field->isCombo());
         $this->assertTrue($field->isMultiSelect());
         $this->assertTrue($field->hasOptions());
-        $this->assertContains('/FT /Ch', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('/FT /Ch', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
     }
 
     public function testChoiceGrayFontColor()
@@ -182,7 +182,7 @@ class FieldTest extends TestCase
             ->setDoNotSpellCheck()
             ->setCommitOnSelChange();
 
-        $this->assertContains('/FT /Ch', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
+        $this->assertStringContainsString('/FT /Ch', $field->getStream(10, 2, '/MF1 1 0 R', 20, 200));
     }
 
     public function testChoiceNoOptionsNoFont()
@@ -198,7 +198,7 @@ class FieldTest extends TestCase
             ->setDoNotSpellCheck()
             ->setCommitOnSelChange();
 
-        $this->assertContains('/FT /Ch', $field->getStream(10, 2, null, 20, 200));
+        $this->assertStringContainsString('/FT /Ch', $field->getStream(10, 2, null, 20, 200));
     }
 
 }

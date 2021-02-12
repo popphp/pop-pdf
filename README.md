@@ -1,7 +1,7 @@
 pop-pdf
 =======
 
-[![Build Status](https://travis-ci.org/popphp/pop-pdf.svg?branch=master)](https://travis-ci.org/popphp/pop-pdf)
+[![Build Status](https://github.com/popphp/pop-pdf/workflows/phpunit/badge.svg)](https://github.com/popphp/pop-pdf/actions)
 [![Coverage Status](http://cc.popphp.org/coverage.php?comp=pop-pdf)](http://cc.popphp.org/pop-pdf/)
 
 OVERVIEW
