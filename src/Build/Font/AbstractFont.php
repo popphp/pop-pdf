@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2021 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -14,6 +14,7 @@
 namespace Pop\Pdf\Build\Font;
 
 use Pop\Utils\ArrayObject as Data;
+use ReturnTypeWillChange;
 
 /**
  * Font abstract class
@@ -21,7 +22,7 @@ use Pop\Utils\ArrayObject as Data;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2021 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  * @version    4.2.0
  */
@@ -184,8 +185,8 @@ abstract class AbstractFont implements \ArrayAccess
                     substr($this->stream, $offset);
             } else {
                 $data = ((null !== $length) && ((int)$length >= 0)) ?
-                    file_get_contents($this->fullpath, null, null, $offset, $length) :
-                    file_get_contents($this->fullpath, null, null, $offset);
+                    file_get_contents($this->fullpath, false, null, $offset, $length) :
+                    file_get_contents($this->fullpath, false, null, $offset);
             }
         } else {
             $data = (null !== $this->stream) ? $this->stream : file_get_contents($this->fullpath);
@@ -346,6 +347,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  mixed  $value
      * @return void
      */
+    #[ReturnTypeWillChange]
     public function offsetSet($name, $value)
     {
         $this->properties[$name] = $value;
@@ -358,6 +360,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @throws \InvalidArgumentException
      * @return mixed
      */
+    #[ReturnTypeWillChange]
     public function offsetGet($name)
     {
         return (isset($this->properties[$name])) ? $this->properties[$name] : null;
@@ -369,7 +372,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  mixed $offset
      * @return boolean
      */
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return isset($this->properties[$offset]);
     }
@@ -380,6 +383,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  mixed $offset
      * @return void
      */
+    #[ReturnTypeWillChange]
     public function offsetUnset($offset)
     {
         if (isset($this->properties[$offset])) {

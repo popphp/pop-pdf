@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2021 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -19,7 +19,7 @@ namespace Pop\Pdf\Build\PdfObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2021 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  * @version    4.2.0
  */
@@ -112,7 +112,7 @@ class StreamObject extends AbstractObject
      */
     public function setDefinition($definition)
     {
-        $this->definition = $definition;
+        $this->definition = (string)$definition;
 
         if (strpos($this->definition, '/ASCIIHexDecode') !== false) {
             $this->encoding = 'ASCIIHexDecode';
@@ -195,7 +195,7 @@ class StreamObject extends AbstractObject
     public function encode()
     {
         if (($this->stream != '') && (function_exists('gzcompress')) &&
-            (strpos($this->definition, ' /Image') === false) && (strpos($this->definition, '/FlateDecode') === false)) {
+            (strpos((string)$this->definition, ' /Image') === false) && (strpos((string)$this->definition, '/FlateDecode') === false)) {
             $this->stream   = "\n" . gzcompress($this->stream, 9) . "\n";
             $this->encoding = 'FlateDecode';
         }
@@ -284,7 +284,7 @@ class StreamObject extends AbstractObject
      */
     protected function calculateByteLength($string)
     {
-        return strlen($string);
+        return strlen((string)$string);
     }
 
     /**
@@ -298,8 +298,8 @@ class StreamObject extends AbstractObject
         $stream = (null !== $this->stream) ? "stream" . $this->stream . "endstream\n" : '';
 
         // Set up the Length definition.
-        if ((strpos($this->definition, '/Length ') !== false) && (strpos($this->definition, '/Length1') === false) &&
-            (strpos($this->definition, '/Image') === false)) {
+        if ((strpos((string)$this->definition, '/Length ') !== false) && (strpos((string)$this->definition, '/Length1') === false) &&
+            (strpos((string)$this->definition, '/Image') === false)) {
             $matches = [];
             preg_match('/\/Length\s\d*/', $this->definition, $matches);
             if (isset($matches[0])) {
@@ -308,13 +308,13 @@ class StreamObject extends AbstractObject
                 $len = str_replace(' ', '', $len);
                 $this->definition = str_replace($len, '[{byte_length}]', $this->definition);
             }
-        } else if (strpos($this->definition, '/Length') === false) {
+        } else if (strpos((string)$this->definition, '/Length') === false) {
             $this->definition .= "<</Length [{byte_length}]>>\n";
         }
 
         // Calculate the byte length of the stream and swap out the placeholders.
         $byteLength = (($this->encoding == 'FlateDecode') && (function_exists('gzcompress')) &&
-            (strpos($this->definition, ' /Image') === false) && (strpos($this->definition, '/FlateDecode') === false)) ?
+            (strpos((string)$this->definition, ' /Image') === false) && (strpos((string)$this->definition, '/FlateDecode') === false)) ?
             $this->calculateByteLength($this->stream) . " /Filter /FlateDecode" : $this->calculateByteLength($this->stream);
 
         $data = str_replace(
@@ -324,7 +324,7 @@ class StreamObject extends AbstractObject
         );
 
         // Clear Length definition if it is zero.
-        if (strpos($data, '<</Length 0>>') !== false) {
+        if (strpos((string)$data, '<</Length 0>>') !== false) {
             $data = str_replace('<</Length 0>>', '', $data);
         }
 

@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2021 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -24,7 +24,7 @@ use Pop\Pdf\Document\Page\Text;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2021 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  * @version    4.2.0
  */
@@ -166,7 +166,7 @@ class Compiler extends AbstractCompiler
         foreach ($this->objects as $object) {
             if ($object->getIndex() != $this->root->getIndex()) {
                 if (($object instanceof PdfObject\StreamObject) && ($this->compression) && (!$object->isPalette()) &&
-                    (!$object->isEncoded() && !$object->isImported() && (stripos($object->getDefinition(), '/length') === false))) {
+                    (!$object->isEncoded() && !$object->isImported() && (stripos((string)$object->getDefinition(), '/length') === false))) {
                     $object->encode();
                 }
                 $this->byteLength += $this->calculateByteLength($object);

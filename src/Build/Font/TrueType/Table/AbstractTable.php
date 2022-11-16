@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2021 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -13,13 +13,15 @@
  */
 namespace Pop\Pdf\Build\Font\TrueType\Table;
 
+use ReturnTypeWillChange;
+
 /**
  * Abstract table class
  *
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2021 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  * @version    4.2.0
  */
@@ -45,6 +47,7 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * @param  mixed  $value
      * @return void
      */
+    #[ReturnTypeWillChange]
     public function offsetSet($name, $value)
     {
         $this->properties[$name] = $value;
@@ -57,6 +60,7 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * @throws \InvalidArgumentException
      * @return mixed
      */
+    #[ReturnTypeWillChange]
     public function offsetGet($name)
     {
         return (isset($this->properties[$name])) ? $this->properties[$name] : null;
@@ -68,7 +72,7 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * @param  mixed $offset
      * @return boolean
      */
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return isset($this->properties[$offset]);
     }
@@ -79,6 +83,7 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * @param  mixed $offset
      * @return void
      */
+    #[ReturnTypeWillChange]
     public function offsetUnset($offset)
     {
         if (isset($this->properties[$offset])) {
