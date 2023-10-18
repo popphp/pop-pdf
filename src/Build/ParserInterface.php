@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build;
 
+use Pop\Pdf\Document\AbstractDocument;
+
 /**
  * Parser interface
  *
@@ -31,21 +33,21 @@ interface ParserInterface
      *
      * @return string
      */
-    public function getFile();
+    public function getFile(): string;
 
     /**
      * Get the data stream
      *
      * @return string
      */
-    public function getData();
+    public function getData(): string;
 
     /**
      * Parse the pdf data
      *
      * @param  mixed  $pages
-     * @return \Pop\Pdf\Document\AbstractDocument
+     * @return AbstractDocument
      */
-    public function parse($pages = null);
+    public function parse(mixed $pages = null): AbstractDocument;
 
 }

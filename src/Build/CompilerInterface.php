@@ -33,42 +33,42 @@ interface CompilerInterface
      *
      * @return Document
      */
-    public function getDocument();
+    public function getDocument(): Document;
 
     /**
      * Get the root object
      *
      * @return PdfObject\RootObject
      */
-    public function getRoot();
+    public function getRoot(): PdfObject\RootObject;
 
     /**
      * Get the parent object
      *
      * @return PdfObject\ParentObject
      */
-    public function getParent();
+    public function getParent(): PdfObject\ParentObject;
 
     /**
      * Get the info object
      *
      * @return PdfObject\InfoObject
      */
-    public function getInfo();
+    public function getInfo(): PdfObject\InfoObject;
 
     /**
      * Return the last object index.
      *
      * @return int
      */
-    public function lastIndex();
+    public function lastIndex(): int;
 
     /**
      * Get the compiled output
      *
      * @return string
      */
-    public function getOutput();
+    public function getOutput(): string;
 
     /**
      * Set the document object
@@ -76,7 +76,7 @@ interface CompilerInterface
      * @param  Document\AbstractDocument $document
      * @return Compiler
      */
-    public function setDocument(Document\AbstractDocument $document);
+    public function setDocument(Document\AbstractDocument $document): Compiler;
 
     /**
      * Compile and finalize the PDF document
@@ -84,6 +84,6 @@ interface CompilerInterface
      * @param  Document\AbstractDocument $document
      * @return void
      */
-    public function finalize(Document\AbstractDocument $document);
+    public function finalize(Document\AbstractDocument $document): void;
 
 }

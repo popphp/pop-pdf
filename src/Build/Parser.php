@@ -32,26 +32,26 @@ class Parser extends AbstractParser
      * Parsed object data streams
      * @var array
      */
-    protected $objectStreams = [];
+    protected array $objectStreams = [];
 
     /**
      * Object map
      * @var array
      */
-    protected $objectMap = [];
+    protected array $objectMap = [];
 
     /**
      * Document fonts
      * @var array
      */
-    protected $fonts = [];
+    protected array $fonts = [];
 
     /**
      * Get the object streams
      *
      * @return array
      */
-    public function getObjectStreams()
+    public function getObjectStreams(): array
     {
         return $this->objectStreams;
     }
@@ -61,7 +61,7 @@ class Parser extends AbstractParser
      *
      * @return array
      */
-    public function getObjectMap()
+    public function getObjectMap(): array
     {
         return $this->objectMap;
     }
@@ -71,7 +71,7 @@ class Parser extends AbstractParser
      *
      * @return array
      */
-    public function getFonts()
+    public function getFonts(): array
     {
         return $this->fonts;
     }
@@ -81,9 +81,10 @@ class Parser extends AbstractParser
      *
      * @param  string $file
      * @param  mixed  $pages
+     * @throws Exception
      * @return AbstractDocument
      */
-    public function parseFile($file, $pages = null)
+    public function parseFile(string $file, mixed $pages = null): AbstractDocument
     {
         $this->initFile($file);
         return $this->parse($pages);
@@ -94,9 +95,10 @@ class Parser extends AbstractParser
      *
      * @param  string $data
      * @param  mixed  $pages
+     * @throws Exception
      * @return AbstractDocument
      */
-    public function parseData($data, $pages = null)
+    public function parseData(string $data, mixed $pages = null): AbstractDocument
     {
         $this->initData($data);
         return $this->parse($pages);
@@ -108,14 +110,14 @@ class Parser extends AbstractParser
      * @param  mixed  $pages
      * @return AbstractDocument
      */
-    public function parse($pages = null)
+    public function parse(mixed $pages = null): AbstractDocument
     {
         $matches = [];
         preg_match_all('/\d*\s\d*\sobj(.*?)endobj/sm', $this->data, $matches, PREG_OFFSET_CAPTURE);
 
         if (isset($matches[0]) && isset($matches[0][0])) {
             foreach ($matches[0] as $match) {
-                if ((strpos($match[0], '/Linearized') === false) && (strpos($match[0], '/Type/Metadata') === false)) {
+                if ((!str_contains($match[0], '/Linearized')) && (!str_contains($match[0], '/Type/Metadata'))) {
                     $this->objectStreams[] = $match[0];
                 }
             }
@@ -165,7 +167,7 @@ class Parser extends AbstractParser
      * @throws Exception
      * @return Parser
      */
-    protected function initFile($file)
+    protected function initFile(string $file): Parser
     {
         if (!file_exists($file)) {
             throw new Exception('Error: That PDF file does not exist.');
@@ -185,10 +187,9 @@ class Parser extends AbstractParser
      * Initialize data
      *
      * @param  string $data
-     * @throws Exception
      * @return Parser
      */
-    protected function initData($data)
+    protected function initData(string $data): Parser
     {
         $this->data = $data;
 
@@ -204,7 +205,7 @@ class Parser extends AbstractParser
      *
      * @return void
      */
-    protected function mapObjects()
+    protected function mapObjects(): void
     {
         foreach ($this->objectStreams as $stream) {
             switch ($this->getStreamType($stream)) {
@@ -281,12 +282,12 @@ class Parser extends AbstractParser
      *
      * @return void
      */
-    protected function mapFonts()
+    protected function mapFonts(): void
     {
         foreach ($this->objectMap['pages'] as $page) {
             if (isset($page['fonts']) && (count($page['fonts']) > 0)) {
                 foreach ($page['fonts'] as $i => $font) {
-                    if (strpos($this->objectMap['streams'][$i]['stream'], '/BaseFont') !== false) {
+                    if (str_contains($this->objectMap['streams'][$i]['stream'], '/BaseFont')) {
                         $fontName = trim(
                             substr(
                                 $this->objectMap['streams'][$i]['stream'],
@@ -294,10 +295,10 @@ class Parser extends AbstractParser
                             )
                         );
 
-                        if (substr($fontName, 0, 1) == '/') {
+                        if (str_starts_with($fontName, '/')) {
                             $fontName = substr($fontName, 1);
                         }
-                        $fontName = ((strpos($fontName, '/') !== false)) ?
+                        $fontName = ((str_contains($fontName, '/'))) ?
                             substr($fontName, 0, strpos($fontName, '/')) :
                             substr($fontName, 0, strpos($fontName, '>'));
 
@@ -317,7 +318,7 @@ class Parser extends AbstractParser
 
         $fontFileObjects = [];
         foreach ($this->objectStreams as $stream) {
-            if (strpos($stream, '/FontFile') !== false) {
+            if (str_contains($stream, '/FontFile')) {
                 $fontFileObject = substr($stream, strpos($stream, '/FontFile'));
                 $fontFileObject = substr($fontFileObject, (strpos($fontFileObject, ' ') + 1));
                 $fontFileObject = trim(substr($fontFileObject, 0, strpos($fontFileObject, '0 R')));
@@ -344,7 +345,7 @@ class Parser extends AbstractParser
      * @param  mixed $pages
      * @return void
      */
-    protected function filterPages($pages)
+    protected function filterPages(mixed $pages): void
     {
         $pages = (!is_array($pages)) ? [$pages] : $pages;
         $kids = $this->objectMap['parent']['object']->getKids();
@@ -371,7 +372,7 @@ class Parser extends AbstractParser
      *
      * @return array
      */
-    protected function getObjects()
+    protected function getObjects(): array
     {
         $objects = [];
         foreach ($this->objectMap as $type => $object) {

@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build;
 
+use Pop\Pdf\Document\AbstractDocument;
+
 /**
  * Abstract Pdf parser class
  *
@@ -28,22 +30,22 @@ abstract class AbstractParser implements ParserInterface
 
     /**
      * Imported PDF file
-     * @var string
+     * @var ?string
      */
-    protected $file = null;
+    protected ?string $file = null;
 
     /**
      * Imported PDF data stream
-     * @var string
+     * @var ?string
      */
-    protected $data = null;
+    protected ?string $data = null;
 
     /**
      * Get the file
      *
      * @return string
      */
-    public function getFile()
+    public function getFile(): string
     {
         return $this->file;
     }
@@ -53,7 +55,7 @@ abstract class AbstractParser implements ParserInterface
      *
      * @return string
      */
-    public function getData()
+    public function getData(): string
     {
         return $this->data;
     }
@@ -64,18 +66,18 @@ abstract class AbstractParser implements ParserInterface
      * @param  string $stream
      * @return string
      */
-    protected function getStreamType($stream)
+    protected function getStreamType(string $stream): string
     {
-        if ((strpos($stream, '/Catalog') !== false) && (strpos($stream, '/Pages') !== false)) {
+        if ((str_contains($stream, '/Catalog')) && (str_contains($stream, '/Pages'))) {
             $type = 'root';
-        } else if ((strpos($stream, '/Count') !== false) && (strpos($stream, '/Kids') !== false)) {
+        } else if ((str_contains($stream, '/Count')) && (str_contains($stream, '/Kids'))) {
             $type = 'parent';
-        } else if ((strpos($stream, '/Parent') !== false) && (strpos($stream, '/MediaBox') !== false)) {
+        } else if ((str_contains($stream, '/Parent')) && (str_contains($stream, '/MediaBox'))) {
             $type = 'page';
-        } else if ((strpos($stream, '/Creator') !== false) || (strpos($stream, '/CreationDate') !== false) ||
-            (strpos($stream, '/ModDate') !== false) || (strpos($stream, '/Author') !== false) ||
-            (strpos($stream, '/Title') !== false) || (strpos($stream, '/Subject') !== false) ||
-            (strpos($stream, '/Producer') !== false)) {
+        } else if ((str_contains($stream, '/Creator')) || (str_contains($stream, '/CreationDate')) ||
+            (str_contains($stream, '/ModDate')) || (str_contains($stream, '/Author')) ||
+            (str_contains($stream, '/Title')) || (str_contains($stream, '/Subject')) ||
+            (str_contains($stream, '/Producer'))) {
             $type = 'info';
         } else {
             $type = 'stream';
@@ -88,8 +90,8 @@ abstract class AbstractParser implements ParserInterface
      * Parse the PDF data
      *
      * @param  mixed  $pages
-     * @return \Pop\Pdf\AbstractDocument
+     * @return AbstractDocument
      */
-    abstract public function parse($pages = null);
+    abstract public function parse(mixed $pages = null): AbstractDocument;
 
 }

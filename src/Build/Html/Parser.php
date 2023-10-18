@@ -17,6 +17,7 @@ use Pop\Css;
 use Pop\Color\Color;
 use Pop\Dom\Child;
 use Pop\Pdf\Document;
+use Pop\Pdf\Document\Exception;
 
 /**
  * Pdf HTML parser class
@@ -33,33 +34,33 @@ class Parser
 
     /**
      * PDF document
-     * @var Document
+     * @var ?Document
      */
-    protected $document = null;
+    protected ?Document $document = null;
 
     /**
      * HTML object or array of HTML objects
-     * @var Child|array
+     * @var Child|array|null
      */
-    protected $html = null;
+    protected Child|array|null $html = null;
 
     /**
      * CSS object
-     * @var Css\Css
+     * @var ?Css\Css
      */
-    protected $css = null;
+    protected ?Css\Css $css = null;
 
     /**
      * Page size
      * @var string
      */
-    protected $pageSize = 'LETTER';
+    protected string $pageSize = 'LETTER';
 
     /**
      * Page margins
      * @var array
      */
-    protected $pageMargins = [
+    protected array $pageMargins = [
         'top'    => 80,
         'right'  => 60,
         'bottom' => 60,
@@ -70,7 +71,7 @@ class Parser
      * Default styles
      * @var array
      */
-    protected $defaultStyles = [
+    protected array $defaultStyles = [
         'font-family' => 'Arial',
         'font-size'   => 10,
         'font-weight' => 'normal',
@@ -82,46 +83,46 @@ class Parser
      * Current x-position
      * @var int
      */
-    protected $x = 0;
+    protected int $x = 0;
 
     /**
      * Current y-position
      * @var int
      */
-    protected $y = 0;
+    protected int $y = 0;
 
     /**
      * Current page object
-     * @var Document\Page
+     * @var ?Document\Page
      */
-    protected $page = null;
+    protected ?Document\Page $page = null;
 
     /**
      * HTML file directory
-     * @var string
+     * @var ?string
      */
-    protected $fileDir = null;
+    protected ?string $fileDir = null;
 
     /**
      * Text wrap object
-     * @var Document\Page\Text\Wrap
+     * @var ?Document\Page\Text\Wrap
      */
-    protected $textWrap = null;
+    protected ?Document\Page\Text\Wrap $textWrap = null;
 
     /**
      * Y-override
-     * @var int
+     * @var ?int
      */
-    protected $yOverride = null;
+    protected ?int $yOverride = null;
 
     /**
      * Constructor
      *
      * Instantiate the HTML parser object
      *
-     * @param  Document $document
+     * @param ?Document $document
      */
-    public function __construct(Document $document = null)
+    public function __construct(?Document $document = null)
     {
         if ($document !== null) {
             $this->setDocument($document);
@@ -132,11 +133,11 @@ class Parser
     /**
      * Parse HTML string
      *
-     * @param  string   $htmlString
-     * @param  Document $document
-     * @return self
+     * @param  string    $htmlString
+     * @param  ?Document $document
+     * @return Parser
      */
-    public static function parseString($htmlString, Document $document = null)
+    public static function parseString(string $htmlString, ?Document $document = null): Parser
     {
         $html = new self($document);
         $html->parseHtml($htmlString);
@@ -147,11 +148,12 @@ class Parser
     /**
      * Parse $html from file
      *
-     * @param  string   $htmlFile
-     * @param  Document $document
-     * @return self
+     * @param  string    $htmlFile
+     * @param  ?Document $document
+     * @throws Exception
+     * @return Parser
      */
-    public static function parseFile($htmlFile, Document $document = null)
+    public static function parseFile(string $htmlFile, ?Document $document = null): Parser
     {
         $html = new self($document);
         $html->parseHtmlFile($htmlFile);
@@ -162,11 +164,12 @@ class Parser
     /**
      * Parse $html from URI
      *
-     * @param  string   $htmlUri
-     * @param  Document $document
-     * @return self
+     * @param  string    $htmlUri
+     * @param  ?Document $document
+     * @throws Exception
+     * @return Parser
      */
-    public static function parseUri($htmlUri, Document $document = null)
+    public static function parseUri(string $htmlUri, ?Document $document = null): Parser
     {
         $html = new self($document);
         $html->parseHtmlUri($htmlUri);
@@ -178,9 +181,9 @@ class Parser
      * Set document
      *
      * @param  Document $document
-     * @return self
+     * @return Parser
      */
-    public function setDocument(Document $document)
+    public function setDocument(Document $document): Parser
     {
         $this->document = $document;
         return $this;
@@ -189,11 +192,11 @@ class Parser
     /**
      * Parse HTML string
      *
-     * @param  string $htmlString
-     * @param  string $basePath
-     * @return self
+     * @param  string  $htmlString
+     * @param  ?string $basePath
+     * @return Parser
      */
-    public function parseHtml($htmlString, $basePath = null)
+    public function parseHtml(string $htmlString, ?string $basePath = null): Parser
     {
         if ($basePath !== null) {
             $this->fileDir = $basePath;
@@ -207,9 +210,9 @@ class Parser
      *
      * @param  string $htmlFile
      * @throws Exception
-     * @return self
+     * @return Parser
      */
-    public function parseHtmlFile($htmlFile)
+    public function parseHtmlFile(string $htmlFile): Parser
     {
         if (!file_exists($htmlFile)) {
             throw new Exception('Error: That file does not exist.');
@@ -221,10 +224,9 @@ class Parser
      * Parse HTML string from URI
      *
      * @param  string $htmlUri
-     * @throws Exception
-     * @return self
+     * @return Parser
      */
-    public function parseHtmlUri($htmlUri)
+    public function parseHtmlUri(string $htmlUri): Parser
     {
         return $this->parseHtml(file_get_contents($htmlUri));
     }
@@ -233,9 +235,9 @@ class Parser
      * Parse CSS string
      *
      * @param  string $cssString
-     * @return self
+     * @return Parser
      */
-    public function parseCss($cssString)
+    public function parseCss(string $cssString): Parser
     {
         if ($this->css === null) {
             $this->css = Css\Css::parseString($cssString);
@@ -249,9 +251,10 @@ class Parser
      * Parse CSS file
      *
      * @param  string $cssFile
-     * @return self
+     * @throws \Pop\Css\Exception
+     * @return Parser
      */
-    public function parseCssFile($cssFile)
+    public function parseCssFile(string $cssFile): Parser
     {
         if ($this->css === null) {
             $this->css = Css\Css::parseFile($cssFile);
@@ -265,9 +268,9 @@ class Parser
      * Parse CSS URI
      *
      * @param  string $cssUri
-     * @return self
+     * @return Parser
      */
-    public function parseCssUri($cssUri)
+    public function parseCssUri(string $cssUri): Parser
     {
         if ($this->css === null) {
             $this->css = Css\Css::parseUri($cssUri);
@@ -280,9 +283,9 @@ class Parser
     /**
      * Get document
      *
-     * @return Document
+     * @return ?Document
      */
-    public function getDocument()
+    public function getDocument(): ?Document
     {
         return $this->document;
     }
@@ -290,9 +293,9 @@ class Parser
     /**
      * Get document (alias)
      *
-     * @return Document
+     * @return ?Document
      */
-    public function document()
+    public function document(): ?Document
     {
         return $this->document;
     }
@@ -302,9 +305,9 @@ class Parser
      *
      * @param  mixed $size
      * @param  mixed $height
-     * @return self
+     * @return Parser
      */
-    public function setPageSize($size, $height = null)
+    public function setPageSize(mixed $size, mixed $height = null): Parser
     {
         $this->pageSize = ($height !== null) ? ['width' => $size, 'height' => $height] : $size;
 
@@ -316,7 +319,7 @@ class Parser
      *
      * @return string|array
      */
-    public function getPageSize()
+    public function getPageSize(): string|array
     {
         return $this->pageSize;
     }
@@ -328,9 +331,9 @@ class Parser
      * @param  int $right
      * @param  int $bottom
      * @param  int $left
-     * @return self
+     * @return Parser
      */
-    public function setPageMargins($top, $right, $bottom, $left)
+    public function setPageMargins(int $top, int $right, int $bottom, int $left): Parser
     {
         $this->pageMargins['top']    = $top;
         $this->pageMargins['right']  = $right;
@@ -343,9 +346,9 @@ class Parser
      * Set page top margin
      *
      * @param  int $margin
-     * @return self
+     * @return Parser
      */
-    public function setPageTopMargin($margin)
+    public function setPageTopMargin(int $margin): Parser
     {
         $this->pageMargins['top'] = $margin;
         return $this;
@@ -355,9 +358,9 @@ class Parser
      * Set page right margin
      *
      * @param  int $margin
-     * @return self
+     * @return Parser
      */
-    public function setPageRightMargin($margin)
+    public function setPageRightMargin(int $margin): Parser
     {
         $this->pageMargins['right'] = $margin;
         return $this;
@@ -367,9 +370,9 @@ class Parser
      * Set page bottom margin
      *
      * @param  int $margin
-     * @return self
+     * @return Parser
      */
-    public function setPageBottomMargin($margin)
+    public function setPageBottomMargin(int $margin): Parser
     {
         $this->pageMargins['bottom'] = $margin;
         return $this;
@@ -379,9 +382,9 @@ class Parser
      * Set page left margin
      *
      * @param  int $margin
-     * @return self
+     * @return Parser
      */
-    public function setPageLeftMargin($margin)
+    public function setPageLeftMargin(int $margin): Parser
     {
         $this->pageMargins['left'] = $margin;
         return $this;
@@ -392,9 +395,9 @@ class Parser
      *
      * @param  string $property
      * @param  string $value
-     * @return self
+     * @return Parser
      */
-    public function setDefaultStyle($property, $value)
+    public function setDefaultStyle(string $property, string $value): Parser
     {
         $this->defaultStyles[$property] = $value;
         return $this;
@@ -404,9 +407,9 @@ class Parser
      * Set x-position
      *
      * @param  int $x
-     * @return self
+     * @return Parser
      */
-    public function setX($x)
+    public function setX(int $x): Parser
     {
         $this->x = $x;
         return $this;
@@ -416,9 +419,9 @@ class Parser
      * Set y-position
      *
      * @param  int $y
-     * @return self
+     * @return Parser
      */
-    public function setY($y)
+    public function setY(int $y): Parser
     {
         $this->y = $y;
         return $this;
@@ -429,7 +432,7 @@ class Parser
      *
      * @return array
      */
-    public function getPageMargins()
+    public function getPageMargins(): array
     {
         return $this->pageMargins;
     }
@@ -439,7 +442,7 @@ class Parser
      *
      * @return int
      */
-    public function getPageTopMargin()
+    public function getPageTopMargin(): int
     {
         return $this->pageMargins['top'];
     }
@@ -449,7 +452,7 @@ class Parser
      *
      * @return int
      */
-    public function getPageRightMargin()
+    public function getPageRightMargin(): int
     {
         return $this->pageMargins['right'];
     }
@@ -459,7 +462,7 @@ class Parser
      *
      * @return int
      */
-    public function getPageBottomMargin()
+    public function getPageBottomMargin(): int
     {
         return $this->pageMargins['bottom'];
     }
@@ -469,7 +472,7 @@ class Parser
      *
      * @return int
      */
-    public function getPageLeftMargin()
+    public function getPageLeftMargin(): int
     {
         return $this->pageMargins['left'];
     }
@@ -479,7 +482,7 @@ class Parser
      *
      * @return int
      */
-    public function getX()
+    public function getX(): int
     {
         return $this->x;
     }
@@ -489,7 +492,7 @@ class Parser
      *
      * @return int
      */
-    public function getY()
+    public function getY(): int
     {
         return $this->y;
     }
@@ -498,11 +501,11 @@ class Parser
      * Get a default style
      *
      * @param  string $property
-     * @return string
+     * @return ?string
      */
-    public function getDefaultStyle($property)
+    public function getDefaultStyle(string $property): ?string
     {
-        return (isset($this->defaultStyles[$property])) ? $this->defaultStyles[$property] : null;
+        return $this->defaultStyles[$property] ?? null;
     }
 
     /**
@@ -510,7 +513,7 @@ class Parser
      *
      * @return array
      */
-    public function getDefaultStyles()
+    public function getDefaultStyles(): array
     {
         return $this->defaultStyles;
     }
@@ -518,9 +521,9 @@ class Parser
     /**
      * Get styles
      *
-     * @return Css\Css
+     * @return ?Css\Css
      */
-    public function getCss()
+    public function getCss(): ?Css\Css
     {
         return $this->css;
     }
@@ -528,9 +531,9 @@ class Parser
     /**
      * Get HTML nodes
      *
-     * @return Child|array
+     * @return array|Child|null
      */
-    public function getHtml()
+    public function getHtml(): array|Child|null
     {
         return $this->html;
     }
@@ -538,9 +541,9 @@ class Parser
     /**
      * Prepare for conversion of HTML into PDF objects
      *
-     * @return array|Child
+     * @return array|Child|null
      */
-    public function prepare()
+    public function prepare(): array|Child|null
     {
         $htmlNodes = null;
         if ($this->html instanceof Child) {
@@ -573,9 +576,10 @@ class Parser
     /**
      * Process conversion of HTML into PDF objects
      *
-     * @return Document
+     * @throws Exception
+     * @return ?Document
      */
-    public function process()
+    public function process(): ?Document
     {
         $htmlNodes = $this->prepare();
 
@@ -595,11 +599,11 @@ class Parser
     /**
      * Add node to document
      *
-     * @param  Child   $child
-     * @throws Exception
+     * @param Child $child
+     * @throws Exception|\Pop\Pdf\Exception
      * @return void
      */
-    protected function addNodeToDocument(Child $child)
+    protected function addNodeToDocument(Child $child): void
     {
         $styles   = $this->prepareNodeStyles($child->getNodeName(), $child->getAttributes());
         $currentX = $this->getCurrentX();
@@ -744,8 +748,7 @@ class Parser
 
             $currentY += 15;
             $x1 = $this->pageMargins['left'];
-/*
-
+/**
             $finalHeight = (25 * $rowCount);
             $path    = new Document\Page\Path();
             $path->drawRectangle($x1, $currentY, $tableWidth, $finalHeight);
@@ -756,7 +759,7 @@ class Parser
                 $path->drawLine($x1 + ($i * $columnWidth), $currentY, $x1 + ($i * $columnWidth), $this->page->getHeight() - $finalHeight + 35);
                 $this->page->addPath($path);
             }
-            */
+*/
 
             for ($i = 0; $i < $rowCount; $i++) {
                 if (($i == 0) && ($thHeight > 0)) {
@@ -767,7 +770,7 @@ class Parser
                 $path  = new Document\Page\Path();
                 $path->drawLine($x1, $lineY, $tableWidth + $this->pageMargins['left'], $lineY);
                 $this->page->addPath($path);
-                /*
+/**
                 if (($i == 1) && ($thHeight > 0)) {
                     $lineY = ($currentY + ($i * 25));
                 } else {
@@ -776,7 +779,7 @@ class Parser
                 $path  = new Document\Page\Path();
                 $path->drawLine($x1, $lineY, $tableWidth + $this->pageMargins['left'], $lineY);
                 $this->page->addPath($path);
-                */
+*/
             }
 
 
@@ -863,7 +866,7 @@ class Parser
      * @throws Exception
      * @return void
      */
-    protected function addNodeStreamToDocument(Child $child)
+    protected function addNodeStreamToDocument(Child $child): void
     {
         $styles     = $this->prepareNodeStyles($child->getNodeName(), $child->getAttributes());
         $currentX   = $this->getCurrentX();
@@ -925,7 +928,7 @@ class Parser
      *
      * @return void
      */
-    protected function createDefaultStyles()
+    protected function createDefaultStyles(): void
     {
         $h1 = new Css\Selector('h1');
         $h1['margin-bottom'] = '18px';
@@ -1010,7 +1013,7 @@ class Parser
      * @throws Exception
      * @return array
      */
-    protected function prepareNodeStyles($name, array $attribs = [], $currentStyles = [])
+    protected function prepareNodeStyles(string $name, array $attribs = [], array $currentStyles = []): array
     {
         $styles = [
             'currentFont'   => null,
@@ -1225,7 +1228,7 @@ class Parser
             }
         }
 
-        if (strpos($styles['fontFamily'], ',') !== false) {
+        if (str_contains($styles['fontFamily'], ',')) {
             $fonts = explode(',', $styles['fontFamily']);
             foreach ($fonts as $font) {
                 $font = trim($font);
@@ -1307,7 +1310,7 @@ class Parser
      *
      * @return int
      */
-    protected function getCurrentX()
+    protected function getCurrentX(): int
     {
         if ($this->x < $this->pageMargins['left']) {
             $this->x = $this->pageMargins['left'];
@@ -1320,7 +1323,7 @@ class Parser
      *
      * @return int
      */
-    protected function resetX()
+    protected function resetX(): int
     {
         $this->x = $this->pageMargins['left'];
         return $this->x;
@@ -1331,7 +1334,7 @@ class Parser
      *
      * @return int
      */
-    protected function getCurrentY()
+    protected function getCurrentY(): int
     {
         if (!($this->document->hasPages())) {
             $this->page = (is_array($this->pageSize)) ?
@@ -1358,7 +1361,7 @@ class Parser
      *
      * @return int
      */
-    protected function resetY()
+    protected function resetY(): int
     {
         if (!($this->document->hasPages())) {
             $this->page = (is_array($this->pageSize)) ?
@@ -1378,7 +1381,7 @@ class Parser
      *
      * @return int
      */
-    protected function newPage()
+    protected function newPage(): int
     {
         $this->page = (is_array($this->pageSize)) ?
             new Document\Page($this->pageSize['width'], $this->pageSize['height']) : new Document\Page($this->pageSize);
@@ -1393,7 +1396,7 @@ class Parser
      * @param  array $styles
      * @return void
      */
-    protected function goToNextLine(array $styles)
+    protected function goToNextLine(array $styles): void
     {
         $this->y += $styles['marginBottom'] + $styles['paddingBottom'] + $styles['lineHeight'];
     }
@@ -1407,7 +1410,7 @@ class Parser
      * @param  Document\Font $fontObject
      * @return array
      */
-    protected function getStringLines($string, $fontSize, $wrapLength, Document\Font $fontObject)
+    protected function getStringLines(string $string, int $fontSize, int $wrapLength, Document\Font $fontObject): array
     {
         $strings   = [];
         $curString = '';

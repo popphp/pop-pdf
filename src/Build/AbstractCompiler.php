@@ -30,82 +30,82 @@ abstract class AbstractCompiler implements CompilerInterface
 
     /**
      * Root object
-     * @var PdfObject\RootObject
+     * @var ?PdfObject\RootObject
      */
-    protected $root = null;
+    protected ?PdfObject\RootObject $root = null;
 
     /**
      * Parent object
-     * @var PdfObject\ParentObject
+     * @var ?PdfObject\ParentObject
      */
-    protected $parent = null;
+    protected ?PdfObject\ParentObject$parent = null;
 
     /**
      * Info object
-     * @var PdfObject\InfoObject
+     * @var ?PdfObject\InfoObject
      */
-    protected $info = null;
+    protected ?PdfObject\InfoObject$info = null;
 
     /**
      * Document object
-     * @var Document $document
+     * @var ?Document
      */
-    protected $document = null;
+    protected ?Document $document = null;
 
     /**
      * Pages array
-     * @var Document\Page[]
+     * @var array
      */
-    protected $pages = [];
+    protected array $pages = [];
 
     /**
      * Objects array
      * @var array
      */
-    protected $objects = [];
+    protected array $objects = [];
 
     /**
      * Fonts array
      * @var array
      */
-    protected $fonts = [];
+    protected array $fonts = [];
 
     /**
      * Font references
      * @var array
      */
-    protected $fontReferences = [];
+    protected array $fontReferences = [];
 
     /**
      * Compression property
      * @var bool
      */
-    protected $compression = true;
+    protected bool $compression = true;
 
     /**
      * PDF byte length
-     * @var int
+     * @var ?int
      */
-    protected $byteLength = null;
+    protected ?int $byteLength = null;
 
     /**
      * PDF document trailer
-     * @var string
+     * @var ?string
      */
-    protected $trailer = null;
+    protected ?string $trailer = null;
 
     /**
      * PDF document output buffer
-     * @var string
+     * @var ?string
      */
-    protected $output = null;
+    protected ?string $output = null;
 
     /**
      * Get the document object
      *
      * @return Document
      */
-    public function getDocument()
+    public function getDocument(): Document
     {
         return $this->document;
     }
@@ -113,9 +113,9 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Get the root object
      *
-     * @return PdfObject\RootObject
+     * @return ?PdfObject\RootObject
      */
-    public function getRoot()
+    public function getRoot(): ?PdfObject\RootObject
     {
         return $this->root;
     }
@@ -123,9 +123,9 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Get the parent object
      *
-     * @return PdfObject\ParentObject
+     * @return ?PdfObject\ParentObject
      */
-    public function getParent()
+    public function getParent(): ?PdfObject\ParentObject
     {
         return $this->parent;
     }
@@ -133,9 +133,9 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Get the info object
      *
-     * @return PdfObject\InfoObject
+     * @return ?PdfObject\InfoObject
      */
-    public function getInfo()
+    public function getInfo(): ?PdfObject\InfoObject
     {
         return $this->info;
     }
@@ -145,7 +145,7 @@ abstract class AbstractCompiler implements CompilerInterface
      *
      * @return array
      */
-    public function getFonts()
+    public function getFonts(): array
     {
         return $this->fonts;
     }
@@ -155,7 +155,7 @@ abstract class AbstractCompiler implements CompilerInterface
      *
      * @return array
      */
-    public function getFontReferences()
+    public function getFontReferences(): array
     {
         return $this->fontReferences;
     }
@@ -165,7 +165,7 @@ abstract class AbstractCompiler implements CompilerInterface
      *
      * @return int
      */
-    public function lastIndex()
+    public function lastIndex(): int
     {
         if (count($this->objects) == 0) {
             return 0;
@@ -181,7 +181,7 @@ abstract class AbstractCompiler implements CompilerInterface
      *
      * @return string
      */
-    public function getOutput()
+    public function getOutput(): string
     {
         return $this->output;
     }
@@ -192,7 +192,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  PdfObject\RootObject $root
      * @return AbstractCompiler
      */
-    protected function setRoot(PdfObject\RootObject $root)
+    protected function setRoot(PdfObject\RootObject $root): AbstractCompiler
     {
         $this->root = $root;
         $this->objects[$this->root->getIndex()] = $this->root;
@@ -205,7 +205,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  PdfObject\ParentObject $parent
      * @return AbstractCompiler
      */
-    protected function setParent(PdfObject\ParentObject $parent)
+    protected function setParent(PdfObject\ParentObject $parent): AbstractCompiler
     {
         $this->parent = $parent;
         $this->objects[$this->parent->getIndex()] = $this->parent;
@@ -218,7 +218,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  PdfObject\InfoObject $info
      * @return AbstractCompiler
      */
-    protected function setInfo(PdfObject\InfoObject $info)
+    protected function setInfo(PdfObject\InfoObject $info): AbstractCompiler
     {
         $this->info = $info;
         $this->objects[$this->info->getIndex()] = $this->info;
@@ -231,7 +231,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  string $string
      * @return int
      */
-    protected function calculateByteLength($string)
+    protected function calculateByteLength(string $string): int
     {
         return strlen($string);
     }
@@ -242,7 +242,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  int|string $num
      * @return string
      */
-    protected function formatByteLength($num)
+    protected function formatByteLength(int|string $num): string
     {
         return sprintf('%010d', $num);
     }
@@ -255,7 +255,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  PdfObject\PageObject $pageObject
      * @return array
      */
-    protected function getCoordinates($x, $y, PdfObject\PageObject $pageObject)
+    protected function getCoordinates(int $x, int $y, PdfObject\PageObject $pageObject): array
     {
         $coordinates = ['x' => $x, 'y' => $y];
         $width       = $pageObject->getWidth();
@@ -287,22 +287,22 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  Document\AbstractDocument $document
      * @return Compiler
      */
-    abstract public function setDocument(Document\AbstractDocument $document);
+    abstract public function setDocument(Document\AbstractDocument $document): Compiler;
 
     /**
      * Compile and finalize the PDF document
      *
-     * @param  Document\AbstractDocument $document
+     * @param  ?Document\AbstractDocument $document
      * @return void
      */
-    abstract public function finalize(Document\AbstractDocument $document = null);
+    abstract public function finalize(Document\AbstractDocument $document = null): void;
 
     /**
      * Prepare the font objects
      *
      * @return void
      */
-    abstract public function prepareFonts();
+    abstract public function prepareFonts(): void;
 
     /**
      * Prepare the image objects
@@ -311,7 +311,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    abstract protected function prepareImages(array $images, PdfObject\PageObject $pageObject);
+    abstract protected function prepareImages(array $images, PdfObject\PageObject $pageObject): void;
 
     /**
      * Prepare the text objects
@@ -320,7 +320,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    abstract protected function prepareText(array $text, PdfObject\PageObject $pageObject);
+    abstract protected function prepareText(array $text, PdfObject\PageObject $pageObject): void;
 
     /**
      * Prepare the annotation objects
@@ -329,7 +329,7 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    abstract protected function prepareAnnotations(array $annotations, PdfObject\PageObject $pageObject);
+    abstract protected function prepareAnnotations(array $annotations, PdfObject\PageObject $pageObject): void;
 
     /**
      * Prepare the path objects
@@ -338,6 +338,6 @@ abstract class AbstractCompiler implements CompilerInterface
      * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    abstract protected function preparePaths(array $paths, PdfObject\PageObject $pageObject);
+    abstract protected function preparePaths(array $paths, PdfObject\PageObject $pageObject): void;
 
 }

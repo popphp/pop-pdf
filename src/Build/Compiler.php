@@ -13,8 +13,6 @@
  */
 namespace Pop\Pdf\Build;
 
-use Pop\Pdf\Build\Image;
-use Pop\Pdf\Build\PdfObject;
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Page\Text;
 
@@ -37,7 +35,7 @@ class Compiler extends AbstractCompiler
      * @param  Document\AbstractDocument $document
      * @return Compiler
      */
-    public function setDocument(Document\AbstractDocument $document)
+    public function setDocument(Document\AbstractDocument $document): Compiler
     {
         $this->document = $document;
 
@@ -88,10 +86,11 @@ class Compiler extends AbstractCompiler
     /**
      * Compile and finalize the PDF document
      *
-     * @param  Document\AbstractDocument $document
+     * @param  ?Document\AbstractDocument $document
+     * @throws Exception
      * @return void
      */
-    public function finalize(Document\AbstractDocument $document = null)
+    public function finalize(Document\AbstractDocument $document = null): void
     {
         if ($document !== null) {
             $this->setDocument($document);
@@ -186,9 +185,10 @@ class Compiler extends AbstractCompiler
     /**
      * Prepare the font objects
      *
+     * @throws Exception|Font\Exception
      * @return void
      */
-    public function prepareFonts()
+    public function prepareFonts(): void
     {
         foreach ($this->fonts as $font) {
             if ($font instanceof \Pop\Pdf\Document\Font) {
@@ -229,7 +229,7 @@ class Compiler extends AbstractCompiler
      * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    protected function prepareImages(array $images, PdfObject\PageObject $pageObject)
+    protected function prepareImages(array $images, PdfObject\PageObject $pageObject): void
     {
         $imgs = [];
 
@@ -275,7 +275,7 @@ class Compiler extends AbstractCompiler
      * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    protected function preparePaths(array $paths, PdfObject\PageObject $pageObject)
+    protected function preparePaths(array $paths, PdfObject\PageObject $pageObject): void
     {
         $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
         $this->objects[$contentObject->getIndex()] = $contentObject;
@@ -310,7 +310,7 @@ class Compiler extends AbstractCompiler
      * @throws Exception
      * @return void
      */
-    protected function prepareText(array $text, PdfObject\PageObject $pageObject)
+    protected function prepareText(array $text, PdfObject\PageObject $pageObject): void
     {
         $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
         $this->objects[$contentObject->getIndex()] = $contentObject;
@@ -370,7 +370,7 @@ class Compiler extends AbstractCompiler
      * @throws Exception
      * @return void
      */
-    protected function prepareTextStreams(array $textStreams, PdfObject\PageObject $pageObject)
+    protected function prepareTextStreams(array $textStreams, PdfObject\PageObject $pageObject): void
     {
         $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
         $this->objects[$contentObject->getIndex()] = $contentObject;
@@ -388,7 +388,7 @@ class Compiler extends AbstractCompiler
      * @param  PdfObject\PageObject $pageObject
      * @return void
      */
-    protected function prepareAnnotations(array $annotations, PdfObject\PageObject $pageObject)
+    protected function prepareAnnotations(array $annotations, PdfObject\PageObject $pageObject): void
     {
         foreach ($annotations as $annotation) {
             $i = $this->lastIndex() + 1;
@@ -420,7 +420,7 @@ class Compiler extends AbstractCompiler
      * @throws Exception
      * @return void
      */
-    protected function prepareFields(array $fields, PdfObject\PageObject $pageObject)
+    protected function prepareFields(array $fields, PdfObject\PageObject $pageObject): void
     {
         foreach ($fields as $field) {
             if ($this->document->getForm($field['form']) !== null) {
@@ -447,7 +447,7 @@ class Compiler extends AbstractCompiler
      *
      * @return void
      */
-    protected function prepareForms()
+    protected function prepareForms(): void
     {
         $formRefs = '';
         foreach ($this->document->getForms() as $form) {

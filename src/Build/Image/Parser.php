@@ -32,139 +32,139 @@ class Parser
      * Image width
      * @var int
      */
-    protected $width = 0;
+    protected int $width = 0;
 
     /**
      * Image height
      * @var int
      */
-    protected $height = 0;
+    protected int $height = 0;
 
     /**
      * Image resize value
-     * @var array
+     * @var ?array
      */
-    protected $resize = null;
+    protected ?array $resize = null;
 
     /**
      * Image mime
-     * @var string
+     * @var ?string
      */
-    protected $mime = null;
+    protected ?string $mime = null;
 
     /**
      * Image color mode
      * @var mixed
      */
-    protected $colorMode = null;
+    protected mixed $colorMode = null;
 
     /**
      * Number of channels in the image
      * @var int
      */
-    protected $channels = 0;
+    protected int $channels = 0;
 
     /**
      * Image bit-depth
      * @var int
      */
-    protected $depth = 0;
+    protected int $depth = 0;
 
     /**
      * Image basename
-     * @var string
+     * @var ?string
      */
-    protected $basename = null;
+    protected ?string $basename = null;
 
     /**
      * Image filename
-     * @var string
+     * @var ?string
      */
-    protected $filename = null;
+    protected ?string $filename = null;
 
     /**
      * Image extension
-     * @var string
+     * @var ?string
      */
-    protected $extension = null;
+    protected ?string $extension = null;
 
     /**
      * Image fullpath
-     * @var string
+     * @var ?string
      */
-    protected $fullpath = null;
+    protected ?string $fullpath = null;
 
     /**
      * Image stream
-     * @var string
+     * @var ?string
      */
-    protected $stream = null;
+    protected ?string $stream = null;
 
     /**
      * Image total number of colors
      * @var int
      */
-    protected $colorTotal = 0;
+    protected int $colorTotal = 0;
 
     /**
      * Flag for if the image has an alpha channel
      * @var bool
      */
-    protected $alpha = false;
+    protected bool $alpha = false;
 
     /**
      * Image data
      * @var mixed
      */
-    protected $imageData = null;
+    protected mixed $imageData = null;
 
     /**
      * Image data length
-     * @var int
+     * @var ?int
      */
-    protected $imageDataLength = null;
+    protected ?int$imageDataLength = null;
 
     /**
      * GD image resource
-     * @var resource
+     * @var mixed
      */
-    protected $resource = null;
+    protected mixed $resource = null;
 
     /**
      * Image X Coordinate
      * @var int
      */
-    protected $x = 0;
+    protected int $x = 0;
 
     /**
      * Image Y Coordinate
      * @var int
      */
-    protected $y = 0;
+    protected int $y = 0;
 
     /**
      * Image object index
-     * @var int
+     * @var ?int
      */
-    protected $index = null;
+    protected ?int $index = null;
 
     /**
      * Image objects
      * @var array
      */
-    protected $objects = [];
+    protected array $objects = [];
 
     /**
      * Converted GIF to PNG image
-     * @var string
+     * @var ?string
      */
-    protected $convertedImage = null;
+    protected ?string $convertedImage = null;
 
     /**
      * Resized image
-     * @var string
+     * @var ?string
      */
-    protected $resizedImage = null;
+    protected ?string $resizedImage = null;
 
     /**
      * Constructor
@@ -174,7 +174,7 @@ class Parser
      * @param  int $x
      * @param  int $y
      */
-    public function __construct($x, $y)
+    public function __construct(int $x, int $y)
     {
         $this->setX($x);
         $this->setY($y);
@@ -183,14 +183,16 @@ class Parser
     /**
      * Create image from file
      *
-     * @param  string  $imageFile
-     * @param  int     $x
-     * @param  int     $y
-     * @param  array   $resize
-     * @param  bool $preserveResolution
+     * @param  string $imageFile
+     * @param  int    $x
+     * @param  int    $y
+     * @param  ?array $resize
+     * @param  bool   $preserveResolution
      * @return Parser
      */
-    public static function createImageFromFile($imageFile, $x, $y, array $resize = null, $preserveResolution = false)
+    public static function createImageFromFile(
+        string $imageFile, int $x, int $y, ?array $resize = null, bool $preserveResolution = false
+    ): Parser
     {
         $parser = new self($x, $y);
         $parser->loadImageFromFile($imageFile, $resize, $preserveResolution);
@@ -200,14 +202,16 @@ class Parser
     /**
      * Create image from stream
      *
-     * @param  string  $imageStream
-     * @param  int     $x
-     * @param  int     $y
-     * @param  array   $resize
-     * @param  bool $preserveResolution
+     * @param  string $imageStream
+     * @param  int    $x
+     * @param  int    $y
+     * @param  ?array $resize
+     * @param  bool   $preserveResolution
      * @return Parser
      */
-    public static function createImageFromStream($imageStream, $x, $y, array $resize = null, $preserveResolution = false)
+    public static function createImageFromStream(
+        string $imageStream, int $x, int $y, ?array $resize = null, bool $preserveResolution = false
+    ): Parser
     {
         $parser = new self($x, $y);
         $parser->loadImageFromStream($imageStream, $resize, $preserveResolution);
@@ -218,11 +222,12 @@ class Parser
      * Load image from file
      *
      * @param  string $imageFile
-     * @param  array   $resize
-     * @param  bool $preserveResolution
+     * @param  ?array $resize
+     * @param  bool   $preserveResolution
+     * @throws Exception
      * @return Parser
      */
-    public function loadImageFromFile($imageFile, array $resize = null, $preserveResolution = false)
+    public function loadImageFromFile(string $imageFile, ?array $resize = null, bool $preserveResolution = false): Parser
     {
         $parts           = pathinfo($imageFile);
         $this->fullpath  = realpath($imageFile);
@@ -265,12 +270,13 @@ class Parser
     /**
      * Load image from stream
      *
-     * @param  string  $imageStream
-     * @param  array   $resize
-     * @param  bool $preserveResolution
+     * @param  string $imageStream
+     * @param  ?array $resize
+     * @param  bool   $preserveResolution
+     * @throws Exception
      * @return Parser
      */
-    public function loadImageFromStream($imageStream, array $resize = null, $preserveResolution = false)
+    public function loadImageFromStream(string $imageStream, ?array $resize = null, bool $preserveResolution = false): Parser
     {
         $this->stream = $imageStream;
         $imgSize      = getimagesizefromstring($this->stream);
@@ -330,9 +336,9 @@ class Parser
      * @param  int $x
      * @return Parser
      */
-    public function setX($x)
+    public function setX(int $x): Parser
     {
-        $this->x = (int)$x;
+        $this->x = $x;
         return $this;
     }
 
@@ -342,7 +348,7 @@ class Parser
      * @param  int $y
      * @return Parser
      */
-    public function setY($y)
+    public function setY(int $y): Parser
     {
         $this->y = (int)$y;
         return $this;
@@ -354,9 +360,9 @@ class Parser
      * @param  int $i
      * @return Parser
      */
-    public function setIndex($i)
+    public function setIndex(int $i): Parser
     {
-        $this->index = (int)$i;
+        $this->index = $i;
         return $this;
     }
 
@@ -365,7 +371,7 @@ class Parser
      *
      * @return int
      */
-    public function getX()
+    public function getX(): int
     {
         return $this->x;
     }
@@ -375,7 +381,7 @@ class Parser
      *
      * @return int
      */
-    public function getY()
+    public function getY(): int
     {
         return $this->y;
     }
@@ -385,7 +391,7 @@ class Parser
      *
      * @return int
      */
-    public function getWidth()
+    public function getWidth(): int
     {
         return $this->width;
     }
@@ -395,7 +401,7 @@ class Parser
      *
      * @return int
      */
-    public function getHeight()
+    public function getHeight(): int
     {
         return $this->height;
     }
@@ -403,9 +409,9 @@ class Parser
     /**
      * Get the converted image
      *
-     * @return string
+     * @return ?string
      */
-    public function getConvertedImage()
+    public function getConvertedImage(): ?string
     {
         return $this->convertedImage;
     }
@@ -413,9 +419,9 @@ class Parser
     /**
      * Get the image object index
      *
-     * @return int
+     * @return ?int
      */
-    public function getIndex()
+    public function getIndex(): ?int
     {
         return $this->index;
     }
@@ -425,7 +431,7 @@ class Parser
      *
      * @return string
      */
-    public function getStream()
+    public function getStream(): string
     {
         $width  = $this->resize['width'] ?? $this->width;
         $height = $this->resize['height'] ?? $this->height;
@@ -437,7 +443,7 @@ class Parser
      *
      * @return string
      */
-    public function getXObject()
+    public function getXObject(): string
     {
         return "/I{$this->index} {$this->index} 0 R";
     }
@@ -445,9 +451,10 @@ class Parser
     /**
      * Get the image objects
      *
+     * @throws Exception
      * @return array
      */
-    public function getObjects()
+    public function getObjects(): array
     {
         if (count($this->objects) == 0) {
             $this->parse();
@@ -461,7 +468,7 @@ class Parser
      * @throws Exception
      * @return void
      */
-    public function parse()
+    public function parse(): void
     {
         if ($this->index === null) {
             throw new Exception('Error: The image index has not been set.');
@@ -478,9 +485,9 @@ class Parser
      *
      * @return void
      */
-    protected function parseImageData()
+    protected function parseImageData(): void
     {
-        if (substr(strtolower($this->extension), 0, 2) == 'jp') {
+        if (str_starts_with(strtolower($this->extension), 'jp')) {
             switch ($this->channels) {
                 case 1:
                     $this->colorMode = 'Gray';
@@ -537,7 +544,7 @@ class Parser
      * @throws Exception
      * @return void
      */
-    protected function parsePng()
+    protected function parsePng(): void
     {
         // Define some PNG image-specific variables.
         $PLTE      = null;
@@ -557,14 +564,14 @@ class Parser
             $palIndex    = $this->index + 1;
 
             // If the PNG is indexed, parse and read the palette and any transparencies that might exist.
-            if (strpos($this->imageData, 'PLTE') !== false) {
+            if (str_contains($this->imageData, 'PLTE')) {
                 $lenByte   = substr($this->imageData, (strpos($this->imageData, "PLTE") - 4), 4);
                 $palLength = $this->readInt($lenByte);
                 $PLTE      = substr($this->imageData, (strpos($this->imageData, "PLTE") + 4), $palLength);
                 $mask      = null;
 
                 // If a transparency exists, parse it and set the mask accordingly, along with the palette.
-                if (strpos($this->imageData, 'tRNS') !== false) {
+                if (str_contains($this->imageData, 'tRNS')) {
                     $lenByte   = substr($this->imageData, (strpos($this->imageData, "tRNS") - 4), 4);
                     $TRNS      = substr($this->imageData, (strpos($this->imageData, "tRNS") + 4), $this->readInt($lenByte));
                     $maskIndex = strpos($TRNS, chr(0));
@@ -612,10 +619,9 @@ class Parser
     /**
      * Parse the JPG image data
      *
-     * @throws Exception
      * @return void
      */
-    protected function parseJpeg()
+    protected function parseJpeg(): void
     {
         // Add the image to the objects array.
         $colorMode  = (strtolower($this->colorMode) == 'srgb') ? 'RGB' : $this->colorMode;
@@ -633,7 +639,7 @@ class Parser
      *
      * @return void
      */
-    protected function createResource()
+    protected function createResource(): void
     {
         if ($this->stream !== null) {
             $this->resource = imagecreatefromstring($this->stream);
@@ -658,7 +664,7 @@ class Parser
      * @param  int $quality
      * @return void
      */
-    public function convertToJpeg($quality = 70)
+    public function convertToJpeg(int $quality = 70): void
     {
         $this->convertedImage = realpath(sys_get_temp_dir()) . DIRECTORY_SEPARATOR . $this->filename . '_' . time() . '.jpg';
 
@@ -671,7 +677,7 @@ class Parser
         $this->width    = imagesx($this->resource);
         $this->height   = imagesy($this->resource);
 
-        imagejpeg($this->resource, $this->convertedImage, (int)$quality);
+        imagejpeg($this->resource, $this->convertedImage, $quality);
     }
 
     /**
@@ -679,7 +685,7 @@ class Parser
      *
      * @return void
      */
-    protected function convertImage()
+    protected function convertImage(): void
     {
         // Define the temp converted image.
         $this->convertedImage = realpath(sys_get_temp_dir()) . DIRECTORY_SEPARATOR . $this->filename . '_' . time() . '.png';
@@ -711,10 +717,9 @@ class Parser
      * Method to resize the image.
      *
      * @param  array $resize
-     * @throws Exception
      * @return void
      */
-    protected function resizeImage($resize)
+    protected function resizeImage(array $resize): void
     {
         // Define the temp resized image.
         $this->resizedImage = realpath(sys_get_temp_dir()) . DIRECTORY_SEPARATOR . $this->filename . '_' . time() . '.' . $this->extension;
@@ -758,7 +763,7 @@ class Parser
      * @param  string $data
      * @return int
      */
-    protected function readInt($data)
+    protected function readInt(string $data): int
     {
         $ary = unpack('Nlength', $data);
         return $ary['length'];
