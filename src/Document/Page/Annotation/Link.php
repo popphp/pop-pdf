@@ -30,25 +30,25 @@ class Link extends AbstractAnnotation
      * Internal x-position target to link to on internal page
      * @var int
      */
-    protected $xTarget = 0;
+    protected int $xTarget = 0;
 
     /**
      * Internal y-position target to link to on internal page
      * @var int
      */
-    protected $yTarget = 0;
+    protected int $yTarget = 0;
 
     /**
      * Internal z-position target (zoom) to link to on internal page
      * @var int
      */
-    protected $zTarget = 0;
+    protected int $zTarget = 0;
 
     /**
      * Internal page object index target to link to
-     * @var int
+     * @var ?int
      */
-    protected $pageTarget = null;
+    protected ?int $pageTarget = null;
 
     /**
      * Constructor
@@ -60,7 +60,7 @@ class Link extends AbstractAnnotation
      * @param  int $xTarget
      * @param  int $yTarget
      */
-    public function __construct($width, $height, $xTarget, $yTarget)
+    public function __construct(int $width, int $height, int $xTarget, int $yTarget)
     {
         parent::__construct($width, $height);
 
@@ -74,9 +74,9 @@ class Link extends AbstractAnnotation
      * @param  int $xTarget
      * @return Link
      */
-    public function setXTarget($xTarget)
+    public function setXTarget(int $xTarget): Link
     {
-        $this->xTarget = (int)$xTarget;
+        $this->xTarget = $xTarget;
         return $this;
     }
 
@@ -86,9 +86,9 @@ class Link extends AbstractAnnotation
      * @param  int $yTarget
      * @return Link
      */
-    public function setYTarget($yTarget)
+    public function setYTarget(int $yTarget): Link
     {
-        $this->yTarget = (int)$yTarget;
+        $this->yTarget = $yTarget;
         return $this;
     }
 
@@ -98,9 +98,9 @@ class Link extends AbstractAnnotation
      * @param  int $zTarget
      * @return Link
      */
-    public function setZTarget($zTarget)
+    public function setZTarget(int $zTarget): Link
     {
-        $this->zTarget = (int)$zTarget;
+        $this->zTarget = $zTarget;
         return $this;
     }
 
@@ -110,7 +110,7 @@ class Link extends AbstractAnnotation
      * @param  int $pageTarget
      * @return Link
      */
-    public function setPageTarget($pageTarget)
+    public function setPageTarget(int $pageTarget): Link
     {
         $this->pageTarget = $pageTarget;
         return $this;
@@ -121,7 +121,7 @@ class Link extends AbstractAnnotation
      *
      * @return int
      */
-    public function getXTarget()
+    public function getXTarget(): int
     {
         return $this->xTarget;
     }
@@ -131,7 +131,7 @@ class Link extends AbstractAnnotation
      *
      * @return int
      */
-    public function getYTarget()
+    public function getYTarget(): int
     {
         return $this->yTarget;
     }
@@ -141,7 +141,7 @@ class Link extends AbstractAnnotation
      *
      * @return int
      */
-    public function getZTarget()
+    public function getZTarget(): int
     {
         return $this->zTarget;
     }
@@ -149,9 +149,9 @@ class Link extends AbstractAnnotation
     /**
      * Get the page target
      *
-     * @return int
+     * @return ?int
      */
-    public function getPageTarget()
+    public function getPageTarget(): ?int
     {
         return $this->pageTarget;
     }
@@ -166,7 +166,7 @@ class Link extends AbstractAnnotation
      * @param  array $kids
      * @return string
      */
-    public function getStream($i, $x, $y, $pageIndex, $kids)
+    public function getStream(int $i, int $x, int $y, int $pageIndex, array $kids): string
     {
         // Assemble the border parameters
         $border = $this->hRadius . ' ' . $this->vRadius . ' ' . $this->borderWidth;

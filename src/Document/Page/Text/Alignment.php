@@ -13,6 +13,7 @@
  */
 namespace Pop\Pdf\Document\Page\Text;
 
+use Pop\Pdf\Document\Exception;
 use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Font;
 
@@ -42,7 +43,7 @@ class Alignment extends AbstractAlignment
      * @param int    $leading
      * @return Alignment
      */
-    public static function createLeft($leftX = 0, $rightX = 0, $leading = 0)
+    public static function createLeft(int $leftX = 0, int $rightX = 0, int $leading = 0): Alignment
     {
         return new self(self::LEFT, $leftX, $rightX, $leading);
     }
@@ -55,7 +56,7 @@ class Alignment extends AbstractAlignment
      * @param int    $leading
      * @return Alignment
      */
-    public static function createRight($leftX = 0, $rightX = 0, $leading = 0)
+    public static function createRight(int $leftX = 0, int $rightX = 0, int $leading = 0): Alignment
     {
         return new self(self::RIGHT, $leftX, $rightX, $leading);
     }
@@ -68,7 +69,7 @@ class Alignment extends AbstractAlignment
      * @param int    $leading
      * @return Alignment
      */
-    public static function createCenter($leftX = 0, $rightX = 0, $leading = 0)
+    public static function createCenter(int $leftX = 0, int $rightX = 0, int $leading = 0): Alignment
     {
         return new self(self::CENTER, $leftX, $rightX, $leading);
     }
@@ -77,11 +78,12 @@ class Alignment extends AbstractAlignment
      * Get strings
      *
      * @param  Page\Text $text
-     * @param  Font      $font
-     * @param  int       $startY
+     * @param  Font $font
+     * @param  int $startY
+     * @throws Exception
      * @return array
      */
-    public function getStrings(Page\Text $text, Font $font, $startY)
+    public function getStrings(Page\Text $text, Font $font, int $startY): array
     {
         $strings    = [];
         $curString  = '';
@@ -139,7 +141,7 @@ class Alignment extends AbstractAlignment
      *
      * @return bool
      */
-    public function isCenter()
+    public function isCenter(): bool
     {
         return ($this->alignment == self::CENTER);
     }

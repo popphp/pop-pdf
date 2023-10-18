@@ -15,6 +15,7 @@ namespace Pop\Pdf\Document\Page\Text;
 
 use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Font;
+use InvalidArgumentException;
 
 /**
  * Pdf page text wrap class
@@ -33,7 +34,7 @@ class Wrap extends AbstractAlignment
      * Wrap box boundary
      * @var array
      */
-    protected $box = [
+    protected array $box = [
         'left'   => 0,
         'right'  => 0,
         'top'    => 0,
@@ -51,7 +52,7 @@ class Wrap extends AbstractAlignment
      * @param array  $box
      * @param int    $leading
      */
-    public function __construct($alignment = self::LEFT, $leftX = 0, $rightX = 0, $box = [], $leading = 0)
+    public function __construct(string $alignment = self::LEFT, int $leftX = 0, int $rightX = 0, array $box = [], int $leading = 0)
     {
         parent::__construct($alignment, $leftX, $rightX, $leading);
         if (!empty($box)) {
@@ -68,7 +69,7 @@ class Wrap extends AbstractAlignment
      * @param int    $leading
      * @return Wrap
      */
-    public static function createLeft($leftX = 0, $rightX = 0, $box = [], $leading = 0)
+    public static function createLeft(int $leftX = 0, int $rightX = 0, array $box = [], int $leading = 0): Wrap
     {
         return new self(self::LEFT, $leftX, $rightX, $box, $leading);
     }
@@ -82,7 +83,7 @@ class Wrap extends AbstractAlignment
      * @param int    $leading
      * @return Wrap
      */
-    public static function createRight($leftX = 0, $rightX = 0, $box = [], $leading = 0)
+    public static function createRight(int $leftX = 0, int $rightX = 0, array $box = [], int $leading = 0): Wrap
     {
         return new self(self::RIGHT, $leftX, $rightX, $box, $leading);
     }
@@ -91,13 +92,13 @@ class Wrap extends AbstractAlignment
      * Set the wrap box boundary
      *
      * @param  array $box
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      * @return Wrap
      */
-    public function setBox(array $box)
+    public function setBox(array $box): Wrap
     {
         if ((count($box) != 4) || !isset($box['left']) || !isset($box['right']) || !isset($box['top']) || !isset($box['bottom'])) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 "Error: The box array must contain the four coordinates 'left', 'right', 'top' and 'bottom'."
             );
         }
@@ -119,7 +120,7 @@ class Wrap extends AbstractAlignment
      * @param  int $bottom
      * @return Wrap
      */
-    public function setBoxCoordinates($left, $right, $top, $bottom)
+    public function setBoxCoordinates(int $left, int $right, int $top, int $bottom): Wrap
     {
         $this->box['left']   = $left;
         $this->box['right']  = $right;
@@ -134,7 +135,7 @@ class Wrap extends AbstractAlignment
      *
      * @return array
      */
-    public function getBox()
+    public function getBox(): array
     {
         return $this->box;
     }
@@ -147,7 +148,7 @@ class Wrap extends AbstractAlignment
      * @param  int       $startY
      * @return array
      */
-    public function getStrings(Page\Text $text, Font $font, $startY)
+    public function getStrings(Page\Text $text, Font $font, int $startY): array
     {
         $stringAry = ($text->hasStrings()) ? $text->getStrings() : [$text->getString()];
         $strings   = [];
@@ -163,7 +164,7 @@ class Wrap extends AbstractAlignment
             $words      = explode(' ', $stringValue);
             $startX     = $this->leftX;
 
-            if ((int)$this->leading == 0) {
+            if ($this->leading == 0) {
                 $this->leading = $text->getSize();
             }
 

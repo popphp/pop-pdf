@@ -33,7 +33,7 @@ class Text extends AbstractField
      *
      * @return Text
      */
-    public function setMultiline()
+    public function setMultiline(): Text
     {
         if (!in_array(13, $this->flagBits)) {
             $this->flagBits[] = 13;
@@ -46,7 +46,7 @@ class Text extends AbstractField
      *
      * @return Text
      */
-    public function setPassword()
+    public function setPassword(): Text
     {
         if (!in_array(14, $this->flagBits)) {
             $this->flagBits[] = 14;
@@ -59,7 +59,7 @@ class Text extends AbstractField
      *
      * @return Text
      */
-    public function setFileSelect()
+    public function setFileSelect(): Text
     {
         if (!in_array(21, $this->flagBits)) {
             $this->flagBits[] = 21;
@@ -72,7 +72,7 @@ class Text extends AbstractField
      *
      * @return Text
      */
-    public function setDoNotSpellCheck()
+    public function setDoNotSpellCheck(): Text
     {
         if (!in_array(23, $this->flagBits)) {
             $this->flagBits[] = 23;
@@ -85,7 +85,7 @@ class Text extends AbstractField
      *
      * @return Text
      */
-    public function setDoNotScroll()
+    public function setDoNotScroll(): Text
     {
         if (!in_array(24, $this->flagBits)) {
             $this->flagBits[] = 24;
@@ -98,7 +98,7 @@ class Text extends AbstractField
      *
      * @return Text
      */
-    public function setComb()
+    public function setComb(): Text
     {
         if (!in_array(25, $this->flagBits)) {
             $this->flagBits[] = 25;
@@ -111,7 +111,7 @@ class Text extends AbstractField
      *
      * @return Text
      */
-    public function setRichText()
+    public function setRichText(): Text
     {
         if (!in_array(26, $this->flagBits)) {
             $this->flagBits[] = 26;
@@ -124,7 +124,7 @@ class Text extends AbstractField
      *
      * @return bool
      */
-    public function isMultiline()
+    public function isMultiline(): bool
     {
         return in_array(13, $this->flagBits);
     }
@@ -134,7 +134,7 @@ class Text extends AbstractField
      *
      * @return bool
      */
-    public function isPassword()
+    public function isPassword(): bool
     {
         return in_array(14, $this->flagBits);
     }
@@ -149,7 +149,7 @@ class Text extends AbstractField
      * @param  int    $y
      * @return string
      */
-    public function getStream($i, $pageIndex, $fontReference, $x, $y)
+    public function getStream(int $i, int $pageIndex, string $fontReference, int $x, int $y): string
     {
         $color = '0 g';
         if ($this->fontColor !== null) {

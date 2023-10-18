@@ -32,7 +32,7 @@ class Button extends AbstractField
      * Field options
      * @var array
      */
-    protected $options = [];
+    protected array $options = [];
 
     /**
      * Add an option
@@ -42,7 +42,7 @@ class Button extends AbstractField
      * @param  int    $yOffset
      * @return Button
      */
-    public function addOption($option, $xOffset = 0, $yOffset = 0)
+    public function addOption(string $option, int $xOffset = 0, int $yOffset = 0): Button
     {
         $this->options[] = [
             'option'  => $option,
@@ -58,7 +58,7 @@ class Button extends AbstractField
      *
      * @return bool
      */
-    public function hasOptions()
+    public function hasOptions(): bool
     {
         return (count($this->options) > 0);
     }
@@ -68,7 +68,7 @@ class Button extends AbstractField
      *
      * @return Button
      */
-    public function setNoToggleToOff()
+    public function setNoToggleToOff(): Button
     {
         if (!in_array(15, $this->flagBits)) {
             $this->flagBits[] = 15;
@@ -81,7 +81,7 @@ class Button extends AbstractField
      *
      * @return Button
      */
-    public function setRadio()
+    public function setRadio(): Button
     {
         if (!in_array(16, $this->flagBits)) {
             $this->flagBits[] = 16;
@@ -94,7 +94,7 @@ class Button extends AbstractField
      *
      * @return Button
      */
-    public function setPushButton()
+    public function setPushButton(): Button
     {
         if (!in_array(17, $this->flagBits)) {
             $this->flagBits[] = 17;
@@ -107,7 +107,7 @@ class Button extends AbstractField
      *
      * @return Button
      */
-    public function setRadiosInUnison()
+    public function setRadiosInUnison(): Button
     {
         if (!in_array(26, $this->flagBits)) {
             $this->flagBits[] = 26;
@@ -120,7 +120,7 @@ class Button extends AbstractField
      *
      * @return bool
      */
-    public function isRadio()
+    public function isRadio(): bool
     {
         return in_array(16, $this->flagBits);
     }
@@ -128,9 +128,9 @@ class Button extends AbstractField
     /**
      * Is push button
      *
-     * @return Button
+     * @return bool
      */
-    public function isPushButton()
+    public function isPushButton(): bool
     {
         return in_array(17, $this->flagBits);
     }
@@ -145,7 +145,7 @@ class Button extends AbstractField
      * @param  int    $y
      * @return string
      */
-    public function getStream($i, $pageIndex, $fontReference, $x, $y)
+    public function getStream(int $i, int $pageIndex, string $fontReference, int $x, int $y): string
     {
         $text    = null;
         $options = null;

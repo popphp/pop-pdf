@@ -30,43 +30,43 @@ abstract class AbstractAnnotation implements AnnotationInterface
      * Annotation width
      * @var int
      */
-    protected $width = 0;
+    protected int $width = 0;
 
     /**
      * Annotation height
      * @var int
      */
-    protected $height = 0;
+    protected int $height = 0;
 
     /**
      * Horizontal border radius
      * @var int
      */
-    protected $hRadius = 0;
+    protected int $hRadius = 0;
 
     /**
      * Vertical border radius
      * @var int
      */
-    protected $vRadius = 0;
+    protected int $vRadius = 0;
 
     /**
      * Border width
      * @var int
      */
-    protected $borderWidth = 0;
+    protected int $borderWidth = 0;
 
     /**
      * Border dash length
      * @var int
      */
-    protected $dashLength = 0;
+    protected int $dashLength = 0;
 
     /**
      * Border dash gap
      * @var int
      */
-    protected $dashGap = 0;
+    protected int $dashGap = 0;
 
     /**
      * Constructor
@@ -76,7 +76,7 @@ abstract class AbstractAnnotation implements AnnotationInterface
      * @param  int $width
      * @param  int $height
      */
-    public function __construct($width, $height)
+    public function __construct(int $width, int $height)
     {
         $this->setWidth($width);
         $this->setHeight($height);
@@ -88,9 +88,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
      * @param  int $width
      * @return AbstractAnnotation
      */
-    public function setWidth($width)
+    public function setWidth(int $width): AbstractAnnotation
     {
-        $this->width = (int)$width;
+        $this->width = $width;
         return $this;
     }
 
@@ -100,9 +100,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
      * @param  int $height
      * @return AbstractAnnotation
      */
-    public function setHeight($height)
+    public function setHeight(int $height): AbstractAnnotation
     {
-        $this->height = (int)$height;
+        $this->height = $height;
         return $this;
     }
 
@@ -112,9 +112,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
      * @param  int $radius
      * @return AbstractAnnotation
      */
-    public function setHRadius($radius)
+    public function setHRadius(int $radius): AbstractAnnotation
     {
-        $this->hRadius = (int)$radius;
+        $this->hRadius = $radius;
         return $this;
     }
 
@@ -124,9 +124,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
      * @param  int $radius
      * @return AbstractAnnotation
      */
-    public function setVRadius($radius)
+    public function setVRadius(int $radius): AbstractAnnotation
     {
-        $this->vRadius = (int)$radius;
+        $this->vRadius = $radius;
         return $this;
     }
 
@@ -136,9 +136,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
      * @param  int $width
      * @return AbstractAnnotation
      */
-    public function setBorderWidth($width)
+    public function setBorderWidth(int $width): AbstractAnnotation
     {
-        $this->borderWidth = (int)$width;
+        $this->borderWidth = $width;
         return $this;
     }
 
@@ -148,9 +148,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
      * @param  int $length
      * @return AbstractAnnotation
      */
-    public function setDashLength($length)
+    public function setDashLength(int $length): AbstractAnnotation
     {
-        $this->dashLength = (int)$length;
+        $this->dashLength = $length;
         return $this;
     }
 
@@ -160,9 +160,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
      * @param  int $gap
      * @return AbstractAnnotation
      */
-    public function setDashGap($gap)
+    public function setDashGap(int $gap): AbstractAnnotation
     {
-        $this->dashGap = (int)$gap;
+        $this->dashGap = $gap;
         return $this;
     }
 
@@ -171,7 +171,7 @@ abstract class AbstractAnnotation implements AnnotationInterface
      *
      * @return int
      */
-    public function getWidth()
+    public function getWidth(): int
     {
         return $this->width;
     }
@@ -181,7 +181,7 @@ abstract class AbstractAnnotation implements AnnotationInterface
      *
      * @return int
      */
-    public function getHeight()
+    public function getHeight(): int
     {
         return $this->height;
     }
@@ -191,7 +191,7 @@ abstract class AbstractAnnotation implements AnnotationInterface
      *
      * @return int
      */
-    public function getHRadius()
+    public function getHRadius(): int
     {
         return $this->hRadius;
     }
@@ -201,7 +201,7 @@ abstract class AbstractAnnotation implements AnnotationInterface
      *
      * @return int
      */
-    public function getVRadius()
+    public function getVRadius(): int
     {
         return $this->vRadius;
     }
@@ -211,7 +211,7 @@ abstract class AbstractAnnotation implements AnnotationInterface
      *
      * @return int
      */
-    public function getBorderWidth()
+    public function getBorderWidth(): int
     {
         return $this->borderWidth;
     }
@@ -221,7 +221,7 @@ abstract class AbstractAnnotation implements AnnotationInterface
      *
      * @return int
      */
-    public function getDashLength()
+    public function getDashLength(): int
     {
         return $this->dashLength;
     }
@@ -231,7 +231,7 @@ abstract class AbstractAnnotation implements AnnotationInterface
      *
      * @return int
      */
-    public function getDashGap()
+    public function getDashGap(): int
     {
         return $this->dashGap;
     }

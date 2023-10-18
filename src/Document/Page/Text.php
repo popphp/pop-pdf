@@ -13,7 +13,9 @@
  */
 namespace Pop\Pdf\Document\Page;
 
+use Pop\Color\Color;
 use Pop\Color\Color\ColorInterface;
+use OutOfRangeException;
 
 /**
  * Pdf page text class
@@ -30,45 +32,45 @@ class Text
 
     /**
      * Text string value
-     * @var string
+     * @var ?string
      */
-    protected $string = null;
+    protected ?string $string = null;
 
     /**
      * Text strings as array for streaming
      * @var array
      */
-    protected $strings = [];
+    protected array $strings = [];
 
     /**
      * Text strings with offset values
      * @var array
      */
-    protected $stringsWithOffsets = [];
+    protected array $stringsWithOffsets = [];
 
     /**
      * Text font size
-     * @var int
+     * @var int|float
      */
-    protected $size = 12;
+    protected int|float $size = 12;
 
     /**
      * Text fill color
-     * @var ColorInterface
+     * @var ?ColorInterface
      */
-    protected $fillColor = null;
+    protected ?ColorInterface $fillColor = null;
 
     /**
      * Text stroke color
-     * @var ColorInterface
+     * @var ?ColorInterface
      */
-    protected $strokeColor = null;
+    protected ?ColorInterface$strokeColor = null;
 
     /**
      * Text stroke
      * @var array
      */
-    protected $stroke = [
+    protected array $stroke = [
         'width'      => 0,
         'dashLength' => null,
         'dashGap'    => null
@@ -78,37 +80,37 @@ class Text
      * Basic wrap based on character length
      * @var int
      */
-    protected $charWrap = 0;
+    protected int $charWrap = 0;
 
     /**
      * Leading for the lines for a character wrap
      * @var int
      */
-    protected $leading = 0;
+    protected int $leading = 0;
 
     /**
      * Text alignment object
-     * @var Text\Alignment
+     * @var ?Text\Alignment
      */
-    protected $alignment = null;
+    protected ?Text\Alignment $alignment = null;
 
     /**
      * Text wrap object
-     * @var Text\Wrap
+     * @var ?Text\Wrap
      */
-    protected $wrap = null;
+    protected ?Text\Wrap $wrap = null;
 
     /**
      * Text stream object
-     * @var Text\Stream
+     * @var ?Text\Stream
      */
-    protected $stream = null;
+    protected ?Text\Stream $stream = null;
 
     /**
      * Text parameters
      * @var array
      */
-    protected $textParams = [
+    protected array $textParams = [
         'c'    => 0,
         'w'    => 0,
         'h'    => 100,
@@ -122,10 +124,10 @@ class Text
      *
      * Instantiate a PDF text object.
      *
-     * @param  string $string
-     * @param  string $size
+     * @param ?string $string
+     * @param ?string $size
      */
-    public function __construct($string = null, $size = null)
+    public function __construct(?string $string = null, ?string $size = null)
     {
         if ($string !== null) {
             $this->setString($string);
@@ -141,7 +143,7 @@ class Text
      * @param  string $string
      * @return Text
      */
-    public function setString($string)
+    public function setString(string $string): Text
     {
         if (function_exists('mb_strlen')) {
             if (mb_strlen($string, 'UTF-8') < strlen($string)) {
@@ -158,7 +160,7 @@ class Text
      * @param  array $strings
      * @return Text
      */
-    public function setStrings(array $strings)
+    public function setStrings(array $strings): Text
     {
         if (function_exists('mb_strlen')) {
             $strings = array_map(function($value) {
@@ -186,7 +188,7 @@ class Text
      * @param  int    $offset
      * @return Text
      */
-    public function addStringWithOffset($string, $offset = 0)
+    public function addStringWithOffset(string $string, int $offset = 0): Text
     {
         if (function_exists('mb_strlen')) {
             if (mb_strlen($string, 'UTF-8') < strlen($string)) {
@@ -205,7 +207,7 @@ class Text
      *
      * @return array
      */
-    public function getStringsWithOffset()
+    public function getStringsWithOffset(): array
     {
         return $this->stringsWithOffsets;
     }
@@ -216,7 +218,7 @@ class Text
      * @param  int|float $size
      * @return Text
      */
-    public function setSize($size)
+    public function setSize(int|float $size): Text
     {
         $this->size = $size;
         return $this;
@@ -228,7 +230,7 @@ class Text
      * @param  ColorInterface $color
      * @return Text
      */
-    public function setFillColor(ColorInterface $color)
+    public function setFillColor(ColorInterface $color): Text
     {
         $this->fillColor = $color;
         return $this;
@@ -240,7 +242,7 @@ class Text
      * @param  ColorInterface $color
      * @return Text
      */
-    public function setStrokeColor(ColorInterface $color)
+    public function setStrokeColor(ColorInterface $color): Text
     {
         $this->strokeColor = $color;
         return $this;
@@ -249,15 +251,15 @@ class Text
     /**
      * Set the text stroke properties
      *
-     * @param  int $width
-     * @param  int $dashLength
-     * @param  int $dashGap
+     * @param  int  $width
+     * @param  ?int $dashLength
+     * @param  ?int $dashGap
      * @return Text
      */
-    public function setStroke($width, $dashLength = null, $dashGap = null)
+    public function setStroke(int $width, ?int $dashLength = null, ?int $dashGap = null): Text
     {
         $this->stroke = [
-            'width'      => (int)$width,
+            'width'      => $width,
             'dashLength' => $dashLength,
             'dashGap'    => $dashGap
         ];
@@ -268,13 +270,13 @@ class Text
      * Method to set the rotation of the text
      *
      * @param  int $rotation
-     * @throws \OutOfRangeException
+     * @throws OutOfRangeException
      * @return Text
      */
-    public function setRotation($rotation)
+    public function setRotation(int $rotation): Text
     {
         if (abs($rotation) > 90) {
-            throw new \OutOfRangeException('Error: The rotation parameter must be between -90 and 90 degrees.');
+            throw new OutOfRangeException('Error: The rotation parameter must be between -90 and 90 degrees.');
         }
         $this->textParams['rot'] = $rotation;
         return $this;
@@ -283,13 +285,13 @@ class Text
     /**
      * Method to set the character wrap
      *
-     * @param  int $charWrap
-     * @param  int $leading
+     * @param  int  $charWrap
+     * @param  ?int $leading
      * @return Text
      */
-    public function setCharWrap($charWrap, $leading = null)
+    public function setCharWrap(int $charWrap, ?int $leading = null): Text
     {
-        $this->charWrap = (int)$charWrap;
+        $this->charWrap = $charWrap;
         if ($leading !== null) {
             $this->setLeading($leading);
         }
@@ -302,9 +304,9 @@ class Text
      * @param  int $leading
      * @return Text
      */
-    public function setLeading($leading)
+    public function setLeading(int $leading): Text
     {
-        $this->leading = (int)$leading;
+        $this->leading = $leading;
         return $this;
     }
 
@@ -314,7 +316,7 @@ class Text
      * @param  Text\Alignment $alignment
      * @return Text
      */
-    public function setAlignment(Text\Alignment $alignment)
+    public function setAlignment(Text\Alignment $alignment): Text
     {
         $this->alignment = $alignment;
         return $this;
@@ -326,7 +328,7 @@ class Text
      * @param  Text\Wrap $wrap
      * @return Text
      */
-    public function setWrap(Text\Wrap $wrap)
+    public function setWrap(Text\Wrap $wrap): Text
     {
         $this->wrap = $wrap;
         return $this;
@@ -338,7 +340,7 @@ class Text
      * @param  Text\Stream $stream
      * @return Text
      */
-    public function setTextStream(Text\Stream $stream)
+    public function setTextStream(Text\Stream $stream): Text
     {
         $this->stream = $stream;
         return $this;
@@ -351,7 +353,7 @@ class Text
      * @param  mixed $replace
      * @return Text
      */
-    public function escape($search = null, $replace = null)
+    public function escape(mixed $search = null, mixed $replace = null): Text
     {
         $searchAry  = ['(', ')'];
         $replaceAry = ['\(', '\)'];
@@ -374,9 +376,9 @@ class Text
     /**
      * Get the text string
      *
-     * @return string
+     * @return ?string
      */
-    public function getString()
+    public function getString(): ?string
     {
         return $this->string;
     }
@@ -386,7 +388,7 @@ class Text
      *
      * @return array
      */
-    public function getStrings()
+    public function getStrings(): array
     {
         return $this->strings;
     }
@@ -396,7 +398,7 @@ class Text
      *
      * @return int|float
      */
-    public function getSize()
+    public function getSize(): int|float
     {
         return $this->size;
     }
@@ -404,9 +406,9 @@ class Text
     /**
      * Get the text fill color
      *
-     * @return ColorInterface
+     * @return ?ColorInterface
      */
-    public function getFillColor()
+    public function getFillColor(): ?ColorInterface
     {
         return $this->fillColor;
     }
@@ -414,9 +416,9 @@ class Text
     /**
      * Get the text stroke color
      *
-     * @return ColorInterface
+     * @return ?ColorInterface
      */
-    public function getStrokeColor()
+    public function getStrokeColor(): ?ColorInterface
     {
         return $this->strokeColor;
     }
@@ -426,7 +428,7 @@ class Text
      *
      * @return array
      */
-    public function getStroke()
+    public function getStroke(): array
     {
         return $this->stroke;
     }
@@ -436,7 +438,7 @@ class Text
      *
      * @return int
      */
-    public function getRotation()
+    public function getRotation(): int
     {
         return $this->textParams['rot'];
     }
@@ -446,7 +448,7 @@ class Text
      *
      * @return int
      */
-    public function getCharWrap()
+    public function getCharWrap(): int
     {
         return $this->charWrap;
     }
@@ -456,7 +458,7 @@ class Text
      *
      * @return int
      */
-    public function getNumberOfWrappedLines()
+    public function getNumberOfWrappedLines(): int
     {
         return count(explode("\n", wordwrap($this->string, $this->charWrap, "\n")));
     }
@@ -466,7 +468,7 @@ class Text
      *
      * @return int
      */
-    public function getLeading()
+    public function getLeading(): int
     {
         return $this->leading;
     }
@@ -474,9 +476,9 @@ class Text
     /**
      * Get text alignment
      *
-     * @return Text\Alignment
+     * @return ?Text\Alignment
      */
-    public function getAlignment()
+    public function getAlignment(): ?Text\Alignment
     {
         return $this->alignment;
     }
@@ -484,9 +486,9 @@ class Text
     /**
      * Get text wrap
      *
-     * @return Text\Wrap
+     * @return ?Text\Wrap
      */
-    public function getWrap()
+    public function getWrap(): ?Text\Wrap
     {
         return $this->wrap;
     }
@@ -494,9 +496,9 @@ class Text
     /**
      * Get text stream
      *
-     * @return Text\Stream
+     * @return ?Text\Stream
      */
-    public function getTextStream()
+    public function getTextStream(): ?Text\Stream
     {
         return $this->stream;
     }
@@ -506,7 +508,7 @@ class Text
      *
      * @return bool
      */
-    public function hasString()
+    public function hasString(): bool
     {
         return ($this->string !== null);
     }
@@ -516,7 +518,7 @@ class Text
      *
      * @return bool
      */
-    public function hasStrings()
+    public function hasStrings(): bool
     {
         return !empty($this->strings);
     }
@@ -526,7 +528,7 @@ class Text
      *
      * @return bool
      */
-    public function hasCharWrap()
+    public function hasCharWrap(): bool
     {
         return ($this->charWrap > 0);
     }
@@ -536,7 +538,7 @@ class Text
      *
      * @return bool
      */
-    public function hasLeading()
+    public function hasLeading(): bool
     {
         return ($this->leading > 0);
     }
@@ -546,7 +548,7 @@ class Text
      *
      * @return bool
      */
-    public function hasAlignment()
+    public function hasAlignment(): bool
     {
         return ($this->alignment !== null);
     }
@@ -556,7 +558,7 @@ class Text
      *
      * @return bool
      */
-    public function hasWrap()
+    public function hasWrap(): bool
     {
         return ($this->wrap !== null);
     }
@@ -566,7 +568,7 @@ class Text
      *
      * @return bool
      */
-    public function hasTextStream()
+    public function hasTextStream(): bool
     {
         return ($this->stream !== null);
     }
@@ -580,19 +582,19 @@ class Text
      * @param  int $v    (vert stretch)
      * @param  int $rot  (rotation, -90 - 90)
      * @param  int $rend (render flag, 0 - 7)
-     * @throws \OutOfRangeException
+     * @throws OutOfRangeException
      * @return Text
      */
-    public function setTextParams($c = 0, $w = 0, $h = 100, $v = 100, $rot = 0, $rend = 0)
+    public function setTextParams(int $c = 0, int $w = 0, int $h = 100, int $v = 100, int $rot = 0, int $rend = 0): Text
     {
         // Check the rotation parameter.
         if (abs($rot) > 90) {
-            throw new \OutOfRangeException('Error: The rotation parameter must be between -90 and 90 degrees.');
+            throw new OutOfRangeException('Error: The rotation parameter must be between -90 and 90 degrees.');
         }
 
         // Check the render parameter.
         if ((!is_int($rend)) || (($rend > 7) || ($rend < 0))) {
-            throw new \OutOfRangeException('Error: The render parameter must be an integer between 0 and 7.');
+            throw new OutOfRangeException('Error: The render parameter must be an integer between 0 and 7.');
         }
 
         // Set the text parameters.
@@ -614,7 +616,7 @@ class Text
      * @param  int    $y
      * @return string
      */
-    public function startStream($fontReference, $x, $y)
+    public function startStream(string $fontReference, int $x, int $y): string
     {
         $stream        = '';
         $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
@@ -631,7 +633,7 @@ class Text
      *
      * @return string
      */
-    public function endStream()
+    public function endStream(): string
     {
         return "ET\n";
     }
@@ -644,7 +646,7 @@ class Text
      * @param  int    $y
      * @return string
      */
-    public function getStream($fontReference, $x, $y)
+    public function getStream(string $fontReference, int $x, int $y): string
     {
         return $this->startStream($fontReference, $x, $y) . $this->getPartialStream() . $this->endStream();
     }
@@ -652,10 +654,10 @@ class Text
     /**
      * Get the partial text stream
      *
-     * @param  string $fontReference
+     * @param  ?string $fontReference
      * @return string
      */
-    public function getPartialStream($fontReference = null)
+    public function getPartialStream(?string $fontReference = null): string
     {
         $stream = '';
 
@@ -699,7 +701,7 @@ class Text
      *
      * @return string
      */
-    public function getColorStream()
+    public function getColorStream(): string
     {
         $stream = '';
 
@@ -730,7 +732,7 @@ class Text
      *
      * @return string
      */
-    protected function calculateTextMatrix()
+    protected function calculateTextMatrix(): string
     {
         // Define some variables.
         $a   = '';

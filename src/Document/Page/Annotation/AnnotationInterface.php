@@ -32,7 +32,7 @@ interface AnnotationInterface
      * @param  int $width
      * @return AnnotationInterface
      */
-    public function setWidth($width);
+    public function setWidth(int $width): AnnotationInterface;
 
     /**
      * Set the height
@@ -40,7 +40,7 @@ interface AnnotationInterface
      * @param  int $height
      * @return AnnotationInterface
      */
-    public function setHeight($height);
+    public function setHeight(int $height): AnnotationInterface;
 
     /**
      * Set the horizontal border radius
@@ -48,7 +48,7 @@ interface AnnotationInterface
      * @param  int $radius
      * @return AnnotationInterface
      */
-    public function setHRadius($radius);
+    public function setHRadius(int $radius): AnnotationInterface;
 
     /**
      * Set the vertical border radius
@@ -56,7 +56,7 @@ interface AnnotationInterface
      * @param  int $radius
      * @return AnnotationInterface
      */
-    public function setVRadius($radius);
+    public function setVRadius(int $radius): AnnotationInterface;
 
     /**
      * Set the border width
@@ -64,7 +64,7 @@ interface AnnotationInterface
      * @param  int $width
      * @return AnnotationInterface
      */
-    public function setBorderWidth($width);
+    public function setBorderWidth(int $width): AnnotationInterface;
 
     /**
      * Set the border dash length
@@ -72,7 +72,7 @@ interface AnnotationInterface
      * @param  int $length
      * @return AnnotationInterface
      */
-    public function setDashLength($length);
+    public function setDashLength(int $length): AnnotationInterface;
 
     /**
      * Set the border dash gap
@@ -80,55 +80,55 @@ interface AnnotationInterface
      * @param  int $gap
      * @return AnnotationInterface
      */
-    public function setDashGap($gap);
+    public function setDashGap(int $gap): AnnotationInterface;
 
     /**
      * Get the width
      *
      * @return int
      */
-    public function getWidth();
+    public function getWidth(): int;
 
     /**
      * Get the height
      *
      * @return int
      */
-    public function getHeight();
+    public function getHeight(): int;
 
     /**
      * Get the horizontal border radius
      *
      * @return int
      */
-    public function getHRadius();
+    public function getHRadius(): int;
 
     /**
      * Get the vertical border radius
      *
      * @return int
      */
-    public function getVRadius();
+    public function getVRadius(): int;
 
     /**
      * Get the border width
      *
      * @return int
      */
-    public function getBorderWidth();
+    public function getBorderWidth(): int;
 
     /**
      * Get the border dash length
      *
      * @return int
      */
-    public function getDashLength();
+    public function getDashLength(): int;
 
     /**
      * Get the border dash gap
      *
      * @return int
      */
-    public function getDashGap();
+    public function getDashGap(): int;
 
 }

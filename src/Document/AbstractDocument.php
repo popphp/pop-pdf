@@ -23,7 +23,7 @@ namespace Pop\Pdf\Document;
  * @license    http://www.popphp.org/license     New BSD License
  * @version    5.0.0
  */
-abstract class AbstractDocument
+abstract class AbstractDocument implements DocumentInterface
 {
 
     /**
@@ -39,55 +39,55 @@ abstract class AbstractDocument
      * PDF version
      * @var float
      */
-    protected $version = 1.7;
+    protected float $version = 1.7;
 
     /**
      * PDF metadata for the info object
-     * @var Metadata
+     * @var ?Metadata
      */
-    protected $metadata = null;
+    protected ?Metadata $metadata = null;
 
     /**
      * Pages array
      * @var array
      */
-    protected $pages = [];
+    protected array $pages = [];
 
     /**
      * Fonts array
      * @var array
      */
-    protected $fonts = [];
+    protected array $fonts = [];
 
     /**
      * Forms array
      * @var array
      */
-    protected $forms = [];
+    protected array $forms = [];
 
     /**
      * Current page
-     * @var int
+     * @var ?int
      */
-    protected $currentPage = null;
+    protected ?int $currentPage = null;
 
     /**
      * Current font
-     * @var string
+     * @var ?string
      */
-    protected $currentFont = null;
+    protected ?string $currentFont = null;
 
     /**
      * Compression property
      * @var bool
      */
-    protected $compression = false;
+    protected bool$compression = false;
 
     /**
      * Document origin
      * @var string
      */
-    protected $origin = 'ORIGIN_BOTTOM_LEFT';
+    protected string $origin = 'ORIGIN_BOTTOM_LEFT';
 
     /**
      * Set the document version
@@ -95,7 +95,7 @@ abstract class AbstractDocument
      * @param  float $version
      * @return AbstractDocument
      */
-    public function setVersion($version)
+    public function setVersion(float $version): AbstractDocument
     {
         $this->version = $version;
         return $this;
@@ -107,7 +107,7 @@ abstract class AbstractDocument
      * @param  Metadata $metadata
      * @return AbstractDocument
      */
-    public function setMetadata(Metadata $metadata)
+    public function setMetadata(Metadata $metadata): AbstractDocument
     {
         $this->metadata = $metadata;
         return $this;
@@ -119,7 +119,7 @@ abstract class AbstractDocument
      * @param  string $origin
      * @return AbstractDocument
      */
-    public function setOrigin($origin)
+    public function setOrigin(string $origin): AbstractDocument
     {
         if (defined('Pop\Pdf\Document\AbstractDocument::' . $origin)) {
             $this->origin = $origin;
@@ -132,7 +132,7 @@ abstract class AbstractDocument
      *
      * @return float
      */
-    public function getVersion()
+    public function getVersion(): float
     {
         return $this->version;
     }
@@ -142,7 +142,7 @@ abstract class AbstractDocument
      *
      * @return string
      */
-    public function getOrigin()
+    public function getOrigin(): string
     {
         return $this->origin;
     }
@@ -150,9 +150,9 @@ abstract class AbstractDocument
     /**
      * Get the document metadata
      *
-     * @return Metadata
+     * @return ?Metadata
      */
-    public function getMetadata()
+    public function getMetadata(): ?Metadata
     {
         return $this->metadata;
     }
@@ -162,7 +162,7 @@ abstract class AbstractDocument
      *
      * @return array
      */
-    public function getPages()
+    public function getPages(): array
     {
         return $this->pages;
     }
@@ -174,7 +174,7 @@ abstract class AbstractDocument
      * @throws \Pop\Pdf\Exception
      * @return Page
      */
-    public function getPage($p)
+    public function getPage(int $p): Page
     {
         if (!isset($this->pages[$p - 1])) {
             throw new \Pop\Pdf\Exception('Error: That page (' . $p . ') does not exist.');
@@ -187,7 +187,7 @@ abstract class AbstractDocument
      *
      * @return bool
      */
-    public function hasPages()
+    public function hasPages(): bool
     {
         return (count($this->pages) > 0);
     }
@@ -197,7 +197,7 @@ abstract class AbstractDocument
      *
      * @return array
      */
-    public function getFonts()
+    public function getFonts(): array
     {
         return $this->fonts;
     }
@@ -209,7 +209,7 @@ abstract class AbstractDocument
      * @throws \Pop\Pdf\Exception
      * @return Font
      */
-    public function getFont($name)
+    public function getFont(string $name): Font
     {
         if (!isset($this->fonts[$name])) {
             throw new \Pop\Pdf\Exception("Error: The font '" . $name . "' has not been added to the PDF document.");
@@ -222,7 +222,7 @@ abstract class AbstractDocument
      *
      * @return bool
      */
-    public function hasFonts()
+    public function hasFonts(): bool
     {
         return (count($this->fonts) > 0);
     }
@@ -232,7 +232,7 @@ abstract class AbstractDocument
      *
      * @return array
      */
-    public function getAvailableFonts()
+    public function getAvailableFonts(): array
     {
         return array_keys($this->fonts);
     }
@@ -243,7 +243,7 @@ abstract class AbstractDocument
      * @param  string $font
      * @return bool
      */
-    public function isFontAvailable($font)
+    public function isFontAvailable(string $font): bool
     {
         return array_key_exists($font, $this->fonts);
     }
@@ -254,7 +254,7 @@ abstract class AbstractDocument
      * @param  string $font
      * @return bool
      */
-    public function hasFont($font)
+    public function hasFont(string $font): bool
     {
         return array_key_exists($font, $this->fonts);
     }
@@ -262,9 +262,9 @@ abstract class AbstractDocument
     /**
      * Get the current page number
      *
-     * @return int
+     * @return ?int
      */
-    public function getCurrentPage()
+    public function getCurrentPage(): ?int
     {
         return $this->currentPage;
     }
@@ -274,7 +274,7 @@ abstract class AbstractDocument
      *
      * @return int
      */
-    public function getNumberOfPages()
+    public function getNumberOfPages(): int
     {
         return count($this->pages);
     }
@@ -282,9 +282,9 @@ abstract class AbstractDocument
     /**
      * Get the current font
      *
-     * @return string
+     * @return ?string
      */
-    public function getCurrentFont()
+    public function getCurrentFont(): ?string
     {
         return $this->currentFont;
     }
@@ -294,7 +294,7 @@ abstract class AbstractDocument
      *
      * @return int
      */
-    public function getNumberOfFonts()
+    public function getNumberOfFonts(): int
     {
         return count($this->fonts);
     }
@@ -304,7 +304,7 @@ abstract class AbstractDocument
      *
      * @return array
      */
-    public function getForms()
+    public function getForms(): array
     {
         return $this->forms;
     }
@@ -312,10 +312,10 @@ abstract class AbstractDocument
     /**
      * Get form objects
      *
-     * @param string $name
-     * @return Form
+     * @param  string $name
+     * @return ?Form
      */
-    public function getForm($name)
+    public function getForm(string $name): ?Form
     {
         return (isset($this->forms[$name])) ? $this->forms[$name] : null;
     }
@@ -325,7 +325,7 @@ abstract class AbstractDocument
      *
      * @return bool
      */
-    public function hasForms()
+    public function hasForms(): bool
     {
         return (count($this->forms) > 0);
     }
@@ -336,7 +336,7 @@ abstract class AbstractDocument
      * @param  Form $form
      * @return AbstractDocument
      */
-    public function addForm(Form $form)
+    public function addForm(Form $form): AbstractDocument
     {
         $this->forms[$form->getName()] = $form;
         return $this;
@@ -348,9 +348,9 @@ abstract class AbstractDocument
      * @param  bool $compression
      * @return AbstractDocument
      */
-    public function setCompression($compression)
+    public function setCompression(bool $compression): AbstractDocument
     {
-        $this->compression = (bool)$compression;
+        $this->compression = $compression;
         return $this;
     }
 
@@ -359,7 +359,7 @@ abstract class AbstractDocument
      *
      * @return bool
      */
-    public function isCompressed()
+    public function isCompressed(): bool
     {
         return $this->compression;
     }
@@ -369,11 +369,11 @@ abstract class AbstractDocument
      *
      * Instantiate a PDF document
      *
-     * @param  Page     $page
-     * @param  Metadata $metadata
+     * @param  ?Page     $page
+     * @param  ?Metadata $metadata
      * @return AbstractDocument
      */
-    abstract public function __construct(Page $page = null, Metadata $metadata = null);
+    abstract public function __construct(?Page $page = null, ?Metadata $metadata = null);
 
     /**
      * Add a page to the PDF document
@@ -381,7 +381,7 @@ abstract class AbstractDocument
      * @param  Page $page
      * @return AbstractDocument
      */
-    abstract public function addPage(Page $page);
+    abstract public function addPage(Page $page): AbstractDocument;
 
     /**
      * Add pages to the PDF document
@@ -389,16 +389,16 @@ abstract class AbstractDocument
      * @param  array $pages
      * @return AbstractDocument
      */
-    abstract public function addPages(array $pages);
+    abstract public function addPages(array $pages): AbstractDocument;
 
     /**
      * Create and return a new page object, adding it to the PDF document
      *
      * @param  mixed $size
-     * @param  int   $height
+     * @param  ?int   $height
      * @return Page
      */
-    abstract public function createPage($size, $height = null);
+    abstract public function createPage(mixed $size, ?int $height = null): Page;
 
     /**
      * Copy and return a page of the PDF, adding it to the PDF document
@@ -407,7 +407,7 @@ abstract class AbstractDocument
      * @throws Exception
      * @return Page
      */
-    abstract public function copyPage($p);
+    abstract public function copyPage(int $p): Page;
 
     /**
      * Order the pages
@@ -416,7 +416,7 @@ abstract class AbstractDocument
      * @throws Exception
      * @return AbstractDocument
      */
-    abstract public function orderPages(array $pages);
+    abstract public function orderPages(array $pages): AbstractDocument;
 
     /**
      * Delete a page from the PDF document
@@ -425,7 +425,7 @@ abstract class AbstractDocument
      * @throws Exception
      * @return AbstractDocument
      */
-    abstract public function deletePage($p);
+    abstract public function deletePage(int $p): AbstractDocument;
 
     /**
      * Add a font
@@ -434,17 +434,17 @@ abstract class AbstractDocument
      * @throws Exception
      * @return AbstractDocument
      */
-    abstract public function addFont(Font $font);
+    abstract public function addFont(Font $font): AbstractDocument;
 
     /**
      * Add a font
      *
-     * @param  Font    $font
+     * @param  Font $font
      * @param  bool $embedOverride
      * @throws Exception
      * @return AbstractDocument
      */
-    abstract public function embedFont(Font $font, $embedOverride = false);
+    abstract public function embedFont(Font $font, bool $embedOverride = false): AbstractDocument;
 
     /**
      * Set the current page of the PDF document
@@ -453,7 +453,7 @@ abstract class AbstractDocument
      * @throws Exception
      * @return AbstractDocument
      */
-    abstract public function setCurrentPage($p);
+    abstract public function setCurrentPage(int $p): AbstractDocument;
 
     /**
      * Set the current font of the PDF document
@@ -462,13 +462,13 @@ abstract class AbstractDocument
      * @throws Exception
      * @return AbstractDocument
      */
-    abstract public function setCurrentFont($name);
+    abstract public function setCurrentFont(string $name): AbstractDocument;
 
     /**
      * Output the PDF document to string
      *
      * @return string
      */
-    abstract public function __toString();
+    abstract public function __toString(): string;
 
 }

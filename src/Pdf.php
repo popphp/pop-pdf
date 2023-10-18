@@ -13,8 +13,8 @@
  */
 namespace Pop\Pdf;
 
-use Pop\Pdf\Build;
 use Pop\Pdf\Document\AbstractDocument;
+use Pop\Pdf\Document\Exception;
 
 /**
  * Pop Pdf class
@@ -36,7 +36,7 @@ class Pdf
      * @param  mixed  $pages
      * @return AbstractDocument
      */
-    public static function importFromFile($file, $pages = null)
+    public static function importFromFile(string $file, mixed $pages = null): AbstractDocument
     {
         $parser = new Build\Parser();
         return $parser->parseFile($file, $pages);
@@ -49,7 +49,7 @@ class Pdf
      * @param  mixed  $pages
      * @return AbstractDocument
      */
-    public static function importRawData($data, $pages = null)
+    public static function importRawData(string $data, mixed $pages = null): AbstractDocument
     {
         $parser = new Build\Parser();
         return $parser->parseData($data, $pages);
@@ -62,7 +62,7 @@ class Pdf
      * @param  string           $filename
      * @return void
      */
-    public static function writeToFile(AbstractDocument $document, $filename = 'pop.pdf')
+    public static function writeToFile(AbstractDocument $document, string $filename = 'pop.pdf'): void
     {
         $compiler = new Build\Compiler();
         $compiler->finalize($document);
@@ -74,11 +74,13 @@ class Pdf
      *
      * @param  AbstractDocument $document
      * @param  string           $filename
-     * @param  bool          $forceDownload
+     * @param  bool             $forceDownload
      * @param  array            $headers
      * @return void
      */
-    public static function outputToHttp(AbstractDocument $document, $filename = 'pop.pdf', $forceDownload = false, array $headers = [])
+    public static function outputToHttp(
+        AbstractDocument $document, string $filename = 'pop.pdf', bool $forceDownload = false, array $headers = []
+    ): void
     {
         $headers['Content-type']        = 'application/pdf';
         $headers['Content-disposition'] = (($forceDownload) ? 'attachment; ' : null) . 'filename=' . $filename;
@@ -103,9 +105,10 @@ class Pdf
      *
      * @param  string|array $images
      * @param  int          $quality
+     * @throws Exception
      * @return AbstractDocument
      */
-    public static function importFromImages($images, $quality = 70)
+    public static function importFromImages(string|array $images, int $quality = 70): AbstractDocument
     {
         if (!is_array($images)) {
             $images = [$images];

@@ -14,7 +14,6 @@
 namespace Pop\Pdf\Document;
 
 use Pop\Pdf\Document\Page\Annotation;
-use Pop\Pdf\Document\Page\Field;
 
 /**
  * Abstract Page class
@@ -67,7 +66,7 @@ abstract class AbstractPage implements PageInterface
      * Array of page sizes
      * @var array
      */
-    protected $sizes = [
+    protected array $sizes = [
         'ENVELOPE_10' => ['width' => 297,  'height' => 684],
         'ENVELOPE_C5' => ['width' => 461,  'height' => 648],
         'ENVELOPE_DL' => ['width' => 312,  'height' => 624],
@@ -102,57 +101,57 @@ abstract class AbstractPage implements PageInterface
 
     /**
      * Page index if page object represents an imported page
-     * @var int
+     * @var ?int
      */
-    protected $index = null;
+    protected ?int $index = null;
 
     /**
      * Page width
-     * @var int
+     * @var ?int
      */
-    protected $width = null;
+    protected ?int $width = null;
 
     /**
      * Page height
      * @var int
      */
-    protected $height = null;
+    protected ?int $height = null;
 
     /**
      * Images array
      * @var array
      */
-    protected $images = [];
+    protected array $images = [];
 
     /**
      * Text array
      * @var array
      */
-    protected $text = [];
+    protected array $text = [];
 
     /**
      * Text streams array
      * @var array
      */
-    protected $textStreams = [];
+    protected array $textStreams = [];
 
     /**
      * Annotations array
      * @var array
      */
-    protected $annotations = [];
+    protected array $annotations = [];
 
     /**
      * Paths array
      * @var array
      */
-    protected $paths = [];
+    protected array $paths = [];
 
     /**
      * Fields array
      * @var array
      */
-    protected $fields = [];
+    protected array $fields = [];
 
     /**
      * Set the page width
@@ -160,7 +159,7 @@ abstract class AbstractPage implements PageInterface
      * @param  mixed $width
      * @return AbstractPage
      */
-    public function setWidth($width)
+    public function setWidth(mixed $width): AbstractPage
     {
         $this->width = (float)$width;
         return $this;
@@ -172,7 +171,7 @@ abstract class AbstractPage implements PageInterface
      * @param  mixed $height
      * @return AbstractPage
      */
-    public function setHeight($height)
+    public function setHeight(mixed $height): AbstractPage
     {
         $this->height = (float)$height;
         return $this;
@@ -184,9 +183,9 @@ abstract class AbstractPage implements PageInterface
      * @param  int $i
      * @return AbstractPage
      */
-    public function setIndex($i)
+    public function setIndex(int $i): AbstractPage
     {
-        $this->index = (int)$i;
+        $this->index = $i;
         return $this;
     }
 
@@ -195,7 +194,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return int
      */
-    public function getWidth()
+    public function getWidth(): int
     {
         return $this->width;
     }
@@ -205,7 +204,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return int
      */
-    public function getHeight()
+    public function getHeight(): int
     {
         return $this->height;
     }
@@ -215,7 +214,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return int
      */
-    public function getIndex()
+    public function getIndex(): int
     {
         return $this->index;
     }
@@ -225,7 +224,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return array
      */
-    public function getImages()
+    public function getImages(): array
     {
         return $this->images;
     }
@@ -235,7 +234,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return array
      */
-    public function getText()
+    public function getText(): array
     {
         return $this->text;
     }
@@ -245,7 +244,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return array
      */
-    public function getTextStreams()
+    public function getTextStreams(): array
     {
         return $this->textStreams;
     }
@@ -255,7 +254,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return array
      */
-    public function getAnnotations()
+    public function getAnnotations(): array
     {
         return $this->annotations;
     }
@@ -265,7 +264,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return array
      */
-    public function getPaths()
+    public function getPaths(): array
     {
         return $this->paths;
     }
@@ -275,7 +274,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return array
      */
-    public function getFields()
+    public function getFields(): array
     {
         return $this->fields;
     }
@@ -285,7 +284,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return bool
      */
-    public function hasImages()
+    public function hasImages(): bool
     {
         return (count($this->images) > 0);
     }
@@ -295,7 +294,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return bool
      */
-    public function hasText()
+    public function hasText(): bool
     {
         return (count($this->text) > 0);
     }
@@ -305,7 +304,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return bool
      */
-    public function hasTextStreams()
+    public function hasTextStreams(): bool
     {
         return (count($this->textStreams) > 0);
     }
@@ -315,7 +314,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return bool
      */
-    public function hasAnnotations()
+    public function hasAnnotations(): bool
     {
         return (count($this->annotations) > 0);
     }
@@ -325,7 +324,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return bool
      */
-    public function hasPaths()
+    public function hasPaths(): bool
     {
         return (count($this->paths) > 0);
     }
@@ -335,7 +334,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return bool
      */
-    public function hasFields()
+    public function hasFields(): bool
     {
         return (count($this->fields) > 0);
     }
@@ -345,7 +344,7 @@ abstract class AbstractPage implements PageInterface
      *
      * @return AbstractPage
      */
-    public function clearContent()
+    public function clearContent(): AbstractPage
     {
         $this->images      = [];
         $this->text        = [];
@@ -375,7 +374,7 @@ abstract class AbstractPage implements PageInterface
      * @param  int        $y
      * @return Page
      */
-    abstract public function addImage(Page\Image $image, $x = 0, $y = 0);
+    abstract public function addImage(Page\Image $image, int $x = 0, int $y = 0): AbstractPage;
 
     /**
      * Add text to the PDF page
@@ -386,7 +385,7 @@ abstract class AbstractPage implements PageInterface
      * @param  int       $y
      * @return Page
      */
-    abstract public function addText(Page\Text $text, $font, $x = 0, $y = 0);
+    abstract public function addText(Page\Text $text, string $font, int $x = 0, int $y = 0): AbstractPage;
 
     /**
      * Add text stream to the PDF page
@@ -394,7 +393,7 @@ abstract class AbstractPage implements PageInterface
      * @param  Page\Text\Stream $textStream
      * @return Page
      */
-    abstract public function addTextStream(Page\Text\Stream $textStream);
+    abstract public function addTextStream(Page\Text\Stream $textStream): Page;
 
     /**
      * Add an annotation to the PDF page
@@ -404,7 +403,7 @@ abstract class AbstractPage implements PageInterface
      * @param  int                           $y
      * @return Page
      */
-    abstract public function addAnnotation(Annotation\AbstractAnnotation $annotation, $x = 0, $y = 0);
+    abstract public function addAnnotation(Annotation\AbstractAnnotation $annotation, int $x = 0, int $y = 0): AbstractPage;
 
     /**
      * Add a URL annotation to the PDF page
@@ -414,7 +413,7 @@ abstract class AbstractPage implements PageInterface
      * @param  int            $y
      * @return Page
      */
-    abstract public function addUrl(Annotation\Url $url, $x = 0, $y = 0);
+    abstract public function addUrl(Annotation\Url $url, int $x = 0, int $y = 0): AbstractPage;
 
     /**
      * Add a link annotation to the PDF page
@@ -424,7 +423,7 @@ abstract class AbstractPage implements PageInterface
      * @param  int             $y
      * @return Page
      */
-    abstract public function addLink(Annotation\Link $link, $x = 0, $y = 0);
+    abstract public function addLink(Annotation\Link $link, int $x = 0, int $y = 0): AbstractPage;
 
     /**
      * Add a path to the Pdf page
@@ -432,7 +431,7 @@ abstract class AbstractPage implements PageInterface
      * @param  Page\Path $path
      * @return Page
      */
-    abstract public function addPath(Page\Path $path);
+    abstract public function addPath(Page\Path $path): AbstractPage;
 
     /**
      * Add a form to the Pdf page
@@ -443,6 +442,6 @@ abstract class AbstractPage implements PageInterface
      * @param  int                      $y
      * @return Page
      */
-    abstract public function addField(Page\Field\AbstractField $field, $form, $x = 0, $y = 0);
+    abstract public function addField(Page\Field\AbstractField $field, string $form, int $x = 0, int $y = 0): Page;
 
 }

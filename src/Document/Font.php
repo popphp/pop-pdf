@@ -15,6 +15,7 @@ namespace Pop\Pdf\Document;
 
 use Pop\Pdf\Build\Font\AbstractFont;
 use Pop\Pdf\Build\Font\Parser;
+use InvalidArgumentException;
 
 /**
  * Pdf font class
@@ -63,7 +64,7 @@ class Font
      * Standard PDF fonts
      * @var array
      */
-    protected $standardFonts = [
+    protected array $standardFonts = [
         'Arial', 'Arial,Italic', 'Arial,Bold', 'Arial,BoldItalic', 'Courier', 'CourierNew', 'Courier-Oblique',
         'CourierNew,Italic', 'Courier-Bold', 'CourierNew,Bold', 'Courier-BoldOblique', 'CourierNew,BoldItalic',
         'Helvetica', 'Helvetica-Oblique', 'Helvetica-Bold', 'Helvetica-BoldOblique', 'Symbol', 'Times-Roman',
@@ -73,42 +74,42 @@ class Font
 
     /**
      * Font
-     * @var string
+     * @var ?string
      */
-    protected $font = null;
+    protected ?string $font = null;
 
     /**
      * Font name
-     * @var string
+     * @var ?string
      */
-    protected $name = null;
+    protected ?string $name = null;
 
     /**
      * Flag for a standard font
      * @var bool
      */
-    protected $isStandard = false;
+    protected bool $isStandard = false;
 
     /**
      * Flag for an embedded font file
      * @var bool
      */
-    protected $isEmbedded = false;
+    protected bool$isEmbedded = false;
 
     /**
      * Font parser
-     * @var Parser
+     * @var ?Parser
      */
-    protected $parser = null;
+    protected ?Parser $parser = null;
 
     /**
      * Constructor
      *
      * Instantiate a PDF font.
      *
-     * @param  string $font
+     * @param ?string $font
      */
-    public function __construct($font = null)
+    public function __construct(?string $font = null)
     {
         if ($font !== null) {
             $this->setFont($font);
@@ -120,7 +121,7 @@ class Font
      *
      * @return array
      */
-    public static function standardFonts()
+    public static function standardFonts(): array
     {
         return (new self())->getStandardFonts();
     }
@@ -129,10 +130,10 @@ class Font
      * Set font
      *
      * @param  string $font
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException|\Pop\Pdf\Build\Font\Exception
      * @return Font
      */
-    public function setFont($font)
+    public function setFont(string $font): Font
     {
         $this->font = $font;
         if (in_array($font, $this->standardFonts)) {
@@ -143,7 +144,7 @@ class Font
             $this->parser     = new Parser($this->font);
             $this->name       = $this->parser->getFontName();
         } else {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 "Error: The font '" . $font . "' is not valid. It must be a standard PDF font or a font file."
             );
         }
@@ -154,9 +155,9 @@ class Font
     /**
      * Get font
      *
-     * @return string
+     * @return ?string
      */
-    public function getFont()
+    public function getFont(): ?string
     {
         return $this->font;
     }
@@ -164,9 +165,9 @@ class Font
     /**
      * Get font name
      *
-     * @return string
+     * @return ?string
      */
-    public function getName()
+    public function getName(): ?string
     {
         return $this->name;
     }
@@ -176,7 +177,7 @@ class Font
      *
      * @return bool
      */
-    public function isStandard()
+    public function isStandard(): bool
     {
         return $this->isStandard;
     }
@@ -186,7 +187,7 @@ class Font
      *
      * @return bool
      */
-    public function isEmbedded()
+    public function isEmbedded(): bool
     {
         return $this->isEmbedded;
     }
@@ -196,7 +197,7 @@ class Font
      *
      * @return array
      */
-    public function getStandardFonts()
+    public function getStandardFonts(): array
     {
         return $this->standardFonts;
     }
@@ -204,9 +205,9 @@ class Font
     /**
      * Get the font parser
      *
-     * @return AbstractFont
+     * @return ?AbstractFont
      */
-    public function getParsedFont()
+    public function getParsedFont(): ?AbstractFont
     {
         return ($this->parser !== null) ? $this->parser->getFont() : null;
     }
@@ -219,7 +220,7 @@ class Font
      * @throws Exception
      * @return mixed
      */
-    public function getStringWidth($string, $size)
+    public function getStringWidth(string $string, string $size): mixed
     {
         if ($this->parser !== null) {
             return $this->parser->getFont()->getStringWidth($string, $size);
@@ -228,8 +229,8 @@ class Font
             if (!class_exists($fontClass)) {
                 throw new Exception('Error: That standard font class was not found.');
             }
-            $font      = new $fontClass();
-            $widths    = [];
+            $font   = new $fontClass();
+            $widths = [];
 
             $drawingString = iconv('UTF-8', 'UTF-16BE//IGNORE', $string);
             $characters    = [];
@@ -249,9 +250,9 @@ class Font
     /**
      * Get the font parser
      *
-     * @return Parser
+     * @return ?Parser
      */
-    public function parser()
+    public function parser(): ?Parser
     {
         return $this->parser;
     }

@@ -32,7 +32,7 @@ class Choice extends AbstractField
      * Field options
      * @var array
      */
-    protected $options = [];
+    protected array $options = [];
 
     /**
      * Add an option
@@ -40,7 +40,7 @@ class Choice extends AbstractField
      * @param  string $option
      * @return Choice
      */
-    public function addOption($option)
+    public function addOption(string $option): Choice
     {
         $this->options[] = $option;
         return $this;
@@ -51,7 +51,7 @@ class Choice extends AbstractField
      *
      * @return bool
      */
-    public function hasOptions()
+    public function hasOptions(): bool
     {
         return (count($this->options) > 0);
     }
@@ -61,7 +61,7 @@ class Choice extends AbstractField
      *
      * @return Choice
      */
-    public function setCombo()
+    public function setCombo(): Choice
     {
         if (!in_array(18, $this->flagBits)) {
             $this->flagBits[] = 18;
@@ -74,7 +74,7 @@ class Choice extends AbstractField
      *
      * @return Choice
      */
-    public function setEdit()
+    public function setEdit(): Choice
     {
         if (!in_array(19, $this->flagBits)) {
             $this->flagBits[] = 19;
@@ -87,7 +87,7 @@ class Choice extends AbstractField
      *
      * @return Choice
      */
-    public function setSort()
+    public function setSort(): Choice
     {
         if (!in_array(20, $this->flagBits)) {
             $this->flagBits[] = 20;
@@ -100,7 +100,7 @@ class Choice extends AbstractField
      *
      * @return Choice
      */
-    public function setMultiSelect()
+    public function setMultiSelect(): Choice
     {
         if (!in_array(22, $this->flagBits)) {
             $this->flagBits[] = 22;
@@ -113,7 +113,7 @@ class Choice extends AbstractField
      *
      * @return Choice
      */
-    public function setDoNotSpellCheck()
+    public function setDoNotSpellCheck(): Choice
     {
         if (!in_array(23, $this->flagBits)) {
             $this->flagBits[] = 23;
@@ -126,7 +126,7 @@ class Choice extends AbstractField
      *
      * @return Choice
      */
-    public function setCommitOnSelChange()
+    public function setCommitOnSelChange(): Choice
     {
         if (!in_array(27, $this->flagBits)) {
             $this->flagBits[] = 27;
@@ -139,7 +139,7 @@ class Choice extends AbstractField
      *
      * @return bool
      */
-    public function isCombo()
+    public function isCombo(): bool
     {
         return in_array(18, $this->flagBits);
     }
@@ -149,7 +149,7 @@ class Choice extends AbstractField
      *
      * @return bool
      */
-    public function isMultiSelect()
+    public function isMultiSelect(): bool
     {
         return in_array(22, $this->flagBits);
     }
@@ -164,7 +164,7 @@ class Choice extends AbstractField
      * @param  int    $y
      * @return string
      */
-    public function getStream($i, $pageIndex, $fontReference, $x, $y)
+    public function getStream(int $i, int $pageIndex, string $fontReference, int $x, int $y): string
     {
         $text    = null;
         $options = null;

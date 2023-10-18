@@ -30,68 +30,68 @@ class Stream
 
     /**
      * Start X
-     * @var int
+     * @var ?int
      */
-    protected $startX = null;
+    protected ?int $startX = null;
 
     /**
      * Start Y
-     * @var int
+     * @var ?int
      */
-    protected $startY = null;
+    protected ?int $startY = null;
 
     /**
      * Edge X boundary
-     * @var int
+     * @var ?int
      */
-    protected $edgeX = null;
+    protected ?int $edgeX = null;
 
     /**
      * Edge Y boundary
-     * @var int
+     * @var ?int
      */
-    protected $edgeY = null;
+    protected ?int $edgeY = null;
     /**
      * Current X
-     * @var int
+     * @var ?int
      */
-    protected $currentX = null;
+    protected ?int $currentX = null;
 
     /**
      * Current Y
-     * @var int
+     * @var ?int
      */
-    protected $currentY = null;
+    protected ?int $currentY = null;
 
     /**
     * Text streams
      * @var array
      */
-    protected $streams = [];
+    protected array $streams = [];
 
     /**
      * Text styles
      * @var array
      */
-    protected $styles = [];
+    protected array $styles = [];
 
     /**
      * Orphan index
      * @var array
      */
-    protected $orphanIndex = [];
+    protected array $orphanIndex = [];
 
     /**
      * Constructor
      *
      * Instantiate a PDF text stream object.
      *
-     * @param int $startX
-     * @param int $startY
-     * @param int $edgeX
-     * @param int $edgeY
+     * @param int  $startX
+     * @param int  $startY
+     * @param int  $edgeX
+     * @param ?int $edgeY
      */
-    public function __construct($startX, $startY, $edgeX, $edgeY = null)
+    public function __construct(int $startX, int $startY, int $edgeX, ?int $edgeY = null)
     {
         $this->startX = $startX;
         $this->startY = $startY;
@@ -105,7 +105,7 @@ class Stream
      * @param  int $startX
      * @return Stream
      */
-    public function setStartX($startX)
+    public function setStartX(int $startX): Stream
     {
         $this->startX = $startX;
         return $this;
@@ -117,7 +117,7 @@ class Stream
      * @param  int $startY
      * @return Stream
      */
-    public function setStartY($startY)
+    public function setStartY(int $startY): Stream
     {
         $this->startY = $startY;
         return $this;
@@ -129,7 +129,7 @@ class Stream
      * @param  int $edgeX
      * @return Stream
      */
-    public function setEdgeX($edgeX)
+    public function setEdgeX(int $edgeX): Stream
     {
         $this->edgeX = $edgeX;
         return $this;
@@ -141,7 +141,7 @@ class Stream
      * @param  int $edgeY
      * @return Stream
      */
-    public function setEdgeY($edgeY)
+    public function setEdgeY(int $edgeY): Stream
     {
         $this->edgeY = $edgeY;
         return $this;
@@ -153,7 +153,7 @@ class Stream
      * @param  int $currentX
      * @return Stream
      */
-    public function setCurrentX($currentX)
+    public function setCurrentX(int $currentX): Stream
     {
         $this->currentX = $currentX;
         return $this;
@@ -165,7 +165,7 @@ class Stream
      * @param  int $currentY
      * @return Stream
      */
-    public function setCurrentY($currentY)
+    public function setCurrentY(int $currentY): Stream
     {
         $this->currentY = $currentY;
         return $this;
@@ -174,9 +174,9 @@ class Stream
     /**
      * Get start X
      *
-     * @return int
+     * @return ?int
      */
-    public function getStartX()
+    public function getStartX(): ?int
     {
         return $this->startX;
     }
@@ -184,9 +184,9 @@ class Stream
     /**
      * Get start Y
      *
-     * @return int
+     * @return ?int
      */
-    public function getStartY()
+    public function getStartY(): ?int
     {
         return $this->startY;
     }
@@ -194,9 +194,9 @@ class Stream
     /**
      * Get edge X boundary
      *
-     * @return int
+     * @return ?int
      */
-    public function getEdgeX()
+    public function getEdgeX(): ?int
     {
         return $this->edgeX;
     }
@@ -204,9 +204,9 @@ class Stream
     /**
      * Get edge Y boundary
      *
-     * @return int
+     * @return ?int
      */
-    public function getEdgeY()
+    public function getEdgeY(): ?int
     {
         return $this->edgeY;
     }
@@ -214,9 +214,9 @@ class Stream
     /**
      * Get current X
      *
-     * @return int
+     * @return ?int
      */
-    public function getCurrentX()
+    public function getCurrentX(): ?int
     {
         return $this->currentX;
     }
@@ -224,9 +224,9 @@ class Stream
     /**
      * Get current Y
      *
-     * @return int
+     * @return ?int
      */
-    public function getCurrentY()
+    public function getCurrentY(): ?int
     {
         return $this->currentY;
     }
@@ -234,11 +234,11 @@ class Stream
     /**
      * Add text to the stream
      *
-     * @param string $string
-     * @param int    $y
+     * @param  string $string
+     * @param  ?int   $y
      * @return Stream
      */
-    public function addText($string, $y = null)
+    public function addText(string $string, ?int $y = null): Stream
     {
         $this->streams[] = [
             'string' => $string,
@@ -251,12 +251,12 @@ class Stream
     /**
      * Set the current style
      *
-     * @param  string               $font
-     * @param  int                  $size
-     * @param  Color\ColorInterface $color
+     * @param  string                $font
+     * @param  int                   $size
+     * @param  ?Color\ColorInterface $color
      * @return Stream
      */
-    public function setCurrentStyle($font, $size, Color\ColorInterface $color = null)
+    public function setCurrentStyle(string $font, int $size, ?Color\ColorInterface $color = null): Stream
     {
         $key = (!empty($this->streams)) ? count($this->streams) : 0;
         $this->styles[$key] = [
@@ -273,7 +273,7 @@ class Stream
      *
      * @return array
      */
-    public function getTextStreams()
+    public function getTextStreams(): array
     {
         $streams      = $this->streams;
         $currentFont  = 'Arial';
@@ -307,7 +307,7 @@ class Stream
      * @param  array $fontReferences
      * @return string
      */
-    public function getStream(array $fonts, array $fontReferences)
+    public function getStream(array $fonts, array $fontReferences): string
     {
         if ($this->currentX === null) {
             $this->currentX = $this->startX;
@@ -387,7 +387,7 @@ class Stream
      *
      * @return Stream
      */
-    public function getOrphanStream()
+    public function getOrphanStream(): Stream
     {
         $offset        = array_search($this->orphanIndex[0], array_keys($this->streams));
         $this->streams = array_slice($this->streams, $offset, null, true);
@@ -407,7 +407,7 @@ class Stream
      * @param  array $fonts
      * @return bool
      */
-    public function hasOrphans(array $fonts)
+    public function hasOrphans(array $fonts): bool
     {
         $this->currentX = $this->startX;
         $this->currentY = $this->startY;
@@ -472,7 +472,7 @@ class Stream
      * @param  Color\ColorInterface $color
      * @return string
      */
-    public function getColorStream(Color\ColorInterface $color)
+    public function getColorStream(Color\ColorInterface $color): string
     {
         $stream = '';
 
@@ -492,7 +492,7 @@ class Stream
      *
      * @return bool
      */
-    public function hasOrphanIndex()
+    public function hasOrphanIndex(): bool
     {
         return ($this->orphanIndex !== null);
     }

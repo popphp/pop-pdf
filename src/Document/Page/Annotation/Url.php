@@ -28,9 +28,9 @@ class Url extends AbstractAnnotation
 
     /**
      * External URL to link to
-     * @var string
+     * @var ?string
      */
-    protected $url = null;
+    protected ?string $url = null;
 
     /**
      * Constructor
@@ -41,7 +41,7 @@ class Url extends AbstractAnnotation
      * @param  int    $height
      * @param  string $url
      */
-    public function __construct($width, $height, $url)
+    public function __construct(int $width, int $height, string $url)
     {
         parent::__construct($width, $height);
         $this->setUrl($url);
@@ -53,7 +53,7 @@ class Url extends AbstractAnnotation
      * @param  string $url
      * @return Url
      */
-    public function setUrl($url)
+    public function setUrl(string $url): Url
     {
         $this->url = $url;
         return $this;
@@ -62,9 +62,9 @@ class Url extends AbstractAnnotation
     /**
      * Get the URL link
      *
-     * @return string
+     * @return ?string
      */
-    public function getUrl()
+    public function getUrl(): ?string
     {
         return $this->url;
     }
@@ -77,7 +77,7 @@ class Url extends AbstractAnnotation
      * @param  int $y
      * @return string
      */
-    public function getStream($i, $x, $y)
+    public function getStream(int $i, int $x, int $y): string
     {
         // Assemble the border parameters
         $border = $this->hRadius . ' ' . $this->vRadius . ' ' . $this->borderWidth;

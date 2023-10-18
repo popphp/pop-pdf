@@ -17,6 +17,7 @@ use Pop\Pdf\Document\AbstractDocument;
 use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Font;
 use Pop\Pdf\Document\Metadata;
+use Pop\Pdf\Document\Exception;
 
 /**
  * Pdf document class
@@ -35,23 +36,23 @@ class Document extends AbstractDocument
      * Imported objects
      * @var array
      */
-    protected $importedObjects = [];
+    protected array $importedObjects = [];
 
     /**
      * Imported fonts
      * @var array
      */
-    protected $importedFonts = [];
+    protected array $importedFonts = [];
 
     /**
      * Constructor
      *
      * Instantiate a PDF document
      *
-     * @param  Page     $page
-     * @param  Metadata $metadata
+     * @param  ?Page     $page
+     * @param  ?Metadata $metadata
      */
-    public function __construct(Page $page = null, Metadata $metadata = null)
+    public function __construct(?Page $page = null, ?Metadata $metadata = null)
     {
         if ($page !== null) {
             $this->addPage($page);
@@ -66,7 +67,7 @@ class Document extends AbstractDocument
      * @param  Page $page
      * @return Document
      */
-    public function addPage(Page $page)
+    public function addPage(Page $page): Document
     {
         $this->pages[]     = $page;
         $this->currentPage = count($this->pages);
@@ -79,7 +80,7 @@ class Document extends AbstractDocument
      * @param  array $pages
      * @return Document
      */
-    public function addPages(array $pages)
+    public function addPages(array $pages): Document
     {
         foreach ($pages as $page) {
             $this->addPage($page);
@@ -91,10 +92,11 @@ class Document extends AbstractDocument
      * Create and return a new page object, adding it to the PDF document
      *
      * @param  mixed $size
-     * @param  int   $height
+     * @param  ?int  $height
+     * @throws Exception
      * @return Page
      */
-    public function createPage($size, $height = null)
+    public function createPage(mixed $size, ?int $height = null): Page
     {
         $page = new Page($size, $height);
         $this->addPage($page);
@@ -104,12 +106,12 @@ class Document extends AbstractDocument
     /**
      * Copy and return a page of the PDF, adding it to the PDF document
      *
-     * @param  int     $p
+     * @param  int  $p
      * @param  bool $preserveContent
      * @throws Exception
      * @return Page
      */
-    public function copyPage($p, $preserveContent = true)
+    public function copyPage(int $p, bool $preserveContent = true): Page
     {
         if (!isset($this->pages[$p - 1])) {
             throw new Exception("Error: That page (" . $p . ") does not exist.");
@@ -132,7 +134,7 @@ class Document extends AbstractDocument
      * @throws Exception
      * @return Document
      */
-    public function orderPages(array $pages)
+    public function orderPages(array $pages): Document
     {
         $newOrder = [];
 
@@ -165,7 +167,7 @@ class Document extends AbstractDocument
      * @throws Exception
      * @return Document
      */
-    public function deletePage($p)
+    public function deletePage(int $p): Document
     {
         if (!isset($this->pages[$p - 1])) {
             throw new Exception("Error: That page (" . $p . ") does not exist.");
@@ -184,11 +186,12 @@ class Document extends AbstractDocument
     /**
      * Add a font
      *
-     * @param  Font    $font
+     * @param  Font $font
      * @param  bool $embedOverride
+     * @throws Exception
      * @return Document
      */
-    public function addFont(Font $font, $embedOverride = false)
+    public function addFont(Font $font, bool $embedOverride = false): Document
     {
         if (!$font->isStandard()) {
             $this->embedFont($font, $embedOverride);
@@ -205,11 +208,12 @@ class Document extends AbstractDocument
     /**
      * Add a font
      *
-     * @param  Font    $font
+     * @param  Font $font
      * @param  bool $embedOverride
+     * @throws Exception
      * @return Document
      */
-    public function embedFont(Font $font, $embedOverride = false)
+    public function embedFont(Font $font, bool $embedOverride = false): Document
     {
         if (!$font->isEmbedded()) {
             $this->addFont($font);
@@ -235,7 +239,7 @@ class Document extends AbstractDocument
      * @throws Exception
      * @return Document
      */
-    public function setCurrentPage($p)
+    public function setCurrentPage(int $p): Document
     {
         // Check if the page exists.
         if (!isset($this->pages[$p - 1])) {
@@ -253,7 +257,7 @@ class Document extends AbstractDocument
      * @throws Exception
      * @return Document
      */
-    public function setCurrentFont($name)
+    public function setCurrentFont(string $name): Document
     {
         // Check if the font exists.
         if (!isset($this->fonts[$name])) {
@@ -270,7 +274,7 @@ class Document extends AbstractDocument
      * @param  array $objects
      * @return Document
      */
-    public function importObjects(array $objects)
+    public function importObjects(array $objects): Document
     {
         $this->importedObjects = $objects;
         return $this;
@@ -282,7 +286,7 @@ class Document extends AbstractDocument
      * @param  array $fonts
      * @return Document
      */
-    public function importFonts(array $fonts)
+    public function importFonts(array $fonts): Document
     {
         foreach ($fonts as $font) {
             $this->fonts[$font['name']] = $font;
@@ -296,7 +300,7 @@ class Document extends AbstractDocument
      *
      * @return bool
      */
-    public function hasImportedObjects()
+    public function hasImportedObjects(): bool
     {
         return (count($this->importedObjects) > 0);
     }
@@ -306,7 +310,7 @@ class Document extends AbstractDocument
      *
      * @return bool
      */
-    public function hasImportedFonts()
+    public function hasImportedFonts(): bool
     {
         return (count($this->importedFonts) > 0);
     }
@@ -316,7 +320,7 @@ class Document extends AbstractDocument
      *
      * @return array
      */
-    public function getImportObjects()
+    public function getImportObjects(): array
     {
         return $this->importedObjects;
     }
@@ -326,7 +330,7 @@ class Document extends AbstractDocument
      *
      * @return array
      */
-    public function getImportedFonts()
+    public function getImportedFonts(): array
     {
         return $this->importedFonts;
     }
@@ -336,7 +340,7 @@ class Document extends AbstractDocument
      *
      * @return string
      */
-    public function __toString()
+    public function __toString(): string
     {
         $compiler = new Build\Compiler();
         $compiler->finalize($this);

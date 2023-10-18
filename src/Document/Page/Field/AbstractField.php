@@ -30,68 +30,68 @@ abstract class AbstractField implements FieldInterface
 
     /**
      * Field name
-     * @var string
+     * @var ?string
      */
-    protected $name = null;
+    protected ?string $name = null;
 
     /**
      * Text field width
-     * @var int
+     * @var ?int
      */
-    protected $width = null;
+    protected ?int $width = null;
 
     /**
      * Text field height
-     * @var int
+     * @var ?int
      */
-    protected $height = null;
+    protected ?int $height = null;
 
     /**
      * Field value
-     * @var string
+     * @var ?string
      */
-    protected $value = null;
+    protected ?string $value = null;
 
     /**
      * Field default value
-     * @var string
+     * @var ?string
      */
-    protected $defaultValue = null;
+    protected ?string $defaultValue = null;
 
     /**
      * Text field font
-     * @var string
+     * @var ?string
      */
-    protected $font = null;
+    protected ?string $font = null;
 
     /**
      * Text field font size
      * @var int
      */
-    protected $size = 12;
+    protected int $size = 12;
 
     /**
      * Field font color
-     * @var Color\ColorInterface
+     * @var ?Color\ColorInterface
      */
-    protected $fontColor = null;
+    protected ?Color\ColorInterface $fontColor = null;
 
     /**
      * Field flag bits
      * @var array
      */
-    protected $flagBits = [];
+    protected array $flagBits = [];
 
     /**
      * Constructor
      *
      * Instantiate a PDF text field object.
      *
-     * @param  string $name
-     * @param  string $font
-     * @param  int    $size
+     * @param  string  $name
+     * @param  ?string $font
+     * @param  int     $size
      */
-    public function __construct($name, $font = null, $size = 12)
+    public function __construct(string $name, ?string $font = null, int $size = 12)
     {
         $this->setName($name);
         $this->setSize($size);
@@ -106,7 +106,7 @@ abstract class AbstractField implements FieldInterface
      * @param  string $name
      * @return AbstractField
      */
-    public function setName($name)
+    public function setName(string $name): AbstractField
     {
         $this->name = $name;
         return $this;
@@ -118,7 +118,7 @@ abstract class AbstractField implements FieldInterface
      * @param  string $value
      * @return AbstractField
      */
-    public function setValue($value)
+    public function setValue(string $value): AbstractField
     {
         $this->value = $value;
         return $this;
@@ -130,7 +130,7 @@ abstract class AbstractField implements FieldInterface
      * @param  string $value
      * @return AbstractField
      */
-    public function setDefaultValue($value)
+    public function setDefaultValue(string $value): AbstractField
     {
         $this->defaultValue = $value;
         return $this;
@@ -142,7 +142,7 @@ abstract class AbstractField implements FieldInterface
      * @param  string $font
      * @return AbstractField
      */
-    public function setFont($font)
+    public function setFont(string $font): AbstractField
     {
         $this->font = $font;
         return $this;
@@ -151,9 +151,9 @@ abstract class AbstractField implements FieldInterface
     /**
      * Get the font
      *
-     * @return string
+     * @return ?string
      */
-    public function getFont()
+    public function getFont(): ?string
     {
         return $this->font;
     }
@@ -164,9 +164,9 @@ abstract class AbstractField implements FieldInterface
      * @param  int $size
      * @return AbstractField
      */
-    public function setSize($size)
+    public function setSize(int $size): AbstractField
     {
-        $this->size = (int)$size;
+        $this->size = $size;
         return $this;
     }
 
@@ -175,7 +175,7 @@ abstract class AbstractField implements FieldInterface
      *
      * @return int
      */
-    public function getSize()
+    public function getSize(): int
     {
         return $this->size;
     }
@@ -186,7 +186,7 @@ abstract class AbstractField implements FieldInterface
      * @param  Color\ColorInterface $color
      * @return AbstractField
      */
-    public function setFontColor(Color\ColorInterface $color)
+    public function setFontColor(Color\ColorInterface $color): AbstractField
     {
         $this->fontColor = $color;
         return $this;
@@ -195,9 +195,9 @@ abstract class AbstractField implements FieldInterface
     /**
      * Get the field font color
      *
-     * @return Color\ColorInterface
+     * @return ?Color\ColorInterface
      */
-    public function getFontColor()
+    public function getFontColor(): ?Color\ColorInterface
     {
         return $this->fontColor;
     }
@@ -207,7 +207,7 @@ abstract class AbstractField implements FieldInterface
      *
      * @return AbstractField
      */
-    public function setReadOnly()
+    public function setReadOnly(): AbstractField
     {
         if (!in_array(1, $this->flagBits)) {
             $this->flagBits[] = 1;
@@ -220,7 +220,7 @@ abstract class AbstractField implements FieldInterface
      *
      * @return AbstractField
      */
-    public function setRequired()
+    public function setRequired(): AbstractField
     {
         if (!in_array(2, $this->flagBits)) {
             $this->flagBits[] = 2;
@@ -233,7 +233,7 @@ abstract class AbstractField implements FieldInterface
      *
      * @return AbstractField
      */
-    public function setNoExport()
+    public function setNoExport(): AbstractField
     {
         if (!in_array(3, $this->flagBits)) {
             $this->flagBits[] = 3;
@@ -244,9 +244,9 @@ abstract class AbstractField implements FieldInterface
     /**
      * Get the field name
      *
-     * @return string
+     * @return ?string
      */
-    public function getName()
+    public function getName(): ?string
     {
         return $this->name;
     }
@@ -254,9 +254,9 @@ abstract class AbstractField implements FieldInterface
     /**
      * Get the field value
      *
-     * @return string
+     * @return ?string
      */
-    public function getValue()
+    public function getValue(): ?string
     {
         return $this->value;
     }
@@ -264,9 +264,9 @@ abstract class AbstractField implements FieldInterface
     /**
      * Get the field default value
      *
-     * @return string
+     * @return ?string
      */
-    public function getDefaultValue()
+    public function getDefaultValue(): ?string
     {
         return $this->defaultValue;
     }
@@ -277,18 +277,18 @@ abstract class AbstractField implements FieldInterface
      * @param  int $width
      * @return AbstractField
      */
-    public function setWidth($width)
+    public function setWidth(int $width): AbstractField
     {
-        $this->width = (int)$width;
+        $this->width = $width;
         return $this;
     }
 
     /**
      * Get the field width
      *
-     * @return int
+     * @return ?int
      */
-    public function getWidth()
+    public function getWidth(): ?int
     {
         return $this->width;
     }
@@ -299,18 +299,18 @@ abstract class AbstractField implements FieldInterface
      * @param  int $height
      * @return AbstractField
      */
-    public function setHeight($height)
+    public function setHeight(int $height): AbstractField
     {
-        $this->height = (int)$height;
+        $this->height = $height;
         return $this;
     }
 
     /**
      * Get the field height
      *
-     * @return int
+     * @return ?int
      */
-    public function getHeight()
+    public function getHeight(): ?int
     {
         return $this->height;
     }
@@ -320,7 +320,7 @@ abstract class AbstractField implements FieldInterface
      *
      * @return int
      */
-    protected function getFlags()
+    protected function getFlags(): int
     {
         $flags = '';
 

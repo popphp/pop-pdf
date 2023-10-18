@@ -34,7 +34,7 @@ interface PageInterface
      * @param  mixed $width
      * @return PageInterface
      */
-    public function setWidth($width);
+    public function setWidth(mixed $width): PageInterface;
 
     /**
      * Set the page height
@@ -42,7 +42,7 @@ interface PageInterface
      * @param  mixed $height
      * @return PageInterface
      */
-    public function setHeight($height);
+    public function setHeight(mixed $height): PageInterface;
 
     /**
      * Set the page index
@@ -50,28 +50,28 @@ interface PageInterface
      * @param  int $i
      * @return PageInterface
      */
-    public function setIndex($i);
+    public function setIndex(int $i): PageInterface;
 
     /**
      * Get the page width
      *
      * @return int
      */
-    public function getWidth();
+    public function getWidth(): int;
 
     /**
      * Get the page height
      *
      * @return int
      */
-    public function getHeight();
+    public function getHeight(): int;
 
     /**
      * Get the page index
      *
      * @return int
      */
-    public function getIndex();
+    public function getIndex(): int;
 
     /**
      * Add an image to the PDF page
@@ -81,7 +81,7 @@ interface PageInterface
      * @param  int        $y
      * @return PageInterface
      */
-    public function addImage(Page\Image $image, $x = 0, $y = 0);
+    public function addImage(Page\Image $image, int $x = 0, int $y = 0): PageInterface;
 
     /**
      * Add text to the PDF page
@@ -92,7 +92,7 @@ interface PageInterface
      * @param  int       $y
      * @return PageInterface
      */
-    public function addText(Page\Text $text, $font, $x = 0, $y = 0);
+    public function addText(Page\Text $text, string $font, int $x = 0, int $y = 0): PageInterface;
 
     /**
      * Add an annotation to the PDF page
@@ -102,7 +102,7 @@ interface PageInterface
      * @param  int                           $y
      * @return PageInterface
      */
-    public function addAnnotation(Annotation\AbstractAnnotation $annotation, $x = 0, $y = 0);
+    public function addAnnotation(Annotation\AbstractAnnotation $annotation, int $x = 0, int $y = 0): PageInterface;
 
     /**
      * Add a URL annotation to the PDF page
@@ -112,7 +112,7 @@ interface PageInterface
      * @param  int            $y
      * @return PageInterface
      */
-    public function addUrl(Annotation\Url $url, $x = 0, $y = 0);
+    public function addUrl(Annotation\Url $url, int $x = 0, int $y = 0): PageInterface;
 
     /**
      * Add a link annotation to the PDF page
@@ -122,7 +122,7 @@ interface PageInterface
      * @param  int             $y
      * @return PageInterface
      */
-    public function addLink(Annotation\Link $link, $x = 0, $y = 0);
+    public function addLink(Annotation\Link $link, int $x = 0, int $y = 0): PageInterface;
 
     /**
      * Add a path to the Pdf page
@@ -130,62 +130,62 @@ interface PageInterface
      * @param  Page\Path $path
      * @return PageInterface
      */
-    public function addPath(Page\Path $path);
+    public function addPath(Page\Path $path): PageInterface;
 
     /**
      * Get image objects
      *
      * @return array
      */
-    public function getImages();
+    public function getImages(): array;
 
     /**
      * Get text objects
      *
      * @return array
      */
-    public function getText();
+    public function getText(): array;
 
     /**
      * Get annotation objects
      *
      * @return array
      */
-    public function getAnnotations();
+    public function getAnnotations(): array;
 
     /**
      * Get path objects
      *
      * @return array
      */
-    public function getPaths();
+    public function getPaths(): array;
 
     /**
      * Determine if the page has image objects
      *
      * @return bool
      */
-    public function hasImages();
+    public function hasImages(): bool;
 
     /**
      * Determine if the page has text objects
      *
      * @return bool
      */
-    public function hasText();
+    public function hasText(): bool;
 
     /**
      * Determine if the page has annotation objects
      *
      * @return bool
      */
-    public function hasAnnotations();
+    public function hasAnnotations(): bool;
 
     /**
      * Determine if the page has path objects
      *
      * @return bool
      */
-    public function hasPaths();
+    public function hasPaths(): bool;
 
 }

@@ -32,9 +32,9 @@ class Page extends AbstractPage
 
     /**
      * Imported page object
-     * @var PdfObject\PageObject
+     * @var ?PdfObject\PageObject
      */
-    protected $importedPageObject = null;
+    protected ?PdfObject\PageObject $importedPageObject = null;
 
     /**
      * Constructor
@@ -84,10 +84,10 @@ class Page extends AbstractPage
      *
      * @param  string $image
      * @param  int    $quality
-     * @throws Exception
+     * @throws Exception|Page\Exception
      * @return Page
      */
-    public static function createFromImage($image, $quality = 70)
+    public static function createFromImage(string $image, int $quality = 70): Page
     {
         if (!file_exists($image)) {
             throw new Exception('Error: That image file does not exist.');
@@ -113,12 +113,12 @@ class Page extends AbstractPage
      * @param  int        $y
      * @return Page
      */
-    public function addImage(Page\Image $image, $x = 0, $y = 0)
+    public function addImage(Page\Image $image, int $x = 0, int $y = 0): Page
     {
         $this->images[] = [
             'image' => $image,
-            'x'     => (int)$x,
-            'y'     => (int)$y
+            'x'     => $x,
+            'y'     => $y
         ];
         return $this;
     }
@@ -132,13 +132,13 @@ class Page extends AbstractPage
      * @param  int       $y
      * @return Page
      */
-    public function addText(Page\Text $text, $font, $x = 0, $y = 0)
+    public function addText(Page\Text $text, string $font, int $x = 0, int $y = 0): Page
     {
         $this->text[] = [
             'text' => $text,
             'font' => $font,
-            'x'    => (int)$x,
-            'y'    => (int)$y
+            'x'    => $x,
+            'y'    => $y
         ];
         return $this;
     }
@@ -149,7 +149,7 @@ class Page extends AbstractPage
      * @param  Page\Text\Stream $textStream
      * @return Page
      */
-    public function addTextStream(Page\Text\Stream $textStream)
+    public function addTextStream(Page\Text\Stream $textStream): Page
     {
         $this->textStreams[] = $textStream;
         return $this;
@@ -163,12 +163,12 @@ class Page extends AbstractPage
      * @param  int                           $y
      * @return Page
      */
-    public function addAnnotation(Annotation\AbstractAnnotation $annotation, $x = 0, $y = 0)
+    public function addAnnotation(Annotation\AbstractAnnotation $annotation, int $x = 0, int $y = 0): Page
     {
         $this->annotations[] = [
             'annotation' => $annotation,
-            'x'          => (int)$x,
-            'y'          => (int)$y
+            'x'          => $x,
+            'y'          => $y
         ];
         return $this;
     }
@@ -181,7 +181,7 @@ class Page extends AbstractPage
      * @param  int            $y
      * @return Page
      */
-    public function addUrl(Annotation\Url $url, $x = 0, $y = 0)
+    public function addUrl(Annotation\Url $url, int $x = 0, int $y = 0): Page
     {
         return $this->addAnnotation($url, $x, $y);
     }
@@ -194,7 +194,7 @@ class Page extends AbstractPage
      * @param  int             $y
      * @return Page
      */
-    public function addLink(Annotation\Link $link, $x = 0, $y = 0)
+    public function addLink(Annotation\Link $link, int $x = 0, int $y = 0): Page
     {
         return $this->addAnnotation($link, $x, $y);
     }
@@ -205,7 +205,7 @@ class Page extends AbstractPage
      * @param  Page\Path $path
      * @return Page
      */
-    public function addPath(Page\Path $path)
+    public function addPath(Page\Path $path): Page
     {
         $this->paths[] = $path;
         return $this;
@@ -220,13 +220,13 @@ class Page extends AbstractPage
      * @param  int                      $y
      * @return Page
      */
-    public function addField(Page\Field\AbstractField $field, $form, $x = 0, $y = 0)
+    public function addField(Page\Field\AbstractField $field, string $form, int $x = 0, int $y = 0): Page
     {
         $this->fields[] = [
             'field' => $field,
             'form'  => $form,
-            'x'     => (int)$x,
-            'y'     => (int)$y
+            'x'     => $x,
+            'y'     => $y
         ];
         return $this;
     }
@@ -237,7 +237,7 @@ class Page extends AbstractPage
      * @param PdfObject\PageObject $page
      * @return Page
      */
-    public function importPageObject(PdfObject\PageObject $page)
+    public function importPageObject(PdfObject\PageObject $page): Page
     {
         $this->importedPageObject = $page;
         return $this;
@@ -248,7 +248,7 @@ class Page extends AbstractPage
      *
      * @return bool
      */
-    public function hasImportedPageObject()
+    public function hasImportedPageObject(): bool
     {
         return ($this->importedPageObject !== null);
     }
@@ -256,9 +256,9 @@ class Page extends AbstractPage
     /**
      * Get the import page object
      *
-     * @return PdfObject\PageObject
+     * @return ?PdfObject\PageObject
      */
-    public function getImportedPageObject()
+    public function getImportedPageObject(): ?PdfObject\PageObject
     {
         return $this->importedPageObject;
     }

@@ -28,24 +28,24 @@ class Form
 
     /**
      * Form name
-     * @var string
+     * @var ?string
      */
-    protected $name = null;
+    protected ?string $name = null;
 
     /**
      * Form field indices
      * @var array
      */
-    protected $fields = [];
+    protected array $fields = [];
 
     /**
      * Constructor
      *
      * Instantiate a PDF form object.
      *
-     * @param  string $name
+     * @param string $name
      */
-    public function __construct($name)
+    public function __construct(string $name)
     {
         $this->setName($name);
     }
@@ -56,7 +56,7 @@ class Form
      * @param  string $name
      * @return Form
      */
-    public function setName($name)
+    public function setName(string $name): Form
     {
         $this->name = $name;
         return $this;
@@ -65,9 +65,9 @@ class Form
     /**
      * Get the form name
      *
-     * @return string
+     * @return ?string
      */
-    public function getName()
+    public function getName(): ?string
     {
         return $this->name;
     }
@@ -78,9 +78,9 @@ class Form
      * @param  int $i
      * @return Form
      */
-    public function addFieldIndex($i)
+    public function addFieldIndex(int $i): Form
     {
-        $this->fields[] = (int)$i;
+        $this->fields[] = $i;
         return $this;
     }
 
@@ -89,7 +89,7 @@ class Form
      *
      * @return array
      */
-    public function getFieldIndices()
+    public function getFieldIndices(): array
     {
         return $this->fields;
     }
@@ -97,9 +97,9 @@ class Form
     /**
      * Get number of fields
      *
-     * @return array
+     * @return int
      */
-    public function getNumberOfFields()
+    public function getNumberOfFields(): int
     {
         return count($this->fields);
     }
@@ -110,7 +110,7 @@ class Form
      * @param  int $i
      * @return string
      */
-    public function getStream($i)
+    public function getStream(int $i): string
     {
         // Return the stream
         $stream = "{$i} 0 obj\n<</Fields[";

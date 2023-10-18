@@ -32,13 +32,13 @@ interface FieldInterface
      * @param  string $name
      * @return FieldInterface
      */
-    public function setName($name);
+    public function setName(string $name): FieldInterface;
 
     /**
      * Get the field name
      *
-     * @return string
+     * @return ?string
      */
-    public function getName();
+    public function getName(): ?string;
 
 }

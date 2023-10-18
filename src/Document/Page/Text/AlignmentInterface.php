@@ -32,7 +32,7 @@ interface AlignmentInterface
      * @param  string $alignment
      * @return AlignmentInterface
      */
-    public function setAlignment($alignment);
+    public function setAlignment(string $alignment): AlignmentInterface;
 
     /**
      * Set the left X boundary
@@ -40,7 +40,7 @@ interface AlignmentInterface
      * @param  int $x
      * @return AlignmentInterface
      */
-    public function setLeftX($x);
+    public function setLeftX(int $x): AlignmentInterface;
 
     /**
      * Set the right X boundary
@@ -48,7 +48,7 @@ interface AlignmentInterface
      * @param  int $x
      * @return AlignmentInterface
      */
-    public function setRightX($x);
+    public function setRightX(int $x): AlignmentInterface;
 
     /**
      * Set the leading
@@ -56,69 +56,69 @@ interface AlignmentInterface
      * @param  int $leading
      * @return AlignmentInterface
      */
-    public function setLeading($leading);
+    public function setLeading(int $leading): AlignmentInterface;
 
     /**
      * Get character wrap boundary
      *
      * @return string
      */
-    public function getAlignment();
+    public function getAlignment(): string;
 
     /**
      * Get left X
      *
      * @return int
      */
-    public function getLeftX();
+    public function getLeftX(): int;
 
     /**
      * Get left X
      *
      * @return int
      */
-    public function getRightX();
+    public function getRightX(): int;
 
     /**
      * Get the leading
      *
      * @return int
      */
-    public function getLeading();
+    public function getLeading(): int;
 
     /**
      * Has left X
      *
      * @return bool
      */
-    public function hasLeftX();
+    public function hasLeftX(): bool;
 
     /**
      * Has right X
      *
      * @return bool
      */
-    public function hasRightX();
+    public function hasRightX(): bool;
 
     /**
      * Has leading
      *
      * @return bool
      */
-    public function hasLeading();
+    public function hasLeading(): bool;
 
     /**
      * Is LEFT alignment
      *
      * @return bool
      */
-    public function isLeft();
+    public function isLeft(): bool;
 
     /**
      * Is RIGHT alignment
      *
      * @return bool
      */
-    public function isRight();
+    public function isRight(): bool;
 
 }

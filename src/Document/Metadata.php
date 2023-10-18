@@ -30,43 +30,43 @@ class Metadata
      * PDF info object title
      * @var string
      */
-    protected $title = 'Pop PDF';
+    protected string $title = 'Pop PDF';
 
     /**
      * PDF info object author
      * @var string
      */
-    protected $author = 'Pop PDF';
+    protected string $author = 'Pop PDF';
 
     /**
      * PDF info object subject
      * @var string
      */
-    protected $subject = 'Pop PDF';
+    protected string $subject = 'Pop PDF';
 
     /**
      * PDF info object creator
      * @var string
      */
-    protected $creator = 'Pop PDF';
+    protected string $creator = 'Pop PDF';
 
     /**
      * PDF info object producer
      * @var string
      */
-    protected $producer = 'Pop PDF';
+    protected string $producer = 'Pop PDF';
 
     /**
      * PDF info object creation date
-     * @var string
+     * @var ?string
      */
-    protected $creationDate = null;
+    protected ?string $creationDate = null;
 
     /**
      * PDF info object modification date
-     * @var string
+     * @var ?string
      */
-    protected $modDate = null;
+    protected ?string $modDate = null;
 
     /**
      * Set the info object title
@@ -74,7 +74,7 @@ class Metadata
      * @param  string $title
      * @return Metadata
      */
-    public function setTitle($title)
+    public function setTitle(string $title): Metadata
     {
         $this->title = $title;
         return $this;
@@ -86,7 +86,7 @@ class Metadata
      * @param  string $author
      * @return Metadata
      */
-    public function setAuthor($author)
+    public function setAuthor(string $author): Metadata
     {
         $this->author = $author;
         return $this;
@@ -98,7 +98,7 @@ class Metadata
      * @param  string $subject
      * @return Metadata
      */
-    public function setSubject($subject)
+    public function setSubject(string $subject): Metadata
     {
         $this->subject = $subject;
         return $this;
@@ -110,7 +110,7 @@ class Metadata
      * @param  string $creator
      * @return Metadata
      */
-    public function setCreator($creator)
+    public function setCreator(string $creator): Metadata
     {
         $this->creator = $creator;
         return $this;
@@ -122,7 +122,7 @@ class Metadata
      * @param  string $producer
      * @return Metadata
      */
-    public function setProducer($producer)
+    public function setProducer(string $producer): Metadata
     {
         $this->producer = $producer;
         return $this;
@@ -134,7 +134,7 @@ class Metadata
      * @param  string $date
      * @return Metadata
      */
-    public function setCreationDate($date)
+    public function setCreationDate(string $date): Metadata
     {
         $this->creationDate = $date;
         return $this;
@@ -146,7 +146,7 @@ class Metadata
      * @param  string $date
      * @return Metadata
      */
-    public function setModDate($date)
+    public function setModDate(string $date): Metadata
     {
         $this->modDate = $date;
         return $this;
@@ -157,7 +157,7 @@ class Metadata
      *
      * @return string
      */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->title;
     }
@@ -167,7 +167,7 @@ class Metadata
      *
      * @return string
      */
-    public function getAuthor()
+    public function getAuthor(): string
     {
         return $this->author;
     }
@@ -177,7 +177,7 @@ class Metadata
      *
      * @return string
      */
-    public function getSubject()
+    public function getSubject(): string
     {
         return $this->subject;
     }
@@ -187,7 +187,7 @@ class Metadata
      *
      * @return string
      */
-    public function getCreator()
+    public function getCreator(): string
     {
         return $this->creator;
     }
@@ -197,7 +197,7 @@ class Metadata
      *
      * @return string
      */
-    public function getProducer()
+    public function getProducer(): string
     {
         return $this->producer;
     }
@@ -205,9 +205,9 @@ class Metadata
     /**
      * Get the info object creation date
      *
-     * @return string
+     * @return ?string
      */
-    public function getCreationDate()
+    public function getCreationDate(): ?string
     {
         return $this->creationDate;
     }
@@ -215,9 +215,9 @@ class Metadata
     /**
      * Get the info object modification date
      *
-     * @return string
+     * @return ?string
      */
-    public function getModDate()
+    public function getModDate(): ?string
     {
         return $this->modDate;
     }

@@ -29,32 +29,32 @@ abstract class AbstractAlignment implements AlignmentInterface
     /**
      * Alignment constants
      */
-    const LEFT   = 'LEFT';
-    const RIGHT  = 'RIGHT';
+    const LEFT  = 'LEFT';
+    const RIGHT = 'RIGHT';
 
     /**
      * Text alignment
      * @var string
      */
-    protected $alignment = self::LEFT;
+    protected string $alignment = self::LEFT;
 
     /**
      * Left X boundary
      * @var int
      */
-    protected $leftX = 0;
+    protected int $leftX = 0;
 
     /**
      * Right X boundary
      * @var int
      */
-    protected $rightX = 0;
+    protected int $rightX = 0;
 
     /**
      * Text leading
      * @var int
      */
-    protected $leading = 0;
+    protected int $leading = 0;
 
     /**
      * Constructor
@@ -66,7 +66,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      * @param int    $rightX
      * @param int    $leading
      */
-    public function __construct($alignment = self::LEFT, $leftX = 0, $rightX = 0, $leading = 0)
+    public function __construct(string $alignment = self::LEFT, int $leftX = 0, int $rightX = 0, int $leading = 0)
     {
         $this->setAlignment($alignment);
         $this->setLeftX($leftX);
@@ -80,7 +80,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      * @param  string $alignment
      * @return AbstractAlignment
      */
-    public function setAlignment($alignment)
+    public function setAlignment(string $alignment): AbstractAlignment
     {
         $this->alignment = $alignment;
         return $this;
@@ -92,7 +92,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      * @param  int $x
      * @return AbstractAlignment
      */
-    public function setLeftX($x)
+    public function setLeftX(int $x): AbstractAlignment
     {
         $this->leftX = $x;
         return $this;
@@ -104,7 +104,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      * @param  int $x
      * @return AbstractAlignment
      */
-    public function setRightX($x)
+    public function setRightX(int $x): AbstractAlignment
     {
         $this->rightX = $x;
         return $this;
@@ -116,7 +116,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      * @param  int $leading
      * @return AbstractAlignment
      */
-    public function setLeading($leading)
+    public function setLeading(int $leading): AbstractAlignment
     {
         $this->leading = $leading;
         return $this;
@@ -127,7 +127,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      *
      * @return string
      */
-    public function getAlignment()
+    public function getAlignment(): string
     {
         return $this->alignment;
     }
@@ -137,7 +137,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      *
      * @return int
      */
-    public function getLeftX()
+    public function getLeftX(): int
     {
         return $this->leftX;
     }
@@ -147,7 +147,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      *
      * @return int
      */
-    public function getRightX()
+    public function getRightX(): int
     {
         return $this->rightX;
     }
@@ -157,7 +157,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      *
      * @return int
      */
-    public function getLeading()
+    public function getLeading(): int
     {
         return $this->leading;
     }
@@ -167,7 +167,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      *
      * @return bool
      */
-    public function hasLeftX()
+    public function hasLeftX(): bool
     {
         return ($this->leftX > 0);
     }
@@ -177,7 +177,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      *
      * @return bool
      */
-    public function hasRightX()
+    public function hasRightX(): bool
     {
         return ($this->rightX > 0);
     }
@@ -187,7 +187,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      *
      * @return bool
      */
-    public function hasLeading()
+    public function hasLeading(): bool
     {
         return ($this->leading > 0);
     }
@@ -197,7 +197,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      *
      * @return bool
      */
-    public function isLeft()
+    public function isLeft(): bool
     {
         return ($this->alignment == self::LEFT);
     }
@@ -207,7 +207,7 @@ abstract class AbstractAlignment implements AlignmentInterface
      *
      * @return bool
      */
-    public function isRight()
+    public function isRight(): bool
     {
         return ($this->alignment == self::RIGHT);
     }

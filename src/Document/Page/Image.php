@@ -28,39 +28,39 @@ class Image
 
     /**
      * Image file name
-     * @var string
+     * @var ?string
      */
-    protected $image = null;
+    protected ?string $image = null;
 
     /**
      * Image stream
      * @var string
      */
-    protected $stream = null;
+    protected ?string $stream = null;
 
     /**
      * Image width
-     * @var int
+     * @var ?int
      */
-    protected $width = null;
+    protected ?int $width = null;
 
     /**
      * Image height
-     * @var int
+     * @var ?int
      */
-    protected $height = null;
+    protected ?int $height = null;
 
     /**
      * Image resize value
-     * @var array
+     * @var ?array
      */
-    protected $resize = null;
+    protected ?array $resize = null;
 
     /**
      * Flag to preserve image resolution
      * @var bool
      */
-    protected $preserveResolution = false;
+    protected bool $preserveResolution = false;
 
     /**
      * Create PDF image object from file
@@ -69,7 +69,7 @@ class Image
      * @throws Exception
      * @return Image
      */
-    public static function createImageFromFile($file)
+    public static function createImageFromFile(string $file): Image
     {
         $image = new self();
         $image->loadImageFromFile($file);
@@ -83,7 +83,7 @@ class Image
      * @throws Exception
      * @return Image
      */
-    public static function createImageFromStream($stream)
+    public static function createImageFromStream(string $stream): Image
     {
         $image = new self();
         $image->loadImageFromStream($stream);
@@ -97,7 +97,7 @@ class Image
      * @throws Exception
      * @return Image
      */
-    public function loadImageFromFile($file)
+    public function loadImageFromFile(string $file): Image
     {
         if (!file_exists($file)) {
             throw new Exception('Error: That image file does not exist.');
@@ -128,7 +128,7 @@ class Image
      * @throws Exception
      * @return Image
      */
-    public function loadImageFromStream($stream)
+    public function loadImageFromStream(string $stream): Image
     {
         $imgSize = getimagesizefromstring($stream);
 
@@ -150,47 +150,47 @@ class Image
     /**
      * Resize image to width
      *
-     * @param  int     $width
+     * @param  int  $width
      * @param  bool $preserveResolution
      * @return Image
      */
-    public function resizeToWidth($width, $preserveResolution = false)
+    public function resizeToWidth(int $width, bool $preserveResolution = false): Image
     {
         $this->resize = [
             'width'  => $width,
             'height' => round($this->height * ($width / $this->width))
         ];
 
-        $this->preserveResolution = (bool)$preserveResolution;
+        $this->preserveResolution = $preserveResolution;
         return $this;
     }
 
     /**
      * Resize image to height
      *
-     * @param  int     $height
+     * @param  int  $height
      * @param  bool $preserveResolution
      * @return Image
      */
-    public function resizeToHeight($height, $preserveResolution = false)
+    public function resizeToHeight(int $height, bool $preserveResolution = false): Image
     {
         $this->resize = [
             'width'  => round($this->width * ($height / $this->height)),
             'height' => $height
         ];
 
-        $this->preserveResolution = (bool)$preserveResolution;
+        $this->preserveResolution = $preserveResolution;
         return $this;
     }
 
     /**
      * Resize image on whichever dimension is the greatest
      *
-     * @param  int     $pixel
+     * @param  int  $pixel
      * @param  bool $preserveResolution
      * @return Image
      */
-    public function resize($pixel, $preserveResolution = false)
+    public function resize(int $pixel, bool $preserveResolution = false): Image
     {
         $scale        = ($this->width > $this->height) ? ($pixel / $this->width) : ($pixel / $this->height);
         $this->resize = [
@@ -198,24 +198,24 @@ class Image
             'height' => round($this->height * $scale)
         ];
 
-        $this->preserveResolution = (bool)$preserveResolution;
+        $this->preserveResolution = $preserveResolution;
         return $this;
     }
 
     /**
      * Scale image
      *
-     * @param  float   $scale
-     * @param  bool $preserveResolution
+     * @param  float $scale
+     * @param  bool  $preserveResolution
      * @return Image
      */
-    public function scale($scale, $preserveResolution = false)
+    public function scale(float $scale, bool $preserveResolution = false): Image
     {
         $this->resize = [
             'width'  => round($this->width * $scale),
             'height' => round($this->height * $scale)
         ];
-        $this->preserveResolution = (bool)$preserveResolution;
+        $this->preserveResolution = $preserveResolution;
         return $this;
     }
 
@@ -224,7 +224,7 @@ class Image
      *
      * @return bool
      */
-    public function isFile()
+    public function isFile(): bool
     {
         return (($this->image !== null) && ($this->stream === null));
     }
@@ -234,7 +234,7 @@ class Image
      *
      * @return bool
      */
-    public function isStream()
+    public function isStream(): bool
     {
         return (($this->stream !== null) && ($this->image === null));
     }
@@ -242,9 +242,9 @@ class Image
     /**
      * Get the image file
      *
-     * @return string
+     * @return ?string
      */
-    public function getImage()
+    public function getImage(): ?string
     {
         return $this->image;
     }
@@ -252,9 +252,9 @@ class Image
     /**
      * Get the image stream
      *
-     * @return string
+     * @return ?string
      */
-    public function getStream()
+    public function getStream(): ?string
     {
         return $this->stream;
     }
@@ -262,9 +262,9 @@ class Image
     /**
      * Get the image width
      *
-     * @return int
+     * @return ?int
      */
-    public function getWidth()
+    public function getWidth(): ?int
     {
         return $this->width;
     }
@@ -272,9 +272,9 @@ class Image
     /**
      * Get the image height
      *
-     * @return int
+     * @return ?int
      */
-    public function getHeight()
+    public function getHeight(): ?int
     {
         return $this->height;
     }
@@ -282,9 +282,9 @@ class Image
     /**
      * Get the image resized width
      *
-     * @return int
+     * @return ?int
      */
-    public function getResizedWidth()
+    public function getResizedWidth(): ?int
     {
         return (($this->resize !== null) && isset($this->resize['width'])) ? $this->resize['width'] : null;
     }
@@ -292,9 +292,9 @@ class Image
     /**
      * Get the image resized height
      *
-     * @return int
+     * @return ?int
      */
-    public function getResizedHeight()
+    public function getResizedHeight(): ?int
     {
         return (($this->resize !== null) && isset($this->resize['height'])) ? $this->resize['height'] : null;
     }
@@ -302,9 +302,9 @@ class Image
     /**
      * Get the image resize dimensions
      *
-     * @return array
+     * @return ?array
      */
-    public function getResizeDimensions()
+    public function getResizeDimensions(): ?array
     {
         return $this->resize;
     }
@@ -314,7 +314,7 @@ class Image
      *
      * @return bool
      */
-    public function isPreserveResolution()
+    public function isPreserveResolution(): bool
     {
         return $this->preserveResolution;
     }

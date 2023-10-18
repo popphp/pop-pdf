@@ -14,6 +14,7 @@
 namespace Pop\Pdf\Document\Page;
 
 use Pop\Color\Color;
+use OutOfRangeException;
 
 /**
  * Pdf page path class
@@ -51,31 +52,31 @@ class Path
      * Allowed styles
      * @var array
      */
-    protected $allowedStyles = [
+    protected array $allowedStyles = [
         'S', 's', 'F', 'f*', 'B', 'B*', 'b', 'b*',
         'W', 'W F', 'W*', 'W* F', 'W* n', 'n'
     ];
 
     /**
      * Path streams array
-     * @var array
+     * @var ?array
      */
-    protected $streams = null;
+    protected ?array $streams = null;
 
     /**
      * Path style
      * @var string
      */
-    protected $style = 'S';
+    protected string $style = 'S';
 
     /**
      * Constructor
      *
      * Instantiate a PDF path object
      *
-     * @param  string $style
+     * @param string $style
      */
-    public function __construct($style = Path::STROKE)
+    public function __construct(string $style = Path::STROKE)
     {
         $this->setStyle($style);
     }
@@ -86,7 +87,7 @@ class Path
      * @param  Color\ColorInterface $color
      * @return Path
      */
-    public function setFillColor(Color\ColorInterface $color)
+    public function setFillColor(Color\ColorInterface $color): Path
     {
         $stream = null;
         if ($color instanceof Color\Rgb) {
@@ -112,7 +113,7 @@ class Path
      * @param  Color\ColorInterface $color
      * @return Path
      */
-    public function setStrokeColor(Color\ColorInterface $color)
+    public function setStrokeColor(Color\ColorInterface $color): Path
     {
         $stream = null;
         if ($color instanceof Color\Rgb) {
@@ -135,22 +136,23 @@ class Path
     /**
      * Set the stroke properties
      *
-     * @param  int $width
-     * @param  int $dashLength
-     * @param  int $dashGap
+     * @param  int  $width
+     * @param  ?int $dashLength
+     * @param  ?int $dashGap
      * @return Path
      */
-    public function setStroke($width, $dashLength = null, $dashGap = null)
+    public function setStroke(int $width, ?int $dashLength = null, ?int $dashGap = null): Path
     {
-        $stream = "\n" . (int)$width . "w\n";
-        if ((int)$width != 0) {
+        $stream = "\n" . $width . "w\n";
+        if ($width != 0) {
             $stream .= (($dashLength !== null) && ($dashGap !== null)) ?
-                "[" . (int)$dashLength . " " . (int)$dashGap . "] 0 d\n" : "[] 0 d\n";
+                "[" . $dashLength . " " . $dashGap . "] 0 d\n" : "[] 0 d\n";
         }
 
         $this->streams[] = [
             'stream' => $stream
         ];
+
         return $this;
     }
 
@@ -160,7 +162,7 @@ class Path
      * @param  string $style
      * @return Path
      */
-    public function setStyle($style)
+    public function setStyle(string $style): Path
     {
         if (in_array($style, $this->allowedStyles)) {
             $this->style = $style;
@@ -173,7 +175,7 @@ class Path
      *
      * @return Path
      */
-    public function openLayer()
+    public function openLayer(): Path
     {
         $this->streams[] = [
             'stream' => "\nq\n"
@@ -186,7 +188,7 @@ class Path
      *
      * @return Path
      */
-    public function closeLayer()
+    public function closeLayer(): Path
     {
         $this->streams[] = [
             'stream' => "\nQ\n"
@@ -197,9 +199,9 @@ class Path
     /**
      * Get the streams
      *
-     * @return array
+     * @return ?array
      */
-    public function getStreams()
+    public function getStreams(): ?array
     {
         return $this->streams;
     }
@@ -209,7 +211,7 @@ class Path
      *
      * @return string
      */
-    public function getStyle()
+    public function getStyle(): string
     {
         return $this->style;
     }
@@ -223,7 +225,7 @@ class Path
      * @param  int $y2
      * @return Path
      */
-    public function drawLine($x1, $y1, $x2, $y2)
+    public function drawLine(int $x1, int $y1, int $x2, int $y2): Path
     {
         $this->streams[] = [
             'points' => [
@@ -239,13 +241,13 @@ class Path
     /**
      * Draw a rectangle
      *
-     * @param  int $x
-     * @param  int $y
-     * @param  int $w
-     * @param  int $h
+     * @param  int  $x
+     * @param  int  $y
+     * @param  int  $w
+     * @param  ?int $h
      * @return Path
      */
-    public function drawRectangle($x, $y, $w, $h = null)
+    public function drawRectangle(int $x, int $y, int $w, ?int $h = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -264,15 +266,15 @@ class Path
     /**
      * Draw a rounded rectangle
      *
-     * @param  int $x
-     * @param  int $y
-     * @param  int $w
-     * @param  int $h
-     * @param  int $rx
-     * @param  int $ry
+     * @param  int  $x
+     * @param  int  $y
+     * @param  int  $w
+     * @param  ?int $h
+     * @param  int  $rx
+     * @param  ?int $ry
      * @return Path
      */
-    public function drawRoundedRectangle($x, $y, $w, $h = null, $rx = 10, $ry = null)
+    public function drawRoundedRectangle(int $x, int $y, int $w, ?int $h = null, int $rx = 10, ?int $ry = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -336,7 +338,7 @@ class Path
      * @param  int $w
      * @return Path
      */
-    public function drawSquare($x, $y, $w)
+    public function drawSquare(int $x, int $y, int $w): Path
     {
         return $this->drawRectangle($x, $y, $w, $w);
     }
@@ -344,14 +346,14 @@ class Path
     /**
      * Draw a rounded square
      *
-     * @param  int $x
-     * @param  int $y
-     * @param  int $w
-     * @param  int $rx
-     * @param  int $ry
+     * @param  int  $x
+     * @param  int  $y
+     * @param  int  $w
+     * @param  int  $rx
+     * @param  ?int $ry
      * @return Path
      */
-    public function drawRoundedSquare($x, $y, $w, $rx = 10, $ry = null)
+    public function drawRoundedSquare(int $x, int $y, int $w, int $rx = 10, ?int $ry = null): Path
     {
         return $this->drawRoundedRectangle($x, $y, $w, $w, $rx, $ry);
     }
@@ -363,7 +365,7 @@ class Path
      * @throws Exception
      * @return Path
      */
-    public function drawPolygon($points)
+    public function drawPolygon(array $points): Path
     {
         $i = 1;
         $polygon = null;
@@ -399,13 +401,13 @@ class Path
     /**
      * Draw an ellipse
      *
-     * @param  int $x
-     * @param  int $y
-     * @param  int $w
-     * @param  int $h
+     * @param  int  $x
+     * @param  int  $y
+     * @param  int  $w
+     * @param  ?int $h
      * @return Path
      */
-    public function drawEllipse($x, $y, $w, $h = null)
+    public function drawEllipse(int $x, int $y, int $w, ?int $h = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -476,7 +478,7 @@ class Path
      * @param  int $w
      * @return Path
      */
-    public function drawCircle($x, $y, $w)
+    public function drawCircle(int $x, int $y, int $w): Path
     {
         return $this->drawEllipse($x, $y, $w, $w);
     }
@@ -484,15 +486,15 @@ class Path
     /**
      * Draw an arc
      *
-     * @param  int $x
-     * @param  int $y
-     * @param  int $start
-     * @param  int $end
-     * @param  int $w
-     * @param  int $h
+     * @param  int  $x
+     * @param  int  $y
+     * @param  int  $start
+     * @param  int  $end
+     * @param  int  $w
+     * @param  ?int $h
      * @return Path
      */
-    public function drawArc($x, $y, $start, $end, $w, $h = null)
+    public function drawArc(int $x, int $y, int $start, int $end, int $w, ?int $h = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -505,15 +507,15 @@ class Path
     /**
      * Draw a chord
      *
-     * @param  int $x
-     * @param  int $y
-     * @param  int $start
-     * @param  int $end
-     * @param  int $w
-     * @param  int $h
+     * @param  int  $x
+     * @param  int  $y
+     * @param  int  $start
+     * @param  int  $end
+     * @param  int  $w
+     * @param  ?int $h
      * @return Path
      */
-    public function drawChord($x, $y, $start, $end, $w, $h = null)
+    public function drawChord(int $x, int $y, int $start, int $end, int $w, ?int $h = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -526,15 +528,15 @@ class Path
     /**
      * Draw a pie slice
      *
-     * @param  int $x
-     * @param  int $y
-     * @param  int $start
-     * @param  int $end
-     * @param  int $w
-     * @param  int $h
+     * @param  int  $x
+     * @param  int  $y
+     * @param  int  $start
+     * @param  int  $end
+     * @param  int  $w
+     * @param  ?int $h
      * @return Path
      */
-    public function drawPie($x, $y, $start, $end, $w, $h = null)
+    public function drawPie(int $x, int $y, int $start, int $end, int $w, ?int $h = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -557,7 +559,9 @@ class Path
      * @param  int $bezierY2
      * @return Path
      */
-    public function drawOpenCubicBezierCurve($x1, $y1, $x2, $y2, $bezierX1, $bezierY1, $bezierX2, $bezierY2)
+    public function drawOpenCubicBezierCurve(
+        int $x1, int $y1, int $x2, int $y2, int $bezierX1, int $bezierY1, int $bezierX2, int $bezierY2
+    ): Path
     {
         $this->streams[] = [
             'points' => [
@@ -585,7 +589,9 @@ class Path
      * @param  int $bezierY2
      * @return Path
      */
-    public function drawClosedCubicBezierCurve($x1, $y1, $x2, $y2, $bezierX1, $bezierY1, $bezierX2, $bezierY2)
+    public function drawClosedCubicBezierCurve(
+        int $x1, int $y1, int $x2, int $y2, int $bezierX1, int $bezierY1, int $bezierX2, int $bezierY2
+    ): Path
     {
         $this->streams[] = [
             'points' => [
@@ -612,7 +618,7 @@ class Path
      * @param  bool $first
      * @return Path
      */
-    public function drawOpenQuadraticBezierCurve($x1, $y1, $x2, $y2, $bezierX, $bezierY, $first = true)
+    public function drawOpenQuadraticBezierCurve(int $x1, int $y1, int $x2, int $y2, int $bezierX, int $bezierY, bool $first = true): Path
     {
         $this->streams[] = [
             'points' => [
@@ -638,7 +644,7 @@ class Path
      * @param  bool $first
      * @return Path
      */
-    public function drawClosedQuadraticBezierCurve($x1, $y1, $x2, $y2, $bezierX, $bezierY, $first = true)
+    public function drawClosedQuadraticBezierCurve(int $x1, int $y1, int $x2, int $y2, int $bezierX, int $bezierY, bool $first = true): Path
     {
         $this->streams[] = [
             'points' => [
@@ -657,16 +663,16 @@ class Path
      *
      * @param  int $start
      * @param  int $end
-     * @throws \OutOfRangeException
+     * @throws OutOfRangeException
      * @return array
      */
-    protected function calculateDegrees($start, $end)
+    protected function calculateDegrees(int $start, int $end): array
     {
         if (($start < 0) || ($end > 360)) {
-            throw new \OutOfRangeException('The start and end angles must be between 0 and 360.');
+            throw new OutOfRangeException('The start and end angles must be between 0 and 360.');
         }
         if ($start >= $end) {
-            throw new \OutOfRangeException('The start angle must be less than the end angle.');
+            throw new OutOfRangeException('The start angle must be less than the end angle.');
         }
 
         if (($end - $start) > 90) {
@@ -702,16 +708,16 @@ class Path
     /**
      * Calculate arc
      *
-     * @param  int     $x
-     * @param  int     $y
-     * @param  array   $degrees
-     * @param  int     $w
-     * @param  int     $h
-     * @param  bool $closed
-     * @param  bool $pie
+     * @param  int   $x
+     * @param  int   $y
+     * @param  array $degrees
+     * @param  int   $w
+     * @param  ?int  $h
+     * @param  bool  $closed
+     * @param  bool  $pie
      * @return void
      */
-    protected function calculateArc($x, $y, array $degrees, $w, $h = null, $closed = false, $pie = false)
+    protected function calculateArc(int $x, int $y, array $degrees, int $w, ?int $h = null, bool $closed = false, bool $pie = false): void
     {
         foreach ($degrees as $key => $value) {
             $start  = $value[0];
