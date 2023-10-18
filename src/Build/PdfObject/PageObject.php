@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Build\PdfObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class PageObject extends AbstractObject
 {
@@ -333,7 +333,7 @@ class PageObject extends AbstractObject
      */
     public function setCurrentContentIndex($i = null)
     {
-        $this->currentContentIndex = (null !== $i) ? (int)$i : null;
+        $this->currentContentIndex = ($i !== null) ? (int)$i : null;
         return $this;
     }
 
@@ -474,7 +474,7 @@ class PageObject extends AbstractObject
      * Determine if the page object has an annotation index
      *
      * @param  int $i
-     * @return boolean
+     * @return bool
      */
     public function hasAnnot($i)
     {
@@ -485,7 +485,7 @@ class PageObject extends AbstractObject
      * Determine if the page object has a content index
      *
      * @param  int $i
-     * @return boolean
+     * @return bool
      */
     public function hasContent($i)
     {

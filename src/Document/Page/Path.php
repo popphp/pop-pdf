@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -13,15 +13,17 @@
  */
 namespace Pop\Pdf\Document\Page;
 
+use Pop\Color\Color;
+
 /**
  * Pdf page path class
  *
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Path
 {
@@ -91,11 +93,11 @@ class Path
             $stream .= "\n" . $color . " rg\n";
         } else if ($color instanceof Color\Cmyk) {
             $stream .= "\n" . $color . " k\n";
-        } else if ($color instanceof Color\Gray) {
+        } else if ($color instanceof Color\Grayscale) {
             $stream .= "\n" . $color . " g\n";
         }
 
-        if (null !== $stream) {
+        if ($stream !== null) {
             $this->streams[] = [
                 'stream' => $stream
             ];
@@ -117,11 +119,11 @@ class Path
             $stream .= "\n" . $color . " RG\n";
         } else if ($color instanceof Color\Cmyk) {
             $stream .= "\n" . $color . " K\n";
-        } else if ($color instanceof Color\Gray) {
+        } else if ($color instanceof Color\Grayscale) {
             $stream .= "\n" . $color . " G\n";
         }
 
-        if (null !== $stream) {
+        if ($stream !== null) {
             $this->streams[] = [
                 'stream' => $stream
             ];
@@ -142,7 +144,7 @@ class Path
     {
         $stream = "\n" . (int)$width . "w\n";
         if ((int)$width != 0) {
-            $stream .= ((null !== $dashLength) && (null !== $dashGap)) ?
+            $stream .= (($dashLength !== null) && ($dashGap !== null)) ?
                 "[" . (int)$dashLength . " " . (int)$dashGap . "] 0 d\n" : "[] 0 d\n";
         }
 
@@ -245,7 +247,7 @@ class Path
      */
     public function drawRectangle($x, $y, $w, $h = null)
     {
-        if (null === $h) {
+        if ($h === null) {
             $h = $w;
         }
 
@@ -272,11 +274,11 @@ class Path
      */
     public function drawRoundedRectangle($x, $y, $w, $h = null, $rx = 10, $ry = null)
     {
-        if (null === $h) {
+        if ($h === null) {
             $h = $w;
         }
 
-        if (null === $ry) {
+        if ($ry === null) {
             $ry = $rx;
         }
 
@@ -405,7 +407,7 @@ class Path
      */
     public function drawEllipse($x, $y, $w, $h = null)
     {
-        if (null === $h) {
+        if ($h === null) {
             $h = $w;
         }
 
@@ -492,7 +494,7 @@ class Path
      */
     public function drawArc($x, $y, $start, $end, $w, $h = null)
     {
-        if (null === $h) {
+        if ($h === null) {
             $h = $w;
         }
         $this->calculateArc($x, $y, $this->calculateDegrees($start, $end), $w, $h);
@@ -513,7 +515,7 @@ class Path
      */
     public function drawChord($x, $y, $start, $end, $w, $h = null)
     {
-        if (null === $h) {
+        if ($h === null) {
             $h = $w;
         }
         $this->calculateArc($x, $y, $this->calculateDegrees($start, $end), $w, $h, true);
@@ -534,7 +536,7 @@ class Path
      */
     public function drawPie($x, $y, $start, $end, $w, $h = null)
     {
-        if (null === $h) {
+        if ($h === null) {
             $h = $w;
         }
         $this->calculateArc($x, $y, $this->calculateDegrees($start, $end), $w, $h, true, true);
@@ -705,8 +707,8 @@ class Path
      * @param  array   $degrees
      * @param  int     $w
      * @param  int     $h
-     * @param  boolean $closed
-     * @param  boolean $pie
+     * @param  bool $closed
+     * @param  bool $pie
      * @return void
      */
     protected function calculateArc($x, $y, array $degrees, $w, $h = null, $closed = false, $pie = false)

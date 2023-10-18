@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -24,9 +24,9 @@ use Pop\Pdf\Document\Metadata;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Document extends AbstractDocument
 {
@@ -53,10 +53,10 @@ class Document extends AbstractDocument
      */
     public function __construct(Page $page = null, Metadata $metadata = null)
     {
-        if (null !== $page) {
+        if ($page !== null) {
             $this->addPage($page);
         }
-        $metadata = (null !== $metadata) ? $metadata : new Metadata();
+        $metadata = ($metadata !== null) ? $metadata : new Metadata();
         $this->setMetadata($metadata);
     }
 
@@ -105,7 +105,7 @@ class Document extends AbstractDocument
      * Copy and return a page of the PDF, adding it to the PDF document
      *
      * @param  int     $p
-     * @param  boolean $preserveContent
+     * @param  bool $preserveContent
      * @throws Exception
      * @return Page
      */
@@ -185,7 +185,7 @@ class Document extends AbstractDocument
      * Add a font
      *
      * @param  Font    $font
-     * @param  boolean $embedOverride
+     * @param  bool $embedOverride
      * @return Document
      */
     public function addFont(Font $font, $embedOverride = false)
@@ -206,7 +206,7 @@ class Document extends AbstractDocument
      * Add a font
      *
      * @param  Font    $font
-     * @param  boolean $embedOverride
+     * @param  bool $embedOverride
      * @return Document
      */
     public function embedFont(Font $font, $embedOverride = false)
@@ -294,7 +294,7 @@ class Document extends AbstractDocument
     /**
      * Determine if the document has imported objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasImportedObjects()
     {
@@ -304,7 +304,7 @@ class Document extends AbstractDocument
     /**
      * Determine if the document has imported fonts
      *
-     * @return boolean
+     * @return bool
      */
     public function hasImportedFonts()
     {

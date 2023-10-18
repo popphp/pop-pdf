@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -13,15 +13,17 @@
  */
 namespace Pop\Pdf\Document\Page;
 
+use Pop\Color\Color\ColorInterface;
+
 /**
  * Pdf page text class
  *
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Text
 {
@@ -52,13 +54,13 @@ class Text
 
     /**
      * Text fill color
-     * @var Color\ColorInterface
+     * @var ColorInterface
      */
     protected $fillColor = null;
 
     /**
      * Text stroke color
-     * @var Color\ColorInterface
+     * @var ColorInterface
      */
     protected $strokeColor = null;
 
@@ -125,10 +127,10 @@ class Text
      */
     public function __construct($string = null, $size = null)
     {
-        if (null !== $string) {
+        if ($string !== null) {
             $this->setString($string);
         }
-        if (null !== $size) {
+        if ($size !== null) {
             $this->setSize($size);
         }
     }
@@ -223,10 +225,10 @@ class Text
     /**
      * Set the text fill color
      *
-     * @param  Color\ColorInterface $color
+     * @param  ColorInterface $color
      * @return Text
      */
-    public function setFillColor(Color\ColorInterface $color)
+    public function setFillColor(ColorInterface $color)
     {
         $this->fillColor = $color;
         return $this;
@@ -235,10 +237,10 @@ class Text
     /**
      * Set the text stroke color
      *
-     * @param  Color\ColorInterface $color
+     * @param  ColorInterface $color
      * @return Text
      */
-    public function setStrokeColor(Color\ColorInterface $color)
+    public function setStrokeColor(ColorInterface $color)
     {
         $this->strokeColor = $color;
         return $this;
@@ -288,7 +290,7 @@ class Text
     public function setCharWrap($charWrap, $leading = null)
     {
         $this->charWrap = (int)$charWrap;
-        if (null !== $leading) {
+        if ($leading !== null) {
             $this->setLeading($leading);
         }
         return $this;
@@ -354,7 +356,7 @@ class Text
         $searchAry  = ['(', ')'];
         $replaceAry = ['\(', '\)'];
 
-        if ((null !== $search) && (null !== $replace)) {
+        if (($search !== null) && ($replace !== null)) {
             if (!is_array($search)) {
                 $search = [$search];
             }
@@ -402,7 +404,7 @@ class Text
     /**
      * Get the text fill color
      *
-     * @return Color\ColorInterface
+     * @return ColorInterface
      */
     public function getFillColor()
     {
@@ -412,7 +414,7 @@ class Text
     /**
      * Get the text stroke color
      *
-     * @return Color\ColorInterface
+     * @return ColorInterface
      */
     public function getStrokeColor()
     {
@@ -502,17 +504,17 @@ class Text
     /**
      * Has text string
      *
-     * @return boolean
+     * @return bool
      */
     public function hasString()
     {
-        return (null !== $this->string);
+        return ($this->string !== null);
     }
 
     /**
      * Has text string array
      *
-     * @return boolean
+     * @return bool
      */
     public function hasStrings()
     {
@@ -522,7 +524,7 @@ class Text
     /**
      * Has character wrap
      *
-     * @return boolean
+     * @return bool
      */
     public function hasCharWrap()
     {
@@ -532,7 +534,7 @@ class Text
     /**
      * Has character wrap leading
      *
-     * @return boolean
+     * @return bool
      */
     public function hasLeading()
     {
@@ -542,31 +544,31 @@ class Text
     /**
      * Has text alignment
      *
-     * @return boolean
+     * @return bool
      */
     public function hasAlignment()
     {
-        return (null !== $this->alignment);
+        return ($this->alignment !== null);
     }
 
     /**
      * Has text wrap
      *
-     * @return boolean
+     * @return bool
      */
     public function hasWrap()
     {
-        return (null !== $this->wrap);
+        return ($this->wrap !== null);
     }
 
     /**
      * Has text stream
      *
-     * @return boolean
+     * @return bool
      */
     public function hasTextStream()
     {
-        return (null !== $this->stream);
+        return ($this->stream !== null);
     }
 
     /**
@@ -657,7 +659,7 @@ class Text
     {
         $stream = '';
 
-        if (null !== $fontReference) {
+        if ($fontReference !== null) {
             $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
             $stream       .= "    {$fontReference} {$this->size} Tf\n";
         }
@@ -701,21 +703,21 @@ class Text
     {
         $stream = '';
 
-        if (null !== $this->fillColor) {
+        if ($this->fillColor !== null) {
             if ($this->fillColor instanceof Color\Rgb) {
                 $stream .= '    ' . $this->fillColor . " rg\n";
             } else if ($this->fillColor instanceof Color\Cmyk) {
                 $stream .= '    ' . $this->fillColor . " k\n";
-            } else if ($this->fillColor instanceof Color\Gray) {
+            } else if ($this->fillColor instanceof Color\Grayscale) {
                 $stream .= '    ' . $this->fillColor . " g\n";
             }
         }
-        if (null !== $this->strokeColor) {
+        if ($this->strokeColor !== null) {
             if ($this->strokeColor instanceof Color\Rgb) {
                 $stream .= '    ' . $this->strokeColor . " RG\n";
             } else if ($this->strokeColor instanceof Color\Cmyk) {
                 $stream .= '    ' . $this->strokeColor . " K\n";
-            } else if ($this->strokeColor instanceof Color\Gray) {
+            } else if ($this->strokeColor instanceof Color\Grayscale) {
                 $stream .= '    ' . $this->strokeColor . " G\n";
             }
         }

@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -13,7 +13,7 @@
  */
 namespace Pop\Pdf\Document\Page\Field;
 
-use Pop\Pdf\Document\Page\Color;
+use Pop\Color\Color;
 
 /**
  * Pdf page button field class
@@ -21,9 +21,9 @@ use Pop\Pdf\Document\Page\Color;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Choice extends AbstractField
 {
@@ -49,7 +49,7 @@ class Choice extends AbstractField
     /**
      * Has options
      *
-     * @return boolean
+     * @return bool
      */
     public function hasOptions()
     {
@@ -137,7 +137,7 @@ class Choice extends AbstractField
     /**
      * Is combo
      *
-     * @return boolean
+     * @return bool
      */
     public function isCombo()
     {
@@ -147,7 +147,7 @@ class Choice extends AbstractField
     /**
      * Is multi-select
      *
-     * @return boolean
+     * @return bool
      */
     public function isMultiSelect()
     {
@@ -170,25 +170,25 @@ class Choice extends AbstractField
         $options = null;
         $color   = '0 g';
 
-        if (null !== $this->fontColor) {
+        if ($this->fontColor !== null) {
             if ($this->fontColor instanceof Color\Rgb) {
                 $color = $this->fontColor . " rg";
             } else if ($this->fontColor instanceof Color\Cmyk) {
                 $color = $this->fontColor . " k";
-            } else if ($this->fontColor instanceof Color\Gray) {
+            } else if ($this->fontColor instanceof Color\Grayscale) {
                 $color = $this->fontColor . " g";
             }
         }
 
-        if (null !== $fontReference) {
+        if ($fontReference !== null) {
             $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
             $text          = '    /DA(' . $fontReference . ' ' . $this->size . ' Tf ' . $color . ')';
         }
 
-        $name    = (null !== $this->name) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')/TM(' . $this->name . ')' : '';
+        $name    = ($this->name !== null) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')/TM(' . $this->name . ')' : '';
         $flags   = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
-        $value   = (null !== $this->value) ? "\n    /V " . $this->value . "\n" : null;
-        $default = (null !== $this->defaultValue) ? "\n    /DV " . $this->defaultValue . "\n" : null;
+        $value   = ($this->value !== null) ? "\n    /V " . $this->value . "\n" : null;
+        $default = ($this->defaultValue !== null) ? "\n    /DV " . $this->defaultValue . "\n" : null;
 
         if (count($this->options) > 0) {
             $options = "    /Opt [ ";

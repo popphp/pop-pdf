@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -21,9 +21,9 @@ use Pop\Pdf\Build\PdfObject\StreamObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Parser
 {
@@ -108,7 +108,7 @@ class Parser
 
     /**
      * Flag for if the image has an alpha channel
-     * @var boolean
+     * @var bool
      */
     protected $alpha = false;
 
@@ -187,7 +187,7 @@ class Parser
      * @param  int     $x
      * @param  int     $y
      * @param  array   $resize
-     * @param  boolean $preserveResolution
+     * @param  bool $preserveResolution
      * @return Parser
      */
     public static function createImageFromFile($imageFile, $x, $y, array $resize = null, $preserveResolution = false)
@@ -204,7 +204,7 @@ class Parser
      * @param  int     $x
      * @param  int     $y
      * @param  array   $resize
-     * @param  boolean $preserveResolution
+     * @param  bool $preserveResolution
      * @return Parser
      */
     public static function createImageFromStream($imageStream, $x, $y, array $resize = null, $preserveResolution = false)
@@ -219,7 +219,7 @@ class Parser
      *
      * @param  string $imageFile
      * @param  array   $resize
-     * @param  boolean $preserveResolution
+     * @param  bool $preserveResolution
      * @return Parser
      */
     public function loadImageFromFile($imageFile, array $resize = null, $preserveResolution = false)
@@ -239,13 +239,13 @@ class Parser
         }
 
         // If resize dimensions are passed
-        if ((null !== $resize) && !($preserveResolution)) {
+        if (($resize !== null) && !($preserveResolution)) {
             $this->resizeImage($resize);
         }
 
         $imgSize = getimagesize($this->fullpath);
 
-        if (null !== $resize) {
+        if ($resize !== null) {
             $this->resize = $resize;
         }
 
@@ -267,7 +267,7 @@ class Parser
      *
      * @param  string  $imageStream
      * @param  array   $resize
-     * @param  boolean $preserveResolution
+     * @param  bool $preserveResolution
      * @return Parser
      */
     public function loadImageFromStream($imageStream, array $resize = null, $preserveResolution = false)
@@ -303,11 +303,11 @@ class Parser
         }
 
         // If resize dimensions are passed
-        if ((null !== $resize) && !($preserveResolution)) {
+        if (($resize !== null) && !($preserveResolution)) {
             $this->resizeImage($resize);
         }
 
-        if (null !== $resize) {
+        if ($resize !== null) {
             $this->resize = $resize;
         }
 
@@ -463,7 +463,7 @@ class Parser
      */
     public function parse()
     {
-        if (null === $this->index) {
+        if ($this->index === null) {
             throw new Exception('Error: The image index has not been set.');
         }
         if ($this->mime == 'image/png') {
@@ -523,10 +523,10 @@ class Parser
         $this->createResource();
 
         // Image clean up if the image was converted or resized.
-        if ((null !== $this->convertedImage) && file_exists($this->convertedImage)) {
+        if (($this->convertedImage !== null) && file_exists($this->convertedImage)) {
             unlink($this->convertedImage);
         }
-        if ((null !== $this->resizedImage) && file_exists($this->resizedImage)) {
+        if (($this->resizedImage !== null) && file_exists($this->resizedImage)) {
             unlink($this->resizedImage);
         }
     }
@@ -635,7 +635,7 @@ class Parser
      */
     protected function createResource()
     {
-        if (null !== $this->stream) {
+        if ($this->stream !== null) {
             $this->resource = imagecreatefromstring($this->stream);
         } else if (file_exists($this->fullpath)) {
             switch ($this->mime) {
@@ -686,7 +686,7 @@ class Parser
 
         // Convert the GIF to PNG, save and clear the output buffer.
 
-        $resource = (null !== $this->stream) ?
+        $resource = ($this->stream !== null) ?
             imagecreatefromstring($this->stream) : imagecreatefromgif($this->fullpath);
 
         imageinterlace($resource, 0);
@@ -698,7 +698,7 @@ class Parser
         $this->mime      = 'image/png';
 
         // Redefine the image object properties with the new values.
-        if (null !== $this->stream) {
+        if ($this->stream !== null) {
             $this->stream = file_get_contents($this->convertedImage);
         } else {
             $this->fullpath = $this->convertedImage;
@@ -720,7 +720,7 @@ class Parser
         $this->resizedImage = realpath(sys_get_temp_dir()) . DIRECTORY_SEPARATOR . $this->filename . '_' . time() . '.' . $this->extension;
 
         // Get image properties.
-        if (null !== $this->stream) {
+        if ($this->stream !== null) {
             $imgSize  = getimagesizefromstring($this->stream);
             $resource = imagecreatefromstring($this->stream);
         } else {
@@ -745,7 +745,7 @@ class Parser
 
         $this->basename = basename($this->resizedImage);
 
-        if (null !== $this->stream) {
+        if ($this->stream !== null) {
             $this->stream = file_get_contents($this->resizedImage);
         } else {
             $this->fullpath = $this->resizedImage;

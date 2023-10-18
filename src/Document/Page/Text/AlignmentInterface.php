@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Document\Page\Text;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 interface AlignmentInterface
 {
@@ -89,35 +89,35 @@ interface AlignmentInterface
     /**
      * Has left X
      *
-     * @return boolean
+     * @return bool
      */
     public function hasLeftX();
 
     /**
      * Has right X
      *
-     * @return boolean
+     * @return bool
      */
     public function hasRightX();
 
     /**
      * Has leading
      *
-     * @return boolean
+     * @return bool
      */
     public function hasLeading();
 
     /**
      * Is LEFT alignment
      *
-     * @return boolean
+     * @return bool
      */
     public function isLeft();
 
     /**
      * Is RIGHT alignment
      *
-     * @return boolean
+     * @return bool
      */
     public function isRight();
 

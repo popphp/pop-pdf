@@ -3,7 +3,7 @@
 namespace Pop\Pdf\Test\Document\Page;
 
 use Pop\Pdf\Document\Page\Field;
-use Pop\Pdf\Document\Page\Color;
+use Pop\Color\Color;;
 use PHPUnit\Framework\TestCase;
 
 class FieldTest extends TestCase
@@ -21,7 +21,7 @@ class FieldTest extends TestCase
         $field->setRequired();
         $field->setNoExport();
         $this->assertInstanceOf('Pop\Pdf\Document\Page\Field\Text', $field);
-        $this->assertInstanceOf('Pop\Pdf\Document\Page\Color\Rgb', $field->getFontColor());
+        $this->assertInstanceOf('Pop\Color\Color\Rgb', $field->getFontColor());
         $this->assertEquals('name', $field->getName());
         $this->assertEquals('My Name', $field->getValue());
         $this->assertEquals('My Default Name', $field->getDefaultValue());
@@ -73,7 +73,7 @@ class FieldTest extends TestCase
         $field = new Field\Text('name', 'Arial', 14);
         $field->setWidth(200);
         $field->setHeight(24);
-        $field->setFontColor(new Color\Gray(100));
+        $field->setFontColor(new Color\Grayscale(100));
         $field->setMultiline()
             ->setPassword()
             ->setFileSelect()
@@ -125,7 +125,7 @@ class FieldTest extends TestCase
         $field->setWidth(200);
         $field->setHeight(24);
         $field->addOption('Option');
-        $field->setFontColor(new Color\Gray(100));
+        $field->setFontColor(new Color\Grayscale(100));
         $field->setNoToggleToOff()
               ->setRadio()
               ->setPushButton()
@@ -174,7 +174,7 @@ class FieldTest extends TestCase
         $field->setWidth(200);
         $field->setHeight(24);
         $field->addOption('Option');
-        $field->setFontColor(new Color\Gray(100));
+        $field->setFontColor(new Color\Grayscale(100));
         $field->setCombo()
             ->setEdit()
             ->setSort()

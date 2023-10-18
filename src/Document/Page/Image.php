@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Document\Page;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Image
 {
@@ -58,7 +58,7 @@ class Image
 
     /**
      * Flag to preserve image resolution
-     * @var boolean
+     * @var bool
      */
     protected $preserveResolution = false;
 
@@ -151,7 +151,7 @@ class Image
      * Resize image to width
      *
      * @param  int     $width
-     * @param  boolean $preserveResolution
+     * @param  bool $preserveResolution
      * @return Image
      */
     public function resizeToWidth($width, $preserveResolution = false)
@@ -169,7 +169,7 @@ class Image
      * Resize image to height
      *
      * @param  int     $height
-     * @param  boolean $preserveResolution
+     * @param  bool $preserveResolution
      * @return Image
      */
     public function resizeToHeight($height, $preserveResolution = false)
@@ -187,7 +187,7 @@ class Image
      * Resize image on whichever dimension is the greatest
      *
      * @param  int     $pixel
-     * @param  boolean $preserveResolution
+     * @param  bool $preserveResolution
      * @return Image
      */
     public function resize($pixel, $preserveResolution = false)
@@ -206,7 +206,7 @@ class Image
      * Scale image
      *
      * @param  float   $scale
-     * @param  boolean $preserveResolution
+     * @param  bool $preserveResolution
      * @return Image
      */
     public function scale($scale, $preserveResolution = false)
@@ -222,21 +222,21 @@ class Image
     /**
      * Is image file
      *
-     * @return boolean
+     * @return bool
      */
     public function isFile()
     {
-        return ((null !== $this->image) && (null === $this->stream));
+        return (($this->image !== null) && ($this->stream === null));
     }
 
     /**
      * Is image stream
      *
-     * @return boolean
+     * @return bool
      */
     public function isStream()
     {
-        return ((null !== $this->stream) && (null === $this->image));
+        return (($this->stream !== null) && ($this->image === null));
     }
 
     /**
@@ -286,7 +286,7 @@ class Image
      */
     public function getResizedWidth()
     {
-        return ((null !== $this->resize) && isset($this->resize['width'])) ? $this->resize['width'] : null;
+        return (($this->resize !== null) && isset($this->resize['width'])) ? $this->resize['width'] : null;
     }
 
     /**
@@ -296,7 +296,7 @@ class Image
      */
     public function getResizedHeight()
     {
-        return ((null !== $this->resize) && isset($this->resize['height'])) ? $this->resize['height'] : null;
+        return (($this->resize !== null) && isset($this->resize['height'])) ? $this->resize['height'] : null;
     }
 
     /**
@@ -312,7 +312,7 @@ class Image
     /**
      * Get the image preserve resolution flag
      *
-     * @return boolean
+     * @return bool
      */
     public function isPreserveResolution()
     {

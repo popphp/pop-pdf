@@ -2,7 +2,7 @@
 
 namespace Pop\Pdf\Test\Document\Page;
 
-use Pop\Pdf\Document\Page\Color;
+use Pop\Color\Color;;
 use Pop\Pdf\Document\Page\Text;
 use PHPUnit\Framework\TestCase;
 
@@ -40,14 +40,14 @@ class TextTest extends TestCase
     {
         $text = new Text('Hello World', 12);
         $text->setFillColor(new Color\Rgb(255, 0, 0));
-        $this->assertInstanceOf('Pop\Pdf\Document\Page\Color\Rgb', $text->getFillColor());
+        $this->assertInstanceOf('Pop\Color\Color\Rgb', $text->getFillColor());
     }
 
     public function testSetStrokeColor()
     {
         $text = new Text('Hello World', 12);
         $text->setStrokeColor(new Color\Rgb(255, 0, 0));
-        $this->assertInstanceOf('Pop\Pdf\Document\Page\Color\Rgb', $text->getStrokeColor());
+        $this->assertInstanceOf('Pop\Color\Color\Rgb', $text->getStrokeColor());
     }
 
     public function testSetStroke()
@@ -117,8 +117,8 @@ class TextTest extends TestCase
     public function testGetStreamGray()
     {
         $text = new Text('Hello World', 12);
-        $text->setFillColor(new Color\Gray(50));
-        $text->setStrokeColor(new Color\Gray(50));
+        $text->setFillColor(new Color\Grayscale(50));
+        $text->setStrokeColor(new Color\Grayscale(50));
         $text->setStroke(5, 10, 15);
         $text->setTextParams(10, 10, 10, 10, -45, 1);
         $this->assertStringContainsString('MF1', $text->getStream('MF1 1 0 R', 20, 200));

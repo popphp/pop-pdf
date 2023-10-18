@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -22,9 +22,9 @@ use Pop\Pdf\Document\Page\Field;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 abstract class AbstractPage implements PageInterface
 {
@@ -283,7 +283,7 @@ abstract class AbstractPage implements PageInterface
     /**
      * Determine if the page has image objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasImages()
     {
@@ -293,7 +293,7 @@ abstract class AbstractPage implements PageInterface
     /**
      * Determine if the page has text objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasText()
     {
@@ -303,7 +303,7 @@ abstract class AbstractPage implements PageInterface
     /**
      * Determine if the page has text stream objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasTextStreams()
     {
@@ -313,7 +313,7 @@ abstract class AbstractPage implements PageInterface
     /**
      * Determine if the page has annotation objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasAnnotations()
     {
@@ -323,7 +323,7 @@ abstract class AbstractPage implements PageInterface
     /**
      * Determine if the page has path objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasPaths()
     {
@@ -333,7 +333,7 @@ abstract class AbstractPage implements PageInterface
     /**
      * Determine if the page has field objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasFields()
     {

@@ -2,6 +2,7 @@
 
 namespace Pop\Pdf\Test\Build;
 
+use Pop\Color\Color;
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Font;
 use Pop\Pdf\Document\Form;
@@ -39,7 +40,7 @@ class CompilerTest extends TestCase
         $page1->addText(new Page\Text('Hello World', 12), 'Arial', 50, 350);
 
         $path = new Page\Path();
-        $path->setFillColor(new Page\Color\Rgb(255, 0, 0));
+        $path->setFillColor(new Color\Rgb(255, 0, 0));
         $path->drawRectangle(320, 320, 300, 150);
 
         $page2 = new Page(Page::LETTER);

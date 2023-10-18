@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Build\PdfObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class InfoObject extends AbstractObject
 {
@@ -52,7 +52,7 @@ class InfoObject extends AbstractObject
         $this->setData("[{info_index}] 0 obj\n<</Creator([{creator}])/CreationDate([{creation_date}])/ModDate" .
             "([{mod_date}])/Author([{author}])/Title([{title}])/Subject([{subject}])/Producer([{producer}])>>\nendobj\n");
 
-        if (null !== $metadata) {
+        if ($metadata !== null) {
             $this->setMetadata($metadata);
         }
     }
@@ -176,7 +176,7 @@ class InfoObject extends AbstractObject
      */
     public function getMetadata()
     {
-        if (null === $this->metadata) {
+        if ($this->metadata === null) {
             $this->metadata = new \Pop\Pdf\Document\Metadata();
         }
         return $this->metadata;
@@ -189,15 +189,15 @@ class InfoObject extends AbstractObject
      */
     public function __toString()
     {
-        if (null === $this->metadata) {
+        if ($this->metadata === null) {
             $this->metadata = new \Pop\Pdf\Document\Metadata();
         }
 
         // Set the CreationDate and the ModDate if they are null.
-        if (null === $this->metadata->getCreationDate()) {
+        if ($this->metadata->getCreationDate() === null) {
             $this->metadata->setCreationDate(date('D, M j, Y h:i A'));
         }
-        if (null === $this->metadata->getModDate()) {
+        if ($this->metadata->getModDate() === null) {
             $this->metadata->setModDate(date('D, M j, Y h:i A'));
         }
 

@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Document;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 abstract class AbstractDocument
 {
@@ -79,7 +79,7 @@ abstract class AbstractDocument
 
     /**
      * Compression property
-     * @var boolean
+     * @var bool
      */
     protected $compression = false;
 
@@ -185,7 +185,7 @@ abstract class AbstractDocument
     /**
      * Determine if the document has page objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasPages()
     {
@@ -220,7 +220,7 @@ abstract class AbstractDocument
     /**
      * Determine if the document has font objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasFonts()
     {
@@ -241,7 +241,7 @@ abstract class AbstractDocument
      * Determine if a font has been added to the PDF document
      *
      * @param  string $font
-     * @return boolean
+     * @return bool
      */
     public function isFontAvailable($font)
     {
@@ -252,7 +252,7 @@ abstract class AbstractDocument
      * Determine if a font has been added to the PDF document (alias)
      *
      * @param  string $font
-     * @return boolean
+     * @return bool
      */
     public function hasFont($font)
     {
@@ -323,7 +323,7 @@ abstract class AbstractDocument
     /**
      * Determine if the document has form objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasForms()
     {
@@ -345,7 +345,7 @@ abstract class AbstractDocument
     /**
      * Set the compression
      *
-     * @param  boolean $compression
+     * @param  bool $compression
      * @return AbstractDocument
      */
     public function setCompression($compression)
@@ -357,7 +357,7 @@ abstract class AbstractDocument
     /**
      * Determine whether the PDF is compressed or not
      *
-     * @return boolean
+     * @return bool
      */
     public function isCompressed()
     {
@@ -440,7 +440,7 @@ abstract class AbstractDocument
      * Add a font
      *
      * @param  Font    $font
-     * @param  boolean $embedOverride
+     * @param  bool $embedOverride
      * @throws Exception
      * @return AbstractDocument
      */

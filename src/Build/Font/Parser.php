@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -21,9 +21,9 @@ use Pop\Pdf\Build\PdfObject\StreamObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Parser
 {
@@ -66,7 +66,7 @@ class Parser
 
     /**
      * Font compression flag
-     * @var boolean
+     * @var bool
      */
     protected $compression = false;
 
@@ -76,7 +76,7 @@ class Parser
      * Instantiate a font parser object
      *
      * @param  string  $fontFile
-     * @param  boolean $compression
+     * @param  bool $compression
      * @throws Exception
      */
     public function __construct($fontFile, $compression = false)
@@ -91,7 +91,7 @@ class Parser
                 break;
             case 'pfb':
                 $this->font = new Type1($fontFile);
-                if (null === $this->font->afmPath) {
+                if ($this->font->afmPath === null) {
                     throw new Exception('The AFM font file was not found.');
                 }
                 break;
@@ -164,7 +164,7 @@ class Parser
     /**
      * Set the compression
      *
-     * @param  boolean $compression
+     * @param  bool $compression
      * @return Parser
      */
     public function setCompression($compression)
@@ -261,7 +261,7 @@ class Parser
     /**
      * Method to get if the font is embeddable.
      *
-     * @return boolean
+     * @return bool
      */
     public function isEmbeddable()
     {
@@ -271,7 +271,7 @@ class Parser
     /**
      * Get whether or not the font objects are compressed
      *
-     * @return boolean
+     * @return bool
      */
     public function isCompressed()
     {
@@ -286,8 +286,8 @@ class Parser
      */
     public function parse()
     {
-        if ((null === $this->fontIndex) || (null === $this->fontObjectIndex) ||
-            (null === $this->fontDescIndex) || (null ===  $this->fontFileIndex)) {
+        if (($this->fontIndex === null) || ($this->fontObjectIndex === null) ||
+            ($this->fontDescIndex === null) || ($this->fontFileIndex === null)) {
             throw new Exception('Error: The font indices are not set');
         }
 
@@ -364,21 +364,21 @@ class Parser
             }
         }
 
-        if (null !== $msTable) {
+        if ($msTable !== null) {
             $gw['encoding'] = 'WinAnsiEncoding';
             foreach ($cmap->subTables[$msTable]->parsed['glyphNumbers'] as $key => $value) {
                 if (isset($this->font->glyphWidths[$value])) {
                     $gw['widths'][$key] = $this->font->glyphWidths[$value];
                 }
             }
-        } else if (null !== $uniTable) {
+        } else if ($uniTable !== null) {
             $gw['encoding'] = 'WinAnsiEncoding';
             foreach ($cmap->subTables[$uniTable]->parsed['glyphNumbers'] as $key => $value) {
                 if (isset($this->font->glyphWidths[$value])) {
                     $gw['widths'][$key] = $this->font->glyphWidths[$value];
                 }
             }
-        } else if (null !== $macTable) {
+        } else if ($macTable !== null) {
             $gw['encoding'] = 'MacRomanEncoding';
             foreach ($cmap->subTables[$macTable]->parsed as $key => $value) {
                 if (($this->font->glyphWidths[$value->ascii] != 0) &&

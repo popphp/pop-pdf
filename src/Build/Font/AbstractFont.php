@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -22,9 +22,9 @@ use ReturnTypeWillChange;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 abstract class AbstractFont implements \ArrayAccess
 {
@@ -140,7 +140,7 @@ abstract class AbstractFont implements \ArrayAccess
             'isForceBold'   => false
         ]);
 
-        if (null !== $fontFile) {
+        if ($fontFile !== null) {
             if (!file_exists($fontFile)) {
                 throw new Exception('The font file does not exist.');
             }
@@ -153,16 +153,16 @@ abstract class AbstractFont implements \ArrayAccess
             $this->filename  = $parts['filename'];
             $this->extension = (isset($parts['extension']) && ($parts['extension'] != '')) ? $parts['extension'] : null;
 
-            if (null === $this->extension) {
+            if ($this->extension === null) {
                 throw new Exception('Error: That font file does not have an extension.');
             }
 
-            if ((null !== $this->extension) && !isset($this->allowedTypes[strtolower($this->extension)])) {
+            if (($this->extension !== null) && !isset($this->allowedTypes[strtolower($this->extension)])) {
                 throw new Exception('Error: That font file type is not allowed.');
             }
 
             $this->mime = $this->allowedTypes[strtolower($this->extension)];
-        } else if (null !== $fontStream) {
+        } else if ($fontStream !== null) {
             $this->stream = $fontStream;
         } else {
             throw new Exception('Error: You must pass either a font file or font stream.');
@@ -178,18 +178,18 @@ abstract class AbstractFont implements \ArrayAccess
      */
     public function read($offset = null, $length = null)
     {
-        if (null !== $offset) {
-            if (null !== $this->stream) {
-                $data = ((null !== $length) && ((int)$length >= 0)) ?
+        if ($offset !== null) {
+            if ($this->stream !== null) {
+                $data = (($length !== null) && ((int)$length >= 0)) ?
                     substr($this->stream, $offset, $length) :
                     substr($this->stream, $offset);
             } else {
-                $data = ((null !== $length) && ((int)$length >= 0)) ?
+                $data = (($length !== null) && ((int)$length >= 0)) ?
                     file_get_contents($this->fullpath, false, null, $offset, $length) :
                     file_get_contents($this->fullpath, false, null, $offset);
             }
         } else {
-            $data = (null !== $this->stream) ? $this->stream : file_get_contents($this->fullpath);
+            $data = ($this->stream !== null) ? $this->stream : file_get_contents($this->fullpath);
         }
 
         return $data;
@@ -370,7 +370,7 @@ abstract class AbstractFont implements \ArrayAccess
      * Offset exists method
      *
      * @param  mixed $offset
-     * @return boolean
+     * @return bool
      */
     public function offsetExists($offset): bool
     {
@@ -417,7 +417,7 @@ abstract class AbstractFont implements \ArrayAccess
      * Isset method
      *
      * @param  string $name
-     * @return boolean
+     * @return bool
      */
     public function __isset($name)
     {

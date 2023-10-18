@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -21,9 +21,9 @@ use Pop\Utils\ArrayObject as Data;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Type1 extends AbstractFont
 {
@@ -81,7 +81,7 @@ class Type1 extends AbstractFont
             } else if (file_exists($dir . DIRECTORY_SEPARATOR . $this->filename . '.AFM')) {
                 $this->properties['afmPath'] = $dir . DIRECTORY_SEPARATOR . $this->filename . '.AFM';
             }
-            if (null !== $this->properties['afmPath']) {
+            if ($this->properties['afmPath'] !== null) {
                 $this->parseAfm($this->properties['afmPath']);
             }
         } else if (strtolower($this->extension) == 'afm') {
@@ -92,7 +92,7 @@ class Type1 extends AbstractFont
             } else if (file_exists($dir . DIRECTORY_SEPARATOR . $this->filename . '.PFB')) {
                 $this->properties['pfbPath'] = $dir . DIRECTORY_SEPARATOR . $this->filename . '.PFB';
             }
-            if (null !== $this->properties['pfbPath']) {
+            if ($this->properties['pfbPath'] !== null) {
                 $this->parsePfb($this->properties['pfbPath']);
             }
         }

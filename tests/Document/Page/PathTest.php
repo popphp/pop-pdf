@@ -3,7 +3,7 @@
 namespace Pop\Pdf\Test\Document\Page;
 
 use Pop\Pdf\Document\Page\Path;
-use Pop\Pdf\Document\Page\Color;
+use Pop\Color\Color;
 use PHPUnit\Framework\TestCase;
 
 class PathTest extends TestCase
@@ -17,7 +17,7 @@ class PathTest extends TestCase
         $this->assertStringContainsString('rg', $path->getStreams()[0]['stream']);
         $path->setFillColor(new Color\Cmyk(100, 0, 0, 0));
         $this->assertStringContainsString('k', $path->getStreams()[1]['stream']);
-        $path->setFillColor(new Color\Gray(50));
+        $path->setFillColor(new Color\Grayscale(50));
         $this->assertStringContainsString('g', $path->getStreams()[2]['stream']);
     }
 
@@ -28,7 +28,7 @@ class PathTest extends TestCase
         $this->assertStringContainsString('RG', $path->getStreams()[0]['stream']);
         $path->setStrokeColor(new Color\Cmyk(100, 0, 0, 0));
         $this->assertStringContainsString('K', $path->getStreams()[1]['stream']);
-        $path->setStrokeColor(new Color\Gray(50));
+        $path->setStrokeColor(new Color\Grayscale(50));
         $this->assertStringContainsString('G', $path->getStreams()[2]['stream']);
     }
 

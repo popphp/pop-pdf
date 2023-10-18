@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -21,9 +21,9 @@ use Pop\Pdf\Document\Page\Annotation;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 interface PageInterface
 {
@@ -163,28 +163,28 @@ interface PageInterface
     /**
      * Determine if the page has image objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasImages();
 
     /**
      * Determine if the page has text objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasText();
 
     /**
      * Determine if the page has annotation objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasAnnotations();
 
     /**
      * Determine if the page has path objects
      *
-     * @return boolean
+     * @return bool
      */
     public function hasPaths();
 

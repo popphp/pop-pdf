@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -13,7 +13,7 @@
  */
 namespace Pop\Pdf\Document\Page\Text;
 
-use Pop\Pdf\Document\Page\Color;
+use Pop\Color\Color;
 
 /**
  * Pdf page text stream class
@@ -21,9 +21,9 @@ use Pop\Pdf\Document\Page\Color;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Stream
 {
@@ -309,10 +309,10 @@ class Stream
      */
     public function getStream(array $fonts, array $fontReferences)
     {
-        if (null === $this->currentX) {
+        if ($this->currentX === null) {
             $this->currentX = $this->startX;
         }
-        if (null === $this->currentY) {
+        if ($this->currentY === null) {
             $this->currentY = $this->startY;
         }
         $fontName       = null;
@@ -321,12 +321,12 @@ class Stream
         $curFont        = null;
 
         foreach ($this->styles as $style) {
-            if ((null === $fontReference) && !empty($style['font']) && isset($fontReferences[$style['font']])) {
+            if (($fontReference === null) && !empty($style['font']) && isset($fontReferences[$style['font']])) {
                 $fontName      = $style['font'];
                 $fontReference = substr($fontReferences[$fontName], 0, strpos($fontReferences[$fontName], ' '));
                 $curFont       = $fonts[$fontName] ?? null;
             }
-            if ((null === $fontSize) && !empty($style['size'])) {
+            if (($fontSize === null) && !empty($style['size'])) {
                 $fontSize = $style['size'];
             }
         }
@@ -347,12 +347,12 @@ class Stream
             $curString = explode(' ', $str['string']);
 
             foreach ($curString as $j => $string) {
-                if ((null !== $this->edgeX) && ($this->currentX >= $this->edgeX)) {
-                    $nextY             = (null !== $str['y']) ? $str['y'] : $fontSize;
+                if (($this->edgeX !== null) && ($this->currentX >= $this->edgeX)) {
+                    $nextY             = ($str['y'] !== null) ? $str['y'] : $fontSize;
                     $stream           .= "    0 -" . $nextY . " Td\n";
                     $this->currentX    = $this->startX;
                     $this->currentY   -= $nextY;
-                    if ((null !== $this->edgeY) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
+                    if (($this->edgeY !== null) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
                         break;
                     }
                 }
@@ -367,11 +367,11 @@ class Stream
                 }
 
                 $stream .= "    (" . $string . ")Tj\n";
-                if (null !== $curFont) {
+                if ($curFont !== null) {
                     $this->currentX += $curFont->getStringWidth($string, $fontSize);
                 }
             }
-            if ((null !== $this->edgeY) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
+            if (($this->edgeY !== null) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
                 $this->orphanIndex = (isset($j)) ? [$i, $j] : [$i, 0];
                 break;
             }
@@ -405,7 +405,7 @@ class Stream
      * Prepare stream
      *
      * @param  array $fonts
-     * @return boolean
+     * @return bool
      */
     public function hasOrphans(array $fonts)
     {
@@ -420,7 +420,7 @@ class Stream
                 $fontName = $style['font'];
                 $curFont  = $fonts[$fontName] ?? null;
             }
-            if ((null === $fontSize) && !empty($style['size'])) {
+            if (($fontSize === null) && !empty($style['size'])) {
                 $fontSize = $style['size'];
             }
         }
@@ -435,11 +435,11 @@ class Stream
             $curString = explode(' ', $str['string']);
 
             foreach ($curString as $j => $string) {
-                if ((null !== $this->edgeX) && ($this->currentX >= $this->edgeX)) {
-                    $nextY             = (null !== $str['y']) ? $str['y'] : $fontSize;
+                if (($this->edgeX !== null) && ($this->currentX >= $this->edgeX)) {
+                    $nextY             = ($str['y'] !== null) ? $str['y'] : $fontSize;
                     $this->currentX    = $this->startX;
                     $this->currentY   -= $nextY;
-                    if ((null !== $this->edgeY) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
+                    if (($this->edgeY !== null) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
                         break;
                     }
                 }
@@ -453,11 +453,11 @@ class Stream
                     $string .= ' ';
                 }
 
-                if (null !== $curFont) {
+                if ($curFont !== null) {
                     $this->currentX += $curFont->getStringWidth($string, $fontSize);
                 }
             }
-            if ((null !== $this->edgeY) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
+            if (($this->edgeY !== null) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
                 $this->orphanIndex = (isset($j)) ? [$i, $j] : [$i, 0];
                 break;
             }
@@ -480,7 +480,7 @@ class Stream
             $stream .= '    ' . $color . " rg\n";
         } else if ($color instanceof Color\Cmyk) {
             $stream .= '    ' . $color . " k\n";
-        } else if ($color instanceof Color\Gray) {
+        } else if ($color instanceof Color\Grayscale) {
             $stream .= '    ' . $color . " g\n";
         }
 
@@ -490,11 +490,11 @@ class Stream
     /**
      * Check if the text stream has orphan streams due to the page bottom
      *
-     * @return boolean
+     * @return bool
      */
     public function hasOrphanIndex()
     {
-        return (null !== $this->orphanIndex);
+        return ($this->orphanIndex !== null);
     }
 
 }

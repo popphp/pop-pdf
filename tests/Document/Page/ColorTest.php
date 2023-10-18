@@ -2,7 +2,7 @@
 
 namespace Pop\Pdf\Test\Document\Page;
 
-use Pop\Pdf\Document\Page\Color;
+use Pop\Color\Color;;
 use PHPUnit\Framework\TestCase;
 
 class ColorTest extends TestCase
@@ -27,7 +27,7 @@ class ColorTest extends TestCase
 
     public function testSetAndGetGrayValue()
     {
-        $color = new Color\Gray(50);
+        $color = new Color\Grayscale(50);
         $this->assertEquals(50, $color->getGray());
     }
 
@@ -76,7 +76,7 @@ class ColorTest extends TestCase
     public function testSetGrayOutOfRangeException()
     {
         $this->expectException('OutOfRangeException');
-        $color = new Color\Gray(1000);
+        $color = new Color\Grayscale(1000);
     }
 
 }

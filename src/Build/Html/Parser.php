@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -14,8 +14,8 @@
 namespace Pop\Pdf\Build\Html;
 
 use Pop\Css;
+use Pop\Color\Color;
 use Pop\Dom\Child;
-use Pop\Pdf\Build\Compiler;
 use Pop\Pdf\Document;
 
 /**
@@ -24,9 +24,9 @@ use Pop\Pdf\Document;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Parser
 {
@@ -123,7 +123,7 @@ class Parser
      */
     public function __construct(Document $document = null)
     {
-        if (null !== $document) {
+        if ($document !== null) {
             $this->setDocument($document);
         }
         $this->createDefaultStyles();
@@ -195,7 +195,7 @@ class Parser
      */
     public function parseHtml($htmlString, $basePath = null)
     {
-        if (null !== $basePath) {
+        if ($basePath !== null) {
             $this->fileDir = $basePath;
         }
         $this->html = Child::parseString($htmlString);
@@ -237,7 +237,7 @@ class Parser
      */
     public function parseCss($cssString)
     {
-        if (null === $this->css) {
+        if ($this->css === null) {
             $this->css = Css\Css::parseString($cssString);
         } else {
             $this->css->parseCss($cssString);
@@ -253,7 +253,7 @@ class Parser
      */
     public function parseCssFile($cssFile)
     {
-        if (null === $this->css) {
+        if ($this->css === null) {
             $this->css = Css\Css::parseFile($cssFile);
         } else {
             $this->css->parseCssFile($cssFile);
@@ -269,7 +269,7 @@ class Parser
      */
     public function parseCssUri($cssUri)
     {
-        if (null === $this->css) {
+        if ($this->css === null) {
             $this->css = Css\Css::parseUri($cssUri);
         } else {
             $this->css->parseCssUri($cssUri);
@@ -306,7 +306,7 @@ class Parser
      */
     public function setPageSize($size, $height = null)
     {
-        $this->pageSize = (null !== $height) ? ['width' => $size, 'height' => $height] : $size;
+        $this->pageSize = ($height !== null) ? ['width' => $size, 'height' => $height] : $size;
 
         return $this;
     }
@@ -550,7 +550,7 @@ class Parser
                         if (($c->getNodeName() == 'link') && ($c->hasAttribute('href')) &&
                             ($c->hasAttribute('type')) && ($c->getAttribute('type') == 'text/css')) {
                             $href = $c->getAttribute('href');
-                            if (null === $this->css) {
+                            if ($this->css === null) {
                                 $this->css = Css\Css::parseFile($this->fileDir . '/' . $href);
                             } else {
                                 $this->css->parseCssFile($this->fileDir . '/' . $href);
@@ -563,7 +563,7 @@ class Parser
             }
         }
 
-        if (null === $htmlNodes) {
+        if ($htmlNodes === null) {
             $htmlNodes = $this->html;
         }
 
@@ -604,7 +604,7 @@ class Parser
         $styles   = $this->prepareNodeStyles($child->getNodeName(), $child->getAttributes());
         $currentX = $this->getCurrentX();
 
-        if (null !== $this->yOverride) {
+        if ($this->yOverride !== null) {
             $currentY        = $this->yOverride;
             $this->yOverride = null;
         } else {
@@ -628,22 +628,22 @@ class Parser
             } else if ($child->hasAttribute('height')) {
                 $height = (strpos($child->getAttribute('height'), '%')) ?
                     $this->page->getHeight() * ((int)$child->getAttribute('height') / 100) : (int)$child->getAttribute('height');
-            } else if (null !== $styles['width']) {
+            } else if ($styles['width'] !== null) {
                 $width = (strpos($styles['width'], '%')) ?
                     $this->page->getWidth() * ((int)$styles['width'] / 100) : (int)$styles['width'];
-            } else if (null !== $styles['height']) {
+            } else if ($styles['height'] !== null) {
                 $height = (strpos($styles['height'], '%')) ?
                     $this->page->getHeight() * ((int)$styles['height'] / 100) : (int)$styles['height'];
             }
 
-            if (null !== $width) {
+            if ($width !== null) {
                 $image->resizeToWidth($width);
-            } else if (null !== $height) {
+            } else if ($height !== null) {
                 $image->resizeToHeight($height);
             }
 
-            if (null === $height) {
-                $height = (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
+            if ($height === null) {
+                $height = ($image->getResizedHeight() !== null) ? $image->getResizedHeight() : $image->getHeight();
             }
 
             if ($child->hasAttribute('align')) {
@@ -670,8 +670,8 @@ class Parser
                 $this->textWrap = new Document\Page\Text\Wrap('LEFT', $this->pageMargins['left'], $this->page->getWidth() - $this->pageMargins['right'], $box);
             }
 
-            if (null !== $this->textWrap) {
-                $newY = $currentY - ((null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight());
+            if ($this->textWrap !== null) {
+                $newY = $currentY - (($image->getResizedHeight() !== null) ? $image->getResizedHeight() : $image->getHeight());
                 if ($align == 'RIGHT') {
                     $this->page->addImage($image, ($this->page->getWidth() - $this->pageMargins['right'] - $width), $newY);
                 } else {
@@ -680,8 +680,8 @@ class Parser
                 $currentY -= $styles['lineHeight'];
                 $this->y += $styles['lineHeight'];
             } else {
-                $currentY -= (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
-                $this->y += (null !== $image->getResizedHeight()) ? $image->getResizedHeight() : $image->getHeight();
+                $currentY -= ($image->getResizedHeight() !== null) ? $image->getResizedHeight() : $image->getHeight();
+                $this->y += ($image->getResizedHeight() !== null) ? $image->getResizedHeight() : $image->getHeight();
                 $this->page->addImage($image, $currentX, $currentY);
                 $currentY -= $styles['lineHeight'];
                 $this->y += $styles['lineHeight'];
@@ -782,7 +782,7 @@ class Parser
 
         // Text node
         } else {
-            if (null !== $this->textWrap) {
+            if ($this->textWrap !== null) {
                 $box = $this->textWrap->getBox();
                 if ($this->textWrap->isRight()) {
                     $startX = $box['right'];
@@ -806,7 +806,7 @@ class Parser
             $textStream->setCurrentStyle(
                 $styles['currentFont'],
                 $styles['fontSize'],
-                new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2])
+                new Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2])
             );
             $streamY = $styles['lineHeight'] ?? null;
             $textStream->addText($child->getNodeValue(), $streamY);
@@ -817,7 +817,7 @@ class Parser
                     $textStream->setCurrentStyle(
                         $gcStyles['currentFont'],
                         $gcStyles['fontSize'],
-                        new Document\Page\Color\Rgb($gcStyles['color'][0], $gcStyles['color'][1], $gcStyles['color'][2])
+                        new Color\Rgb($gcStyles['color'][0], $gcStyles['color'][1], $gcStyles['color'][2])
                     );
                     $streamY = $gcStyles['lineHeight'] ?? null;
                     $textStream->addText($grandChild->getNodeValue(), $streamY);
@@ -880,7 +880,7 @@ class Parser
             $strings = $this->getStringLines($string, $styles['fontSize'], $wrapLength, $fontObject);
             if ($this->x > $this->pageMargins['left']) {
                 $text = new Document\Page\Text($strings[0], $styles['fontSize']);
-                $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+                $text->setFillColor(new Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
                 $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
                 if ($currentY <= $this->pageMargins['bottom']) {
                     $currentY = $this->newPage();
@@ -896,7 +896,7 @@ class Parser
 
             foreach ($strings as $i => $string) {
                 $text = new Document\Page\Text($string, $styles['fontSize']);
-                $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+                $text->setFillColor(new Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
                 $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
                 if ($i < (count($strings) - 1)) {
                     if ($currentY <= $this->pageMargins['bottom']) {
@@ -910,7 +910,7 @@ class Parser
             $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
         } else {
             $text = new Document\Page\Text($string, $styles['fontSize']);
-            $text->setFillColor(new Document\Page\Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
+            $text->setFillColor(new Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]));
             $this->page->addText($text, $styles['currentFont'], $currentX, $currentY);
             $this->x += $fontObject->getStringWidth($string, $styles['fontSize']);
         }
@@ -962,7 +962,7 @@ class Parser
         $p['font-size']     = '12px';
 
         $a = new Css\Selector('a');
-        $a['color'] = new Css\Color\Rgb(0, 0, 255);
+        $a['color'] = new Color\Rgb(0, 0, 255);
 
         $strong = new Css\Selector('strong');
         $strong['font-size']   = '10px';
@@ -1073,7 +1073,7 @@ class Parser
             if ($this->css[$name]->hasProperty('color')) {
                 $styles['color'] = $this->css[$name]['color'];
                 if (is_string($styles['color'])) {
-                    $cssColor = Css\Color::parse($styles['color']);
+                    $cssColor = Color::parse($styles['color']);
                     $styles['color'] = $cssColor->toRgb()->toArray(false);
                 }
             }
@@ -1128,7 +1128,7 @@ class Parser
             if ($this->css['#' . $attribs['id']]->hasProperty('color')) {
                 $styles['color'] = $this->css['#' . $attribs['id']]['color'];
                 if (is_string($styles['color'])) {
-                    $cssColor = Css\Color::parse($styles['color']);
+                    $cssColor = Color::parse($styles['color']);
                     $styles['color'] = $cssColor->toRgb()->toArray(false);
                 }
             }
@@ -1183,7 +1183,7 @@ class Parser
             if ($this->css['.' . $attribs['class']]->hasProperty('color')) {
                 $styles['color'] = $this->css['.' . $attribs['class']]['color'];
                 if (is_string($styles['color'])) {
-                    $cssColor = Css\Color::parse($styles['color']);
+                    $cssColor = Color::parse($styles['color']);
                     $styles['color'] = $cssColor->toRgb()->toArray(false);
                 }
             }
@@ -1244,7 +1244,7 @@ class Parser
             $styles['currentFont'] = $styles['fontFamily'];
         }
 
-        if (null === $styles['currentFont']) {
+        if ($styles['currentFont'] === null) {
             throw new Exception('Error: No available font has been detected.');
         } else if ($styles['currentFont'] == 'sans-serif') {
             $styles['currentFont'] = 'Arial';

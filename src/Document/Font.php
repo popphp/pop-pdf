@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -22,9 +22,9 @@ use Pop\Pdf\Build\Font\Parser;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Font
 {
@@ -85,13 +85,13 @@ class Font
 
     /**
      * Flag for a standard font
-     * @var boolean
+     * @var bool
      */
     protected $isStandard = false;
 
     /**
      * Flag for an embedded font file
-     * @var boolean
+     * @var bool
      */
     protected $isEmbedded = false;
 
@@ -110,7 +110,7 @@ class Font
      */
     public function __construct($font = null)
     {
-        if (null !== $font) {
+        if ($font !== null) {
             $this->setFont($font);
         }
     }
@@ -174,7 +174,7 @@ class Font
     /**
      * Determine if the font is a standard font
      *
-     * @return boolean
+     * @return bool
      */
     public function isStandard()
     {
@@ -184,7 +184,7 @@ class Font
     /**
      * Determine if the font is an embedded font
      *
-     * @return boolean
+     * @return bool
      */
     public function isEmbedded()
     {
@@ -208,7 +208,7 @@ class Font
      */
     public function getParsedFont()
     {
-        return (null !== $this->parser) ? $this->parser->getFont() : null;
+        return ($this->parser !== null) ? $this->parser->getFont() : null;
     }
 
     /**
@@ -221,7 +221,7 @@ class Font
      */
     public function getStringWidth($string, $size)
     {
-        if (null !== $this->parser) {
+        if ($this->parser !== null) {
             return $this->parser->getFont()->getStringWidth($string, $size);
         } else {
             $fontClass = '\Pop\Pdf\Build\Font\Standard\\' . str_replace([',', '-'], ['', ''], $this->name);

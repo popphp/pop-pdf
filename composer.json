@@ -22,16 +22,14 @@
         }
     ],
     "require": {
-        "php": ">=7.4.0",
-        "popphp/pop-css" : "^1.1.1",
-        "popphp/pop-dom" : "^3.3.1",
-        "popphp/pop-utils" : "^1.3.2"
+        "php": ">=8.1.0",
+        "popphp/pop-css" : "^2.0.0",
+        "popphp/pop-dom" : "^4.0.0",
+        "popphp/pop-utils" : "^2.0.0",
+        "ext-gd": "*"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.0.0"
-    },
-    "suggest": {
-        "ext-gd": "For the image parser"
+        "phpunit/phpunit": "^10.0.0"
     },
     "autoload": {
         "psr-4": {
@@ -48,7 +46,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "4.2.x-dev"
+            "dev-master": "5.0.x-dev"
         }
     }
 }

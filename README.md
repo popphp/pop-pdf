@@ -20,6 +20,10 @@ Install `pop-pdf` using Composer.
 
     composer require popphp/pop-pdf
 
+    "require": {
+        "popphp/pop-pdf" : "^5.0.0"
+    }
+
 ##### A Note About Document Origin
 The PDF coordinate system starts with x, y origin (0, 0) at the bottom left. This can be changed by the
 user if the user prefers to set the origin to a different point for the purpose of the application.

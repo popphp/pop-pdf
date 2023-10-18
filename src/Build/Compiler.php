@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -24,9 +24,9 @@ use Pop\Pdf\Document\Page\Text;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Compiler extends AbstractCompiler
 {
@@ -69,13 +69,13 @@ class Compiler extends AbstractCompiler
             }
         }
 
-        if (null === $this->root) {
+        if ($this->root === null) {
             $this->setRoot(new PdfObject\RootObject());
         }
-        if (null === $this->parent) {
+        if ($this->parent === null) {
             $this->setParent(new PdfObject\ParentObject());
         }
-        if (null === $this->info) {
+        if ($this->info === null) {
             $this->setInfo(new PdfObject\InfoObject());
         }
 
@@ -93,7 +93,7 @@ class Compiler extends AbstractCompiler
      */
     public function finalize(Document\AbstractDocument $document = null)
     {
-        if (null !== $document) {
+        if ($document !== null) {
             $this->setDocument($document);
         }
         $this->prepareFonts();
@@ -423,10 +423,10 @@ class Compiler extends AbstractCompiler
     protected function prepareFields(array $fields, PdfObject\PageObject $pageObject)
     {
         foreach ($fields as $field) {
-            if (null !== $this->document->getForm($field['form'])) {
-                if ((null !== $field['field']->getFont()) && (!isset($this->fontReferences[$field['field']->getFont()]))) {
+            if ($this->document->getForm($field['form']) !== null) {
+                if (($field['field']->getFont() !== null) && (!isset($this->fontReferences[$field['field']->getFont()]))) {
                     throw new Exception('Error: The font \'' . $field['field']->getFont() . '\' has not been added to the document.');
-                } else if ((null !== $field['field']->getFont()) && (isset($this->fontReferences[$field['field']->getFont()]))) {
+                } else if (($field['field']->getFont() !== null) && (isset($this->fontReferences[$field['field']->getFont()]))) {
                     $fontRef = $this->fontReferences[$field['field']->getFont()];
                 } else {
                     $fontRef = null;

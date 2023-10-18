@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -23,9 +23,9 @@ use Pop\Pdf\Build\Image;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class Page extends AbstractPage
 {
@@ -59,7 +59,7 @@ class Page extends AbstractPage
             }
         }
 
-        if ((null === $width) && (null === $height) && (count($args) >= 2)) {
+        if (($width === null) && ($height === null) && (count($args) >= 2)) {
             $width  = $args[0];
             $height = $args[1];
 
@@ -68,12 +68,12 @@ class Page extends AbstractPage
             }
         }
 
-        if ((null === $width) && (null === $height)) {
+        if (($width === null) && ($height === null)) {
             throw new Exception('Error: The page size was not correctly passed or was not valid.');
         } else {
             $this->setWidth($width);
             $this->setHeight($height);
-            if (null !== $index) {
+            if ($index !== null) {
                 $this->setIndex($index);
             }
         }
@@ -246,11 +246,11 @@ class Page extends AbstractPage
     /**
      * Determine if the document has an imported page object
      *
-     * @return boolean
+     * @return bool
      */
     public function hasImportedPageObject()
     {
-        return (null !== $this->importedPageObject);
+        return ($this->importedPageObject !== null);
     }
 
     /**

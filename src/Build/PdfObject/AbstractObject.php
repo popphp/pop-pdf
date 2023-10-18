@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Build\PdfObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 abstract class AbstractObject implements ObjectInterface
 {
@@ -71,7 +71,7 @@ abstract class AbstractObject implements ObjectInterface
     /**
      * Set whether the object is imported
      *
-     * @param  boolean $imported
+     * @param  bool $imported
      * @return AbstractObject
      */
     public function setImported($imported)
@@ -103,7 +103,7 @@ abstract class AbstractObject implements ObjectInterface
     /**
      * Determine if the object is imported
      *
-     * @return boolean
+     * @return bool
      */
     public function isImported()
     {

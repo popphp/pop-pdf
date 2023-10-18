@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Build\PdfObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    4.2.0
+ * @version    5.0.0
  */
 class StreamObject extends AbstractObject
 {
@@ -46,19 +46,19 @@ class StreamObject extends AbstractObject
 
     /**
      * Encoding filter
-     * @var boolean
+     * @var bool
      */
     protected $encoding = null;
 
     /**
      * Palette object flag
-     * @var boolean
+     * @var bool
      */
     protected $isPalette = false;
 
     /**
      * XObject object flag
-     * @var boolean
+     * @var bool
      */
     protected $isXObject = false;
 
@@ -204,7 +204,7 @@ class StreamObject extends AbstractObject
     /**
      * Method to decode the PDF stream contents with FlateDecode (gzuncompress)
      *
-     * @return boolean|string
+     * @return bool|string
      */
     public function decode()
     {
@@ -218,11 +218,11 @@ class StreamObject extends AbstractObject
     /**
      * Determine whether or not the PDF stream object is encoded
      *
-     * @return boolean
+     * @return bool
      */
     public function isEncoded()
     {
-        return (null !== $this->encoding);
+        return ($this->encoding !== null);
     }
 
     /**
@@ -238,7 +238,7 @@ class StreamObject extends AbstractObject
     /**
      * Set whether the PDF stream object is a palette object
      *
-     * @param  boolean $isPalette
+     * @param  bool $isPalette
      * @return void
      */
     public function setPalette($isPalette)
@@ -249,7 +249,7 @@ class StreamObject extends AbstractObject
     /**
      * Get whether the PDF stream object is a palette object
      *
-     * @return boolean
+     * @return bool
      */
     public function isPalette()
     {
@@ -259,7 +259,7 @@ class StreamObject extends AbstractObject
     /**
      * Get whether the PDF stream object is an XObject
      *
-     * @return boolean
+     * @return bool
      */
     public function isXObject()
     {
@@ -295,7 +295,7 @@ class StreamObject extends AbstractObject
     public function __toString()
     {
         // Set the stream.
-        $stream = (null !== $this->stream) ? "stream" . $this->stream . "endstream\n" : '';
+        $stream = ($this->stream !== null) ? "stream" . $this->stream . "endstream\n" : '';
 
         // Set up the Length definition.
         if ((strpos((string)$this->definition, '/Length ') !== false) && (strpos((string)$this->definition, '/Length1') === false) &&
