@@ -32,7 +32,7 @@ class SegmentToDelta
      * @param  string $data
      * @return array
      */
-    public static function parseData($data)
+    public static function parseData(string $data): array
     {
         $ary = unpack(
             'nsegCountx2/' .
@@ -129,7 +129,7 @@ class SegmentToDelta
      * @param  int|array $values
      * @return int|array
      */
-    public static function shiftToSigned($values)
+    public static function shiftToSigned(int|array $values): int|array
     {
         if (is_array($values)) {
             foreach ($values as $key => $value) {

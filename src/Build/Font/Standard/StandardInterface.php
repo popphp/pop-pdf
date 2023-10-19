@@ -11,10 +11,10 @@
 /**
  * @namespace
  */
-namespace Pop\Pdf\Build\Font\TrueType\Table\Cmap;
+namespace Pop\Pdf\Build\Font\Standard;
 
 /**
- * CMAP trimmed-table class
+ * Pdf standard font interface
  *
  * @category   Pop
  * @package    Pop\Pdf
@@ -23,32 +23,22 @@ namespace Pop\Pdf\Build\Font\TrueType\Table\Cmap;
  * @license    http://www.popphp.org/license     New BSD License
  * @version    5.0.0
  */
-class TrimmedTable
+interface StandardInterface
 {
 
     /**
-     * Method to parse the Trimmed Table (Format 6) CMAP data
+     * Get units per em
      *
-     * @param  string $data
-     * @return array
+     * @return int
      */
-    public static function parseData(string $data): array
-    {
-        $ary = unpack(
-            'nfirstCode/' .
-            'nentryCount', substr($data, 0, 4)
-        );
+    public function getUnitsPerEm(): int;
 
-        $ary['glyphId'] = array();
-
-        $bytePos = 4;
-        for ($i = 0; $i < $ary['entryCount']; $i++) {
-            $ar = unpack('nglyphIndex', substr($data, $bytePos, 2));
-            $ary['glyphId'][$i] = $ar['glyphIndex'];
-            $bytePos += 2;
-        }
-
-        return $ary;
-    }
+    /**
+     * Get character glyph width
+     *
+     * @param  int $code
+     * @return mixed
+     */
+    public function getGlyphWidth(int $code): mixed;
 
 }

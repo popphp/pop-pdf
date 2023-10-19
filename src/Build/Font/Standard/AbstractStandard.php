@@ -30,26 +30,26 @@ abstract class AbstractStandard
      * Font units per em
      * @var int
      */
-    protected $unitsPerEm = 1000;
+    protected int $unitsPerEm = 1000;
 
     /**
      * Font glyph widths
      * @var array
      */
-    protected $glyphWidths = [];
+    protected array $glyphWidths = [];
 
     /**
      * Font character map
      * @var array
      */
-    protected $cmap = [];
+    protected array $cmap = [];
 
     /**
      * Get units per em
      *
      * @return int
      */
-    public function getUnitsPerEm()
+    public function getUnitsPerEm(): int
     {
         return $this->unitsPerEm;
     }
@@ -58,10 +58,9 @@ abstract class AbstractStandard
      * Get character glyph width
      *
      * @param  int $code
-     * @throws Exception
      * @return mixed
      */
-    public function getGlyphWidth($code)
+    public function getGlyphWidth(int $code): mixed
     {
         if (isset($this->cmap[$code]) && isset($this->glyphWidths[$this->cmap[$code]])) {
             return $this->glyphWidths[$this->cmap[$code]];

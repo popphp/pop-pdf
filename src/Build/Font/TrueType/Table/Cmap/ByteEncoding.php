@@ -36,7 +36,7 @@ class ByteEncoding
      * @param  string $data
      * @return array
      */
-    public static function parseData($data)
+    public static function parseData(string $data): array
     {
         $ary = array();
 

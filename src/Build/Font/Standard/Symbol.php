@@ -34,13 +34,13 @@ class Symbol extends AbstractStandard
      * Font units per em
      * @var int
      */
-    protected $unitsPerEm = 1000;
+    protected int $unitsPerEm = 1000;
 
     /**
      * Font glyph widths
      * @var array
      */
-    protected $glyphWidths = [
+    protected array $glyphWidths = [
         0x00 => 0x01f4,   0x01 =>   0xfa,   0x02 => 0x014d,   0x03 => 0x02c9,
         0x04 => 0x01f4,   0x05 => 0x0225,   0x06 => 0x0341,   0x07 => 0x030a,
         0x08 => 0x01b7,   0x09 => 0x014d,   0x0a => 0x014d,   0x0b => 0x01f4,
@@ -95,7 +95,7 @@ class Symbol extends AbstractStandard
      * Font character map
      * @var array
      */
-    protected $cmap = [
+    protected array $cmap = [
         0x20 =>   0x01,   0x21 =>   0x02, 0x2200 =>   0x03,   0x23 =>   0x04,
         0x2203 =>   0x05,   0x25 =>   0x06,   0x26 =>   0x07, 0x220b =>   0x08,
         0x28 =>   0x09,   0x29 =>   0x0a, 0x2217 =>   0x0b,   0x2b =>   0x0c,

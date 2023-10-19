@@ -30,7 +30,7 @@ class Glyf extends AbstractTable
      * Font table properties
      * @var array
      */
-    protected $properties = [
+    protected array $properties = [
         'glyphs'      => [],
         'glyphWidths' => []
     ];

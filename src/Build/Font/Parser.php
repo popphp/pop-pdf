@@ -30,56 +30,56 @@ class Parser
 
     /**
      * Font object
-     * @var AbstractFont
+     * @var ?AbstractFont
      */
-    protected $font = null;
+    protected ?AbstractFont $font = null;
 
     /**
      * Font reference index
-     * @var int
+     * @var ?int
      */
-    protected $fontIndex = null;
+    protected ?int $fontIndex = null;
 
     /**
      * Font object index
-     * @var int
+     * @var ?int
      */
-    protected $fontObjectIndex = null;
+    protected ?int $fontObjectIndex = null;
 
     /**
      * Font descriptor index
-     * @var int
+     * @var ?int
      */
-    protected $fontDescIndex = null;
+    protected ?int $fontDescIndex = null;
 
     /**
      * Font file index
-     * @var int
+     * @var ?int
      */
-    protected $fontFileIndex = null;
+    protected ?int $fontFileIndex = null;
 
     /**
      * Font objects
      * @var array
      */
-    protected $objects = [];
+    protected array $objects = [];
 
     /**
      * Font compression flag
      * @var bool
      */
-    protected $compression = false;
+    protected bool $compression = false;
 
     /**
      * Constructor
      *
      * Instantiate a font parser object
      *
-     * @param  string  $fontFile
-     * @param  bool $compression
-     * @throws Exception
+     * @param  string $fontFile
+     * @param  bool   $compression
+     * @throws Exception|\Pop\Utils\Exception
      */
-    public function __construct($fontFile, $compression = false)
+    public function __construct(string $fontFile, bool $compression = false)
     {
         $ext = strtolower(substr($fontFile, (strrpos($fontFile, '.') + 1)));
         switch ($ext) {
@@ -108,9 +108,9 @@ class Parser
      * @param  string $stream
      * @return void
      */
-    public static function loadFromStream($stream)
+    public static function loadFromStream(string $stream): void
     {
-        //$var = 123;
+        // TO-DO
     }
 
     /**
@@ -119,7 +119,7 @@ class Parser
      * @param  int $index
      * @return Parser
      */
-    public function setFontIndex($index)
+    public function setFontIndex(int $index): Parser
     {
         $this->fontIndex = $index;
         return $this;
@@ -131,7 +131,7 @@ class Parser
      * @param  int $index
      * @return Parser
      */
-    public function setFontObjectIndex($index)
+    public function setFontObjectIndex(int $index): Parser
     {
         $this->fontObjectIndex = $index;
         return $this;
@@ -143,7 +143,7 @@ class Parser
      * @param  int $index
      * @return Parser
      */
-    public function setFontDescIndex($index)
+    public function setFontDescIndex(int $index): Parser
     {
         $this->fontDescIndex = $index;
         return $this;
@@ -155,7 +155,7 @@ class Parser
      * @param  int $index
      * @return Parser
      */
-    public function setFontFileIndex($index)
+    public function setFontFileIndex(int $index): Parser
     {
         $this->fontFileIndex = $index;
         return $this;
@@ -167,18 +167,18 @@ class Parser
      * @param  bool $compression
      * @return Parser
      */
-    public function setCompression($compression)
+    public function setCompression(bool $compression): Parser
     {
-        $this->compression = (bool)$compression;
+        $this->compression = $compression;
         return $this;
     }
 
     /**
      * Get the font object
      *
-     * @return AbstractFont
+     * @return ?AbstractFont
      */
-    public function getFont()
+    public function getFont(): ?AbstractFont
     {
         return $this->font;
     }
@@ -186,9 +186,9 @@ class Parser
     /**
      * Get the font index
      *
-     * @return int
+     * @return ?int
      */
-    public function getFontIndex()
+    public function getFontIndex(): ?int
     {
         return $this->fontIndex;
     }
@@ -196,9 +196,9 @@ class Parser
     /**
      * Get the font object index
      *
-     * @return int
+     * @return ?int
      */
-    public function getFontObjectIndex()
+    public function getFontObjectIndex(): ?int
     {
         return $this->fontObjectIndex;
     }
@@ -206,9 +206,9 @@ class Parser
     /**
      * Get the font descriptor index
      *
-     * @return int
+     * @return ?int
      */
-    public function getFontDescIndex()
+    public function getFontDescIndex(): ?int
     {
         return $this->fontDescIndex;
     }
@@ -216,9 +216,9 @@ class Parser
     /**
      * Get the font file index
      *
-     * @return int
+     * @return ?int
      */
-    public function getFontFileIndex()
+    public function getFontFileIndex(): ?int
     {
         return $this->fontFileIndex;
     }
@@ -228,7 +228,7 @@ class Parser
      *
      * @return array
      */
-    public function getObjects()
+    public function getObjects(): array
     {
         if (count($this->objects) == 0) {
             $this->parse();
@@ -241,7 +241,7 @@ class Parser
      *
      * @return string
      */
-    public function getFontReference()
+    public function getFontReference(): string
     {
         return "/TT{$this->fontIndex} {$this->fontObjectIndex} 0 R";
     }
@@ -251,7 +251,7 @@ class Parser
      *
      * @return string
      */
-    public function getFontName()
+    public function getFontName(): string
     {
         $fontName = ($this->font instanceof Type1) ? $this->font->info->postscriptName :
             $this->font->tables['name']->postscriptName;
@@ -263,7 +263,7 @@ class Parser
      *
      * @return bool
      */
-    public function isEmbeddable()
+    public function isEmbeddable(): bool
     {
         return $this->font->embeddable;
     }
@@ -273,7 +273,7 @@ class Parser
      *
      * @return bool
      */
-    public function isCompressed()
+    public function isCompressed(): bool
     {
         return $this->compression;
     }
@@ -284,7 +284,7 @@ class Parser
      * @throws Exception
      * @return void
      */
-    public function parse()
+    public function parse(): void
     {
         if (($this->fontIndex === null) || ($this->fontObjectIndex === null) ||
             ($this->fontDescIndex === null) || ($this->fontFileIndex === null)) {
@@ -345,7 +345,7 @@ class Parser
      * @param  TrueType\Table\Cmap $cmap
      * @return array
      */
-    protected function getGlyphWidthsFromCmap(TrueType\Table\Cmap $cmap)
+    protected function getGlyphWidthsFromCmap(TrueType\Table\Cmap $cmap): array
     {
         $gw       = ['encoding' => null, 'widths' => []];
         $uniTable = null;

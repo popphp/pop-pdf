@@ -32,7 +32,7 @@ class Type1 extends AbstractFont
      * Font properties
      * @var array
      */
-    protected $properties = [
+    protected array $properties = [
         'info'             => null,
         'bBox'             => null,
         'ascent'           => 0,
@@ -64,10 +64,11 @@ class Type1 extends AbstractFont
      *
      * Instantiate a Type1 font file object based on a pre-existing font file on disk.
      *
-     * @param  string $fontFile
-     * @param  string $fontStream
+     * @param  ?string $fontFile
+     * @param  ?string $fontStream
+     * @throws Exception|\Pop\Utils\Exception
      */
-    public function __construct($fontFile = null, $fontStream = null)
+    public function __construct(?string $fontFile = null, ?string $fontStream = null)
     {
         parent::__construct($fontFile, $fontStream);
 
@@ -102,10 +103,15 @@ class Type1 extends AbstractFont
      * Method to parse the Type1 PFB file.
      *
      * @param  string $pfb
+     * @throws Exception|\Pop\Utils\Exception
      * @return void
      */
-    protected function parsePfb($pfb)
+    protected function parsePfb(string $pfb): void
     {
+        if (!file_exists($pfb)) {
+            throw new Exception('Error: The PFB file does not exist.');
+        }
+
         $data = file_get_contents($pfb);
 
         // Get lengths and data
@@ -229,10 +235,15 @@ class Type1 extends AbstractFont
      * Method to parse the Type1 Adobe Font Metrics file
      *
      * @param  string $afm
+     * @throws Exception|\Pop\Utils\Exception
      * @return void
      */
-    protected function parseAfm($afm)
+    protected function parseAfm(string $afm): void
     {
+        if (!file_exists($afm)) {
+            throw new Exception('Error: The AFM file does not exist.');
+        }
+
         $data = file_get_contents($afm);
 
         if (stripos($data, 'FontBBox') !== false) {
@@ -300,7 +311,7 @@ class Type1 extends AbstractFont
      *
      * @return void
      */
-    protected function convertToHex()
+    protected function convertToHex(): void
     {
         $ary = str_split($this->properties['data']);
         $length = count($ary);
@@ -316,24 +327,24 @@ class Type1 extends AbstractFont
      * @param  string $str
      * @return string
      */
-    protected function strip($str)
+    protected function strip(string $str): string
     {
         // Strip parentheses
-        if (substr($str, 0, 1) == '(') {
+        if (str_starts_with($str, '(')) {
             $str = substr($str, 1);
         }
-        if (substr($str, -1) == ')') {
+        if (str_ends_with($str, ')')) {
             $str = substr($str, 0, -1);
         }
         // Strip curly brackets
-        if (substr($str, 0, 1) == '{') {
+        if (str_starts_with($str, '{')) {
             $str = substr($str, 1);
         }
-        if (substr($str, -1) == '}') {
+        if (str_ends_with($str, '}')) {
             $str = substr($str, 0, -1);
         }
         // Strip leading slash
-        if (substr($str, 0, 1) == '/') {
+        if (str_starts_with($str, '/')) {
             $str = substr($str, 1);
         }
 

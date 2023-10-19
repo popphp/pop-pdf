@@ -15,6 +15,7 @@ namespace Pop\Pdf\Build\Font\TrueType\Table;
 
 use Pop\Pdf\Build\Font;
 use Pop\Utils\ArrayObject as Data;
+use Pop\Utils\Exception;
 
 /**
  * OS/2 table class
@@ -33,7 +34,7 @@ class Os2 extends AbstractTable
      * Font table properties
      * @var array
      */
-    protected $properties = [
+    protected array $properties = [
         'capHeight'  => 0,
         'embeddable' => true,
         'flags'      => null
@@ -44,7 +45,8 @@ class Os2 extends AbstractTable
      *
      * Instantiate a OTF 'OS/2' table object.
      *
-     * @param  Font\TrueType $font
+     * @param Font\TrueType $font
+     * @throws Exception
      */
     public function __construct(Font\TrueType $font)
     {

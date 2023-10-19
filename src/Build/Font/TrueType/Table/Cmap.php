@@ -34,7 +34,7 @@ class Cmap extends AbstractTable
      * Font table properties
      * @var array
      */
-    protected $properties = [
+    protected array $properties = [
         'header'    => null,
         'subTables' => []
     ];
@@ -66,7 +66,7 @@ class Cmap extends AbstractTable
      * @param  \Pop\Pdf\Build\Font\TrueType $font
      * @return void
      */
-    protected function parseSubTables(\Pop\Pdf\Build\Font\TrueType $font)
+    protected function parseSubTables(\Pop\Pdf\Build\Font\TrueType $font): void
     {
         $bytePos = $font->tableInfo['cmap']->offset + 4;
 

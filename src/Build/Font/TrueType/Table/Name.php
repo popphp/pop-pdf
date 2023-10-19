@@ -33,13 +33,13 @@ class Name extends AbstractTable
      * Font table properties
      * @var array
      */
-    protected $properties = [];
+    protected array $properties = [];
 
     /**
      * TrueType font info names
      * @var array
      */
-    protected $names = [
+    protected array $names = [
         0  => 'copyright',
         1  => 'fontFamily',
         2  => 'fontSubFamily',

@@ -14,7 +14,6 @@
 namespace Pop\Pdf\Build\Font;
 
 use Pop\Utils\ArrayObject as Data;
-use ReturnTypeWillChange;
 
 /**
  * Font abstract class
@@ -33,7 +32,7 @@ abstract class AbstractFont implements \ArrayAccess
      * Font properties
      * @var array
      */
-    protected $properties = [
+    protected array $properties = [
         'info'             => null,
         'bBox'             => null,
         'ascent'           => 0,
@@ -55,13 +54,13 @@ abstract class AbstractFont implements \ArrayAccess
      * Read-only properties
      * @var array
      */
-    protected $readOnly = [];
+    protected array $readOnly = [];
 
     /**
      * Array of allowed file types.
      * @var array
      */
-    protected $allowedTypes = [
+    protected array $allowedTypes = [
         'afm' => 'application/x-font-afm',
         'otf' => 'application/x-font-otf',
         'pfb' => 'application/x-font-pfb',
@@ -71,62 +70,62 @@ abstract class AbstractFont implements \ArrayAccess
 
     /**
      * Full path of font file, i.e. '/path/to/fontfile.ext'
-     * @var string
+     * @var ?string
      */
-    protected $fullpath = null;
+    protected ?string $fullpath = null;
 
     /**
      * Full, absolute directory of the font file, i.e. '/some/dir/'
-     * @var string
+     * @var ?string
      */
-    protected $dir = null;
+    protected ?string $dir = null;
 
     /**
      * Full basename of font file, i.e. 'fontfile.ext'
-     * @var string
+     * @var ?string
      */
-    protected $basename = null;
+    protected ?string $basename = null;
 
     /**
      * Full filename of font file, i.e. 'fontfile'
-     * @var string
+     * @var ?string
      */
-    protected $filename = null;
+    protected ?string $filename = null;
 
     /**
      * Font file extension, i.e. 'ext'
-     * @var string
+     * @var ?string
      */
-    protected $extension = null;
+    protected ?string $extension = null;
 
     /**
      * Font file size in bytes
      * @var int
      */
-    protected $size = 0;
+    protected int $size = 0;
 
     /**
      * Font file mime type
      * @var string
      */
-    protected $mime = 'text/plain';
+    protected string $mime = 'text/plain';
 
     /**
      * Font stream
-     * @var string
+     * @var ?string
      */
-    protected $stream = null;
+    protected ?string $stream = null;
 
     /**
      * Constructor
      *
      * Instantiate a font file object based on a pre-existing font file on disk.
      *
-     * @param  string $fontFile
-     * @param  string $fontStream
-     * @throws Exception
+     * @param  ?string $fontFile
+     * @param  ?string $fontStream
+     * @throws Exception|\Pop\Utils\Exception
      */
-    public function __construct($fontFile = null, $fontStream = null)
+    public function __construct(?string $fontFile = null, ?string $fontStream = null)
     {
         $this->properties['flags'] = new Data([
             'isFixedPitch'  => false,
@@ -172,11 +171,11 @@ abstract class AbstractFont implements \ArrayAccess
     /**
      * Read data from the font file.
      *
-     * @param  int $offset
-     * @param  int $length
-     * @return string
+     * @param  ?int $offset
+     * @param  ?int $length
+     * @return ?string
      */
-    public function read($offset = null, $length = null)
+    public function read(?int $offset = null, ?int $length = null): ?string
     {
         if ($offset !== null) {
             if ($this->stream !== null) {
@@ -201,13 +200,11 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  int    $mantissaBits
      * @param  int    $fractionBits
      * @param  string $bytes
-     * @return int
+     * @return float|int
      */
-    public function readFixed($mantissaBits, $fractionBits, $bytes)
+    public function readFixed(int $mantissaBits, int $fractionBits, string $bytes): float|int
     {
-        $bitsToRead = $mantissaBits + $fractionBits;
-        $number = $this->readInt(($bitsToRead >> 3), $bytes) / (1 << $fractionBits);
-        return $number;
+        return $this->readInt((($mantissaBits + $fractionBits) >> 3), $bytes) / (1 << $fractionBits);
     }
 
     /**
@@ -217,7 +214,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  string $bytes
      * @return int
      */
-    public function readInt($size, $bytes)
+    public function readInt(int $size, string $bytes): int
     {
         $number = ord($bytes[0]);
 
@@ -242,7 +239,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  int|array $values
      * @return int|array
      */
-    public function shiftToSigned($values)
+    public function shiftToSigned(int|array $values): int|array
     {
         if (is_array($values)) {
             foreach ($values as $key => $value) {
@@ -262,10 +259,10 @@ abstract class AbstractFont implements \ArrayAccess
     /**
      * Method to convert a value to the representative value in EM.
      *
-     * @param int $value
+     * @param  int $value
      * @return int
      */
-    public function toEmSpace($value)
+    public function toEmSpace(int $value): int
     {
         return ($this->properties['unitsPerEm'] == 1000) ? $value : ceil(($value / $this->properties['unitsPerEm']) * 1000);
     }
@@ -276,7 +273,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  array $glyphs
      * @return array
      */
-    public function getWidthsForGlyphs(array $glyphs)
+    public function getWidthsForGlyphs(array $glyphs): array
     {
         $widths = [];
 
@@ -299,7 +296,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  mixed  $size
      * @return mixed
      */
-    public function getStringWidth($string, $size)
+    public function getStringWidth(string $string, mixed $size): mixed
     {
         $width = null;
 
@@ -323,7 +320,7 @@ abstract class AbstractFont implements \ArrayAccess
      *
      * @return int
      */
-    public function calcFlags()
+    public function calcFlags(): int
     {
         $flags = 0;
 
@@ -343,27 +340,24 @@ abstract class AbstractFont implements \ArrayAccess
     /**
      * Offset set method
      *
-     * @param  string $name
-     * @param  mixed  $value
+     * @param  mixed $offset
+     * @param  mixed $value
      * @return void
      */
-    #[ReturnTypeWillChange]
-    public function offsetSet($name, $value)
+    public function offsetSet(mixed $offset, mixed $value): void
     {
-        $this->properties[$name] = $value;
+        $this->properties[$offset] = $value;
     }
 
     /**
      * Offset get method
      *
-     * @param  string $name
-     * @throws \InvalidArgumentException
+     * @param  string $offset
      * @return mixed
      */
-    #[ReturnTypeWillChange]
-    public function offsetGet($name)
+    public function offsetGet($offset): mixed
     {
-        return (isset($this->properties[$name])) ? $this->properties[$name] : null;
+        return $this->properties[$offset] ?? null;
     }
 
     /**
@@ -383,8 +377,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  mixed $offset
      * @return void
      */
-    #[ReturnTypeWillChange]
-    public function offsetUnset($offset)
+    public function offsetUnset(mixed $offset): void
     {
         if (isset($this->properties[$offset])) {
             unset($this->properties[$offset]);
@@ -398,7 +391,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  mixed $value
      * @return void
      */
-    public function __set($name, $value)
+    public function __set(string $name, mixed $value): void
     {
         $this->offsetSet($name, $value);
     }
@@ -409,7 +402,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  string $name
      * @return mixed
      */
-    public function __get($name)
+    public function __get(string $name): mixed
     {
         return $this->offsetGet($name);
     }
@@ -419,7 +412,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  string $name
      * @return bool
      */
-    public function __isset($name)
+    public function __isset(string $name): bool
     {
         return $this->offsetExists($name);
     }
@@ -429,7 +422,7 @@ abstract class AbstractFont implements \ArrayAccess
      * @param  string $name
      * @return void
      */
-    public function __unset($name)
+    public function __unset(string $name): void
     {
         $this->offsetUnset($name);
     }

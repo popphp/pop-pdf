@@ -30,7 +30,7 @@ class Hhea extends AbstractTable
      * Font table properties
      * @var array
      */
-    protected $properties = [
+    protected array $properties = [
         'ascent'           => 0,
         'descent'          => 0,
         'numberOfHMetrics' => 0

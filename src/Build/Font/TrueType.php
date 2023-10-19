@@ -32,7 +32,7 @@ class TrueType extends AbstractFont
      * Font properties
      * @var array
      */
-    protected $properties = [
+    protected array $properties = [
         'info'             => null,
         'bBox'             => null,
         'ascent'           => 0,
@@ -62,10 +62,11 @@ class TrueType extends AbstractFont
      *
      * Instantiate a TrueType font file object based on a pre-existing font file on disk.
      *
-     * @param  string $fontFile
-     * @param  string $fontStream
+     * @param  ?string $fontFile
+     * @param  ?string $fontStream
+     * @throws Exception|\Pop\Utils\Exception
      */
-    public function __construct($fontFile = null, $fontStream = null)
+    public function __construct(?string $fontFile = null, ?string $fontStream = null)
     {
         parent::__construct($fontFile, $fontStream);
 
@@ -80,7 +81,7 @@ class TrueType extends AbstractFont
      *
      * @return void
      */
-    protected function parseTtfTable()
+    protected function parseTtfTable(): void
     {
         $ttfHeader = unpack(
             'nmajorVersion/' .
@@ -127,7 +128,7 @@ class TrueType extends AbstractFont
      *
      * @return void
      */
-    protected function parseName()
+    protected function parseName(): void
     {
         if (isset($this->properties['tableInfo']['name'])) {
             $this->properties['tables']['name'] = new TrueType\Table\Name($this);
@@ -147,7 +148,7 @@ class TrueType extends AbstractFont
      *
      * @return void
      */
-    protected function parseCommonTables()
+    protected function parseCommonTables(): void
     {
         // head
         if (isset($this->properties['tableInfo']['head'])) {
@@ -233,7 +234,7 @@ class TrueType extends AbstractFont
      *
      * @return void
      */
-    protected function parseRequiredTables()
+    protected function parseRequiredTables(): void
     {
         // loca
         if (isset($this->properties['tableInfo']['loca'])) {

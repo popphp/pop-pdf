@@ -30,7 +30,7 @@ class Post extends AbstractTable
      * Font table properties
      * @var array
      */
-    protected $properties = [
+    protected array $properties = [
         'italicAngle' => 0,
         'fixed'       => 0
     ];

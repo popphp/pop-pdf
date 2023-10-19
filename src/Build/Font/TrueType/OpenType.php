@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build\Font\TrueType;
 
+use Pop\Pdf\Build\Font\Exception;
+
 /**
  * OpenType font class
  *
@@ -31,10 +33,11 @@ class OpenType extends \Pop\Pdf\Build\Font\TrueType
      *
      * Instantiate a OpenType font file object based on a pre-existing font file on disk.
      *
-     * @param  string $fontFile
-     * @param  string $fontStream
+     * @param  ?string $fontFile
+     * @param  ?string $fontStream
+     * @throws Exception|\Pop\Utils\Exception
      */
-    public function __construct($fontFile = null, $fontStream = null)
+    public function __construct(?string $fontFile = null, ?string $fontStream = null)
     {
         parent::__construct($fontFile, $fontStream);
     }
@@ -44,7 +47,7 @@ class OpenType extends \Pop\Pdf\Build\Font\TrueType
      *
      * @return void
      */
-    protected function parseRequiredTables()
+    protected function parseRequiredTables(): void
     {
         // OS/2
         if (isset($this->tableInfo['OS/2'])) {

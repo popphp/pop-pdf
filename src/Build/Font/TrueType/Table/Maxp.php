@@ -30,7 +30,7 @@ class Maxp extends AbstractTable
      * Font table properties
      * @var array
      */
-    protected $properties = [
+    protected array $properties = [
         'numberOfGlyphs' => 0
     ];
 

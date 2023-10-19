@@ -34,13 +34,13 @@ class ZapfDingbats extends AbstractStandard
      * Font units per em
      * @var int
      */
-    protected $unitsPerEm = 1000;
+    protected int $unitsPerEm = 1000;
 
     /**
      * Font glyph widths
      * @var array
      */
-    protected $glyphWidths = [
+    protected array $glyphWidths = [
         0x00 => 0x01f4,   0x01 => 0x0116,   0x02 => 0x03ce,   0x03 => 0x03c1,
         0x04 => 0x03ce,   0x05 => 0x03d4,   0x06 => 0x02cf,   0x07 => 0x0315,
         0x08 => 0x0316,   0x09 => 0x0317,   0x0a => 0x02b2,   0x0b => 0x03c0,
@@ -98,7 +98,7 @@ class ZapfDingbats extends AbstractStandard
      * Font character map
      * @var array
      */
-    protected $cmap = [
+    protected array $cmap = [
         0x20 =>   0x01, 0x2701 =>   0x02, 0x2702 =>   0x03, 0x2703 =>   0x04,
         0x2704 =>   0x05, 0x260e =>   0x06, 0x2706 =>   0x07, 0x2707 =>   0x08,
         0x2708 =>   0x09, 0x2709 =>   0x0a, 0x261b =>   0x0b, 0x261e =>   0x0c,

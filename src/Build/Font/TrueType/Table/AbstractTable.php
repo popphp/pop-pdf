@@ -32,38 +32,35 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * Font table properties
      * @var array
      */
-    protected $properties = [];
+    protected array $properties = [];
 
     /**
      * Read-only properties
      * @var array
      */
-    protected $readOnly = [];
+    protected array $readOnly = [];
 
     /**
      * Offset set method
      *
-     * @param  string $name
-     * @param  mixed  $value
+     * @param  mixed $offset
+     * @param  mixed $value
      * @return void
      */
-    #[ReturnTypeWillChange]
-    public function offsetSet($name, $value)
+    public function offsetSet(mixed $offset, mixed $value): void
     {
-        $this->properties[$name] = $value;
+        $this->properties[$offset] = $value;
     }
 
     /**
      * Offset get method
      *
-     * @param  string $name
-     * @throws \InvalidArgumentException
+     * @param  mixed $offset
      * @return mixed
      */
-    #[ReturnTypeWillChange]
-    public function offsetGet($name)
+    public function offsetGet(mixed $offset): mixed
     {
-        return (isset($this->properties[$name])) ? $this->properties[$name] : null;
+        return $this->properties[$offset] ?? null;
     }
 
     /**
@@ -72,7 +69,7 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * @param  mixed $offset
      * @return bool
      */
-    public function offsetExists($offset): bool
+    public function offsetExists(mixed $offset): bool
     {
         return isset($this->properties[$offset]);
     }
@@ -83,8 +80,7 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * @param  mixed $offset
      * @return void
      */
-    #[ReturnTypeWillChange]
-    public function offsetUnset($offset)
+    public function offsetUnset(mixed $offset): void
     {
         if (isset($this->properties[$offset])) {
             unset($this->properties[$offset]);
@@ -98,7 +94,7 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * @param  mixed $value
      * @return void
      */
-    public function __set($name, $value)
+    public function __set(string $name, mixed $value): void
     {
         $this->offsetSet($name, $value);
     }
@@ -109,7 +105,7 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * @param  string $name
      * @return mixed
      */
-    public function __get($name)
+    public function __get(string $name): mixed
     {
         return $this->offsetGet($name);
     }
@@ -119,7 +115,7 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * @param  string $name
      * @return bool
      */
-    public function __isset($name)
+    public function __isset(string $name): bool
     {
         return $this->offsetExists($name);
     }
@@ -129,7 +125,7 @@ abstract class AbstractTable implements \ArrayAccess, TableInterface
      * @param  string $name
      * @return void
      */
-    public function __unset($name)
+    public function __unset(string $name): void
     {
         $this->offsetUnset($name);
     }

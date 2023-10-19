@@ -34,13 +34,13 @@ class HelveticaBoldOblique extends AbstractStandard
      * Font units per em
      * @var int
      */
-    protected $unitsPerEm = 1000;
+    protected int $unitsPerEm = 1000;
 
     /**
      * Font glyph widths
      * @var array
      */
-    protected $glyphWidths = [
+    protected array $glyphWidths = [
         0x00 => 0x01f4,   0x01 => 0x0116,   0x02 => 0x014d,   0x03 => 0x01da,
         0x04 => 0x022c,   0x05 => 0x022c,   0x06 => 0x0379,   0x07 => 0x02d2,
         0x08 => 0x0116,   0x09 => 0x014d,   0x0a => 0x014d,   0x0b => 0x0185,
@@ -126,7 +126,7 @@ class HelveticaBoldOblique extends AbstractStandard
      * Font character map
      * @var array
      */
-    protected $cmap = [
+    protected array $cmap = [
         0x20 =>   0x01,   0x21 =>   0x02,   0x22 =>   0x03,   0x23 =>   0x04,
         0x24 =>   0x05,   0x25 =>   0x06,   0x26 =>   0x07, 0x2019 =>   0x08,
         0x28 =>   0x09,   0x29 =>   0x0a,   0x2a =>   0x0b,   0x2b =>   0x0c,
