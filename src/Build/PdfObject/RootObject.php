@@ -30,19 +30,19 @@ class RootObject extends AbstractObject
      * PDF version
      * @var float
      */
-    protected $version = 1.7;
+    protected float $version = 1.7;
 
     /**
      * PDF root object index
-     * @var int
+     * @var ?int
      */
-    protected $index = 1;
+    protected ?int $index = 1;
 
     /**
      * PDF root parent index
      * @var int
      */
-    protected $parent = 2;
+    protected int $parent = 2;
 
     /**
      * Constructor
@@ -51,7 +51,7 @@ class RootObject extends AbstractObject
      *
      * @param  int $index
      */
-    public function __construct($index = 1)
+    public function __construct(int $index = 1)
     {
         $this->setIndex($index);
         $this->setData("[{root_index}] 0 obj\n<<[{form_index}]/Pages [{parent_index}] 0 R/Type/Catalog>>\nendobj\n");
@@ -63,7 +63,7 @@ class RootObject extends AbstractObject
      * @param  string $stream
      * @return RootObject
      */
-    public static function parse($stream)
+    public static function parse(string $stream): RootObject
     {
         $root = new self();
 
@@ -72,7 +72,7 @@ class RootObject extends AbstractObject
         $stream = str_replace($root->getIndex() . ' 0 obj', '[{root_index}] 0 obj', $stream);
 
         // Strip away any metadata
-        if (strpos($stream, '/Metadata') !== false) {
+        if (str_contains($stream, '/Metadata')) {
             $metadata = substr($stream, strpos($stream, 'Metadata'));
             $metadata = '/' . substr($metadata, 0, strpos($metadata, '/'));
             $stream = str_replace($metadata, '', $stream);
@@ -96,9 +96,9 @@ class RootObject extends AbstractObject
      * @param  float $version
      * @return RootObject
      */
-    public function setVersion($version)
+    public function setVersion(float $version): RootObject
     {
-        $this->version = (float)$version;
+        $this->version = $version;
         return $this;
     }
 
@@ -108,9 +108,9 @@ class RootObject extends AbstractObject
      * @param  int $p
      * @return RootObject
      */
-    public function setParentIndex($p)
+    public function setParentIndex(int $p): RootObject
     {
-        $this->parent = (int)$p;
+        $this->parent = $p;
         return $this;
     }
 
@@ -120,7 +120,7 @@ class RootObject extends AbstractObject
      * @param  string $forms
      * @return RootObject
      */
-    public function setFormReferences($forms)
+    public function setFormReferences(string $forms): RootObject
     {
         $data = str_replace('[{form_index}]', '/AcroForm [' . $forms . ']', $this->data);
         $this->setData($data);
@@ -132,7 +132,7 @@ class RootObject extends AbstractObject
      *
      * @return float
      */
-    public function getVersion()
+    public function getVersion(): float
     {
         return $this->version;
     }
@@ -142,19 +142,9 @@ class RootObject extends AbstractObject
      *
      * @return int
      */
-    public function getParentIndex()
+    public function getParentIndex(): int
     {
         return $this->parent;
-    }
-
-    /**
-     * Get the root object form index
-     *
-     * @return int
-     */
-    public function getFormIndex()
-    {
-        return $this->form;
     }
 
     /**
@@ -162,12 +152,10 @@ class RootObject extends AbstractObject
      *
      * @return string
      */
-    public function __toString()
+    public function __toString(): string
     {
-        $root = '%PDF-' . $this->version . "\n" .
+        return '%PDF-' . $this->version . "\n" .
             str_replace(['[{root_index}]', '[{parent_index}]', '[{form_index}]'], [$this->index, $this->parent, ''], $this->data);
-
-        return $root;
     }
 
 }

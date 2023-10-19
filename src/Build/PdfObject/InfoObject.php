@@ -13,6 +13,8 @@
  */
 namespace Pop\Pdf\Build\PdfObject;
 
+use Pop\Pdf\Document\Metadata;
+
 /**
  * Pdf info object class
  *
@@ -28,25 +30,25 @@ class InfoObject extends AbstractObject
 
     /**
      * PDF info object index
-     * @var int
+     * @var ?int
      */
-    protected $index = 3;
+    protected ?int $index = 3;
 
     /**
      * PDF metadata for the info object
-     * @var \Pop\Pdf\Document\Metadata
+     * @var ?Metadata
      */
-    protected $metadata = null;
+    protected ?Metadata $metadata = null;
 
     /**
      * Constructor
      *
      * Instantiate a PDF info object.
      *
-     * @param  int $index
-     * @param  \Pop\Pdf\Document\Metadata $metadata
+     * @param  int       $index
+     * @param  ?Metadata $metadata
      */
-    public function __construct($index = 3, \Pop\Pdf\Document\Metadata $metadata = null)
+    public function __construct(int $index = 3, \Pop\Pdf\Document\Metadata $metadata = null)
     {
         $this->setIndex($index);
         $this->setData("[{info_index}] 0 obj\n<</Creator([{creator}])/CreationDate([{creation_date}])/ModDate" .
@@ -63,14 +65,14 @@ class InfoObject extends AbstractObject
      * @param  string $stream
      * @return InfoObject
      */
-    public static function parse($stream)
+    public static function parse(string $stream): InfoObject
     {
         $info = new self();
         $info->setIndex(substr($stream, 0, strpos($stream, ' ')));
         $stream = str_replace($info->getIndex() . ' 0 obj', '[{info_index}] 0 obj', $stream);
 
         // Determine the Creator
-        if (strpos($stream, '/Creator') !== false) {
+        if (str_contains($stream, '/Creator')) {
             $creator = substr($stream, strpos($stream, '/Creator'));
             $creator = substr($creator, strpos($creator, '('));
             $creator = substr($creator, 0, strpos($creator, ')'));
@@ -82,7 +84,7 @@ class InfoObject extends AbstractObject
         }
 
         // Determine the CreationDate
-        if (strpos($stream, '/CreationDate') !== false) {
+        if (str_contains($stream, '/CreationDate')) {
             $creationDate = substr($stream, strpos($stream, '/CreationDate'));
             $creationDate = substr($creationDate, strpos($creationDate, '('));
             $creationDate = substr($creationDate, 0, strpos($creationDate, ')'));
@@ -94,7 +96,7 @@ class InfoObject extends AbstractObject
         }
 
         // Determine the ModDate
-        if (strpos($stream, '/ModDate') !== false) {
+        if (str_contains($stream, '/ModDate')) {
             $modDate = substr($stream, strpos($stream, '/ModDate'));
             $modDate = substr($modDate, strpos($modDate, '('));
             $modDate = substr($modDate, 0, strpos($modDate, ')'));
@@ -106,7 +108,7 @@ class InfoObject extends AbstractObject
         }
 
         // Determine the Author
-        if (strpos($stream, '/Author') !== false) {
+        if (str_contains($stream, '/Author')) {
             $author = substr($stream, strpos($stream, '/Author'));
             $author = substr($author, strpos($author, '('));
             $author = substr($author, 0, strpos($author, ')'));
@@ -118,7 +120,7 @@ class InfoObject extends AbstractObject
         }
 
         // Determine the Title
-        if (strpos($stream, '/Title') !== false) {
+        if (str_contains($stream, '/Title')) {
             $title = substr($stream, strpos($stream, '/Title'));
             $title = substr($title, strpos($title, '('));
             $title = substr($title, 0, strpos($title, ')'));
@@ -130,7 +132,7 @@ class InfoObject extends AbstractObject
         }
 
         // Determine the Subject
-        if (strpos($stream, '/Subject') !== false) {
+        if (str_contains($stream, '/Subject')) {
             $subject = substr($stream, strpos($stream, '/Subject'));
             $subject = substr($subject, strpos($subject, '('));
             $subject = substr($subject, 0, strpos($subject, ')'));
@@ -142,7 +144,7 @@ class InfoObject extends AbstractObject
         }
 
         // Determine the Producer
-        if (strpos($stream, '/Producer') !== false) {
+        if (str_contains($stream, '/Producer')) {
             $producer = substr($stream, strpos($stream, '/Producer'));
             $producer = substr($producer, strpos($producer, '('));
             $producer = substr($producer, 0, strpos($producer, ')'));
@@ -160,10 +162,10 @@ class InfoObject extends AbstractObject
     /**
      * Set the info object metadata
      *
-     * @param  \Pop\Pdf\Document\Metadata $metadata
+     * @param  Metadata $metadata
      * @return InfoObject
      */
-    public function setMetadata(\Pop\Pdf\Document\Metadata $metadata)
+    public function setMetadata(Metadata $metadata): InfoObject
     {
         $this->metadata = $metadata;
         return $this;
@@ -172,12 +174,12 @@ class InfoObject extends AbstractObject
     /**
      * Get the info object metadata
      *
-     * @return \Pop\Pdf\Document\Metadata
+     * @return ?Metadata
      */
-    public function getMetadata()
+    public function getMetadata(): ?Metadata
     {
         if ($this->metadata === null) {
-            $this->metadata = new \Pop\Pdf\Document\Metadata();
+            $this->metadata = new Metadata();
         }
         return $this->metadata;
     }
@@ -187,7 +189,7 @@ class InfoObject extends AbstractObject
      *
      * @return string
      */
-    public function __toString()
+    public function __toString(): string
     {
         if ($this->metadata === null) {
             $this->metadata = new \Pop\Pdf\Document\Metadata();

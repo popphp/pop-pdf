@@ -28,57 +28,57 @@ class PageObject extends AbstractObject
 
     /**
      * PDF page object index
-     * @var int
+     * @var ?int
      */
-    protected $index = 4;
+    protected ?int $index = 4;
 
     /**
      * PDF page object parent index
-     * @var int
+     * @var ?int
      */
-    protected $parent = 2;
+    protected ?int $parent = 2;
 
     /**
      * PDF page object width
      * @var int
      */
-    protected $width = 612;
+    protected int $width = 612;
 
     /**
      * PDF page object height
      * @var int
      */
-    protected $height = 792;
+    protected int $height = 792;
 
     /**
      * PDF page object current content object index
-     * @var int
+     * @var ?int
      */
-    protected $currentContentIndex = null;
+    protected ?int $currentContentIndex = null;
 
     /**
      * PDF page object annotation object indices
      * @var array
      */
-    protected $annots = [];
+    protected array $annots = [];
 
     /**
      * PDF page object content object indices
      * @var array
      */
-    protected $content = [];
+    protected array $content = [];
 
     /**
      * PDF page object XObject references
      * @var array
      */
-    protected $xObjects = [];
+    protected array $xObjects = [];
 
     /**
      * PDF page object font object references
      * @var array
      */
-    protected $fonts = [];
+    protected array $fonts = [];
 
     /**
      * Constructor
@@ -89,7 +89,7 @@ class PageObject extends AbstractObject
      * @param  mixed $height
      * @param  int   $index
      */
-    public function __construct($width = 612, $height = 792, $index = 4)
+    public function __construct(mixed $width = 612, mixed$height = 792, int $index = 4)
     {
         $this->setWidth($width);
         $this->setHeight($height);
@@ -105,7 +105,7 @@ class PageObject extends AbstractObject
      * @param  string $stream
      * @return PageObject
      */
-    public static function parse($stream)
+    public static function parse(string $stream): PageObject
     {
         $page = new self();
         $page->setIndex(substr($stream, 0, strpos($stream, ' ')));
@@ -124,7 +124,7 @@ class PageObject extends AbstractObject
         $page->setHeight($dims[3]);
 
         // Determine the page content objects.
-        if (strpos($stream, '/Contents') !== false) {
+        if (str_contains($stream, '/Contents')) {
             $contents = substr($stream, (strpos($stream, '/Contents') + 9));
             $contents = $page->getDictionaryReferences($contents);
             foreach ($contents as $content) {
@@ -133,11 +133,11 @@ class PageObject extends AbstractObject
 
             // Set placeholder
             $contents = substr($stream, (strpos($stream, '/Contents') + 9));
-            if (strpos($contents, '[') !== false) {
+            if (str_contains($contents, '[')) {
                 $contents = substr($contents, 0, (strpos($contents, ']') + 1));
                 $stream   = str_replace($contents, '[{content_objects}]', $stream);
             } else {
-                $contents = (strpos($contents , '/') !== false) ?
+                $contents = (str_contains($contents, '/')) ?
                     substr($contents, 0, strpos($contents, '/')) :
                     substr($contents, 0, strpos($contents, '>'));
                 $stream   = str_replace($contents, '[{content_objects}]', $stream);
@@ -145,7 +145,7 @@ class PageObject extends AbstractObject
         }
 
         // If they exist, determine the page annotation objects.
-        if (strpos($stream, '/Annots') !== false) {
+        if (str_contains($stream, '/Annots')) {
             $annots = substr($stream, (strpos($stream, '/Annots') + 7));
             $annots = $page->getDictionaryReferences($annots);
             foreach ($annots as $annot) {
@@ -154,11 +154,11 @@ class PageObject extends AbstractObject
 
             // Set placeholder
             $annots = substr($stream, (strpos($stream, '/Annots') + 7));
-            if (strpos($annots, '[') !== false) {
+            if (str_contains($annots, '[')) {
                 $annots = substr($annots, 0, (strpos($annots, ']') + 1));
                 $stream = str_replace($annots, '[{annotations}]', $stream);
             } else {
-                $annots = (strpos($annots , '/') !== false) ?
+                $annots = (str_contains($annots, '/')) ?
                     substr($annots, 0, strpos($annots, '/')) :
                     substr($annots, 0, strpos($annots, '>'));
                 $stream = str_replace($annots, '[{annotations}]', $stream);
@@ -166,7 +166,7 @@ class PageObject extends AbstractObject
         }
 
         // If they exist, determine the page font references.
-        if (strpos($stream, '/Font') !== false) {
+        if (str_contains($stream, '/Font')) {
             $fonts  = substr($stream, strpos($stream, 'Font'));
             $fonts  = substr($fonts, 0, (strpos($fonts, '>>') + 2));
             $stream = str_replace('/' . $fonts, '[{fonts}]', $stream);
@@ -181,7 +181,7 @@ class PageObject extends AbstractObject
         }
 
         // If they exist, determine the page XObjects references.
-        if (strpos($stream, '/XObject') !== false) {
+        if (str_contains($stream, '/XObject')) {
             $xo     = substr($stream, strpos($stream, 'XObject'));
             $xo     = substr($xo, 0, (strpos($xo, '>>') + 2));
             $stream = str_replace('/' . $xo, '[{xobjects}]', $stream);
@@ -196,7 +196,7 @@ class PageObject extends AbstractObject
         }
 
         // If they exist, determine the page graphic states.
-        if (strpos($stream, '/ExtGState') !== false) {
+        if (str_contains($stream, '/ExtGState')) {
             $gState = substr($stream, strpos($stream, 'ExtGState'));
             $gState = '/' . substr($gState, 0, (strpos($gState, '>>') + 2));
         } else {
@@ -204,7 +204,7 @@ class PageObject extends AbstractObject
         }
 
         // If any groups exist
-        if (strpos($stream, '/Group') !== false) {
+        if (str_contains($stream, '/Group')) {
             $group = substr($stream, strpos($stream, 'Group'));
             $group = '/' . substr($group, 0, (strpos($group, '>>') + 2));
         } else {
@@ -212,11 +212,11 @@ class PageObject extends AbstractObject
         }
 
         // If resources exists
-        if (strpos($stream, '/Resources') !== false) {
+        if (str_contains($stream, '/Resources')) {
             $resources = substr($stream, strpos($stream, 'Resources'));
-            if (strpos($resources, ' R') !== false) {
+            if (str_contains($resources, ' R')) {
                 $resources = '/' . substr($resources, 0, (strpos($resources, ' R') + 2));
-            } else if (strpos($resources, '>>') !== false) {
+            } else if (str_contains($resources, '>>')) {
                 $resources = '/' . substr($resources, 0, (strpos($resources, '>>') + 2));
             } else {
                 $resources = "/Resources<</ProcSet[/PDF/Text/ImageB/ImageC/ImageI][{xobjects}][{fonts}]{$gState}>>";
@@ -241,33 +241,33 @@ class PageObject extends AbstractObject
      * @param  int $parent
      * @return PageObject
      */
-    public function setParentIndex($parent)
+    public function setParentIndex(int $parent): PageObject
     {
-        $this->parent = (int)$parent;
+        $this->parent = $parent;
         return $this;
     }
 
     /**
      * Set the page object width
      *
-     * @param  float $width
+     * @param  mixed $width
      * @return PageObject
      */
-    public function setWidth($width)
+    public function setWidth(mixed $width): PageObject
     {
-        $this->width = (float)$width;
+        $this->width = $width;
         return $this;
     }
 
     /**
      * Set the page object height
      *
-     * @param  float $height
+     * @param  mixed $height
      * @return PageObject
      */
-    public function setHeight($height)
+    public function setHeight(mixed $height): PageObject
     {
-        $this->height = (float)$height;
+        $this->height = $height;
         return $this;
     }
 
@@ -277,7 +277,7 @@ class PageObject extends AbstractObject
      * @param  array $annots
      * @return PageObject
      */
-    public function setAnnots(array $annots)
+    public function setAnnots(array $annots): PageObject
     {
         $this->annots = $annots;
         return $this;
@@ -289,7 +289,7 @@ class PageObject extends AbstractObject
      * @param  array $content
      * @return PageObject
      */
-    public function setContent(array $content)
+    public function setContent(array $content): PageObject
     {
         $this->content = $content;
         return $this;
@@ -301,7 +301,7 @@ class PageObject extends AbstractObject
      * @param  array $xObjects
      * @return PageObject
      */
-    public function setXObjects(array $xObjects)
+    public function setXObjects(array $xObjects): PageObject
     {
         $this->xObjects = [];
         foreach ($xObjects as $xObject) {
@@ -316,7 +316,7 @@ class PageObject extends AbstractObject
      * @param  array $fonts
      * @return PageObject
      */
-    public function setFonts(array $fonts)
+    public function setFonts(array $fonts): PageObject
     {
         $this->fonts = [];
         foreach ($fonts as $font) {
@@ -331,7 +331,7 @@ class PageObject extends AbstractObject
      * @param  mixed $i
      * @return PageObject
      */
-    public function setCurrentContentIndex($i = null)
+    public function setCurrentContentIndex(mixed $i = null): PageObject
     {
         $this->currentContentIndex = ($i !== null) ? (int)$i : null;
         return $this;
@@ -343,9 +343,9 @@ class PageObject extends AbstractObject
      * @param  int $i
      * @return PageObject
      */
-    public function addAnnotIndex($i)
+    public function addAnnotIndex(int $i): PageObject
     {
-        $this->annots[] = (int)$i;
+        $this->annots[] = $i;
         return $this;
     }
 
@@ -355,9 +355,9 @@ class PageObject extends AbstractObject
      * @param  int $i
      * @return PageObject
      */
-    public function addContentIndex($i)
+    public function addContentIndex(int $i): PageObject
     {
-        $this->content[] = (int)$i;
+        $this->content[] = $i;
         $this->setCurrentContentIndex($i);
         return $this;
     }
@@ -368,7 +368,7 @@ class PageObject extends AbstractObject
      * @param  string $xObject
      * @return PageObject
      */
-    public function addXObjectReference($xObject)
+    public function addXObjectReference(string $xObject): PageObject
     {
         $i = substr($xObject, (strpos($xObject, ' ') + 1));
         $i = substr($i, 0, strpos($i, ' '));
@@ -382,7 +382,7 @@ class PageObject extends AbstractObject
      * @param  string $font
      * @return PageObject
      */
-    public function addFontReference($font)
+    public function addFontReference(string $font): PageObject
     {
         $i = substr($font, (strpos($font, ' ') + 1));
         $i = substr($i, 0, strpos($i, ' '));
@@ -393,9 +393,9 @@ class PageObject extends AbstractObject
     /**
      * Get the page object parent index
      *
-     * @return int
+     * @return ?int
      */
-    public function getParentIndex()
+    public function getParentIndex(): ?int
     {
         return $this->parent;
     }
@@ -403,9 +403,9 @@ class PageObject extends AbstractObject
     /**
      * Get the page object width
      *
-     * @return float
+     * @return mixed
      */
-    public function getWidth()
+    public function getWidth(): mixed
     {
         return $this->width;
     }
@@ -413,9 +413,9 @@ class PageObject extends AbstractObject
     /**
      * Get the page object height
      *
-     * @return float
+     * @return mixed
      */
-    public function getHeight()
+    public function getHeight(): mixed
     {
         return $this->height;
     }
@@ -423,9 +423,9 @@ class PageObject extends AbstractObject
     /**
      * Get the page object current content object index
      *
-     * @return int
+     * @return ?int
      */
-    public function getCurrentContentIndex()
+    public function getCurrentContentIndex(): ?int
     {
         return $this->currentContentIndex;
     }
@@ -435,7 +435,7 @@ class PageObject extends AbstractObject
      *
      * @return array
      */
-    public function getAnnots()
+    public function getAnnots(): array
     {
         return $this->annots;
     }
@@ -445,7 +445,7 @@ class PageObject extends AbstractObject
      *
      * @return array
      */
-    public function getContent()
+    public function getContent(): array
     {
         return $this->content;
     }
@@ -455,7 +455,7 @@ class PageObject extends AbstractObject
      *
      * @return array
      */
-    public function getXObjects()
+    public function getXObjects(): array
     {
         return $this->xObjects;
     }
@@ -465,7 +465,7 @@ class PageObject extends AbstractObject
      *
      * @return array
      */
-    public function getFonts()
+    public function getFonts(): array
     {
         return $this->fonts;
     }
@@ -476,7 +476,7 @@ class PageObject extends AbstractObject
      * @param  int $i
      * @return bool
      */
-    public function hasAnnot($i)
+    public function hasAnnot(int $i): bool
     {
         return (isset($this->annots[$i]));
     }
@@ -487,7 +487,7 @@ class PageObject extends AbstractObject
      * @param  int $i
      * @return bool
      */
-    public function hasContent($i)
+    public function hasContent(int $i): bool
     {
         return (isset($this->content[$i]));
     }
@@ -497,7 +497,7 @@ class PageObject extends AbstractObject
      *
      * @return string
      */
-    public function __toString()
+    public function __toString(): string
     {
         $annots   = '';
         $xObjects = '';
@@ -531,15 +531,15 @@ class PageObject extends AbstractObject
             $this->data
         );
 
-        $obj = (($annots != '') && (strpos($obj, '[{annotations}]') === false)) ?
+        $obj = (($annots != '') && (!str_contains($obj, '[{annotations}]'))) ?
             str_replace('/MediaBox', $annots . '/MediaBox', $obj) :
             str_replace('[{annotations}]', $annots, $obj);
 
-        $obj = (($xObjects != '') && (strpos($obj, '[{xobjects}]') === false)) ?
+        $obj = (($xObjects != '') && (!str_contains($obj, '[{xobjects}]'))) ?
             str_replace('/ProcSet', $xObjects . '/ProcSet', $obj) :
             str_replace('[{xobjects}]', $xObjects, $obj);
 
-        $obj = (($fonts != '') && (strpos($obj, '[{fonts}]') === false)) ?
+        $obj = (($fonts != '') && (!str_contains($obj, '[{fonts}]'))) ?
             str_replace('/ProcSet', $fonts . '/ProcSet', $obj) :
             str_replace('[{fonts}]', $fonts, $obj);
 

@@ -28,39 +28,39 @@ class StreamObject extends AbstractObject
 
     /**
      * PDF stream object index
-     * @var int
+     * @var ?int
      */
-    protected $index = 5;
+    protected ?int $index = 5;
 
     /**
      * PDF stream object definition
-     * @var string
+     * @var ?string
      */
-    protected $definition = null;
+    protected ?string $definition = null;
 
     /**
      * PDF stream object stream
-     * @var string
+     * @var ?string
      */
-    protected $stream = null;
+    protected ?string $stream = null;
 
     /**
      * Encoding filter
-     * @var bool
+     * @var ?string
      */
-    protected $encoding = null;
+    protected ?string $encoding = null;
 
     /**
      * Palette object flag
      * @var bool
      */
-    protected $isPalette = false;
+    protected bool $isPalette = false;
 
     /**
      * XObject object flag
      * @var bool
      */
-    protected $isXObject = false;
+    protected bool $isXObject = false;
 
     /**
      * Constructor
@@ -69,7 +69,7 @@ class StreamObject extends AbstractObject
      *
      * @param  int $index
      */
-    public function __construct($index = 5)
+    public function __construct(int $index = 5)
     {
         $this->setIndex($index);
         $this->setData("\n[{object_index}] 0 obj\n[{definition}]\n[{stream}]\nendobj\n\n");
@@ -81,7 +81,7 @@ class StreamObject extends AbstractObject
      * @param  string $stream
      * @return StreamObject
      */
-    public static function parse($stream)
+    public static function parse(string $stream): StreamObject
     {
         $object = new self();
         $object->setIndex(substr($stream, 0, strpos($stream, ' ')));
@@ -90,7 +90,7 @@ class StreamObject extends AbstractObject
         // Determine the objects definition and stream, if applicable.
         $s = substr($stream, (strpos($stream, ' obj') + 4));
         $s = substr($s, 0, strpos($s, 'endobj'));
-        if (strpos($s, 'stream') !== false) {
+        if (str_contains($s, 'stream')) {
             $def = substr($s, 0, strpos($s, 'stream'));
             $str = substr($s, (strpos($s, 'stream') + 6));
             $str = substr($str, 0, strpos($str, 'endstream'));
@@ -110,29 +110,29 @@ class StreamObject extends AbstractObject
      * @param  string $definition
      * @return StreamObject
      */
-    public function setDefinition($definition)
+    public function setDefinition(string $definition): StreamObject
     {
         $this->definition = (string)$definition;
 
-        if (strpos($this->definition, '/ASCIIHexDecode') !== false) {
+        if (str_contains($this->definition, '/ASCIIHexDecode')) {
             $this->encoding = 'ASCIIHexDecode';
-        } else if (strpos($this->definition, '/ASCII85Decode') !== false) {
+        } else if (str_contains($this->definition, '/ASCII85Decode')) {
             $this->encoding = 'ASCII85Decode';
-        } else if (strpos($this->definition, '/LZWDecode') !== false) {
+        } else if (str_contains($this->definition, '/LZWDecode')) {
             $this->encoding = 'LZWDecode';
-        } else if (strpos($this->definition, '/FlateDecode') !== false) {
+        } else if (str_contains($this->definition, '/FlateDecode')) {
             $this->encoding = 'FlateDecode';
-        } else if (strpos($this->definition, '/RunLengthDecode') !== false) {
+        } else if (str_contains($this->definition, '/RunLengthDecode')) {
             $this->encoding = 'RunLengthDecode';
-        } else if (strpos($this->definition, '/CCITTFaxDecode') !== false) {
+        } else if (str_contains($this->definition, '/CCITTFaxDecode')) {
             $this->encoding = 'CCITTFaxDecode';
-        } else if (strpos($this->definition, '/JBIG2Decode') !== false) {
+        } else if (str_contains($this->definition, '/JBIG2Decode')) {
             $this->encoding = 'JBIG2Decode';
-        } else if (strpos($this->definition, '/DCTDecode') !== false) {
+        } else if (str_contains($this->definition, '/DCTDecode')) {
             $this->encoding = 'DCTDecode';
-        } else if (strpos($this->definition, '/JPXDecode') !== false) {
+        } else if (str_contains($this->definition, '/JPXDecode')) {
             $this->encoding = 'JPXDecode';
-        } else if (strpos($this->definition, '/Crypt') !== false) {
+        } else if (str_contains($this->definition, '/Crypt')) {
             $this->encoding = 'Crypt';
         }
 
@@ -149,7 +149,7 @@ class StreamObject extends AbstractObject
      * @param  string $stream
      * @return StreamObject
      */
-    public function setStream($stream)
+    public function setStream(string $stream): StreamObject
     {
         $this->stream = $stream;
         return $this;
@@ -161,7 +161,7 @@ class StreamObject extends AbstractObject
      * @param  string $stream
      * @return StreamObject
      */
-    public function appendStream($stream)
+    public function appendStream(string $stream): StreamObject
     {
         $this->stream .= $stream;
         return $this;
@@ -170,9 +170,9 @@ class StreamObject extends AbstractObject
     /**
      * Get the stream object definition
      *
-     * @return string
+     * @return ?string
      */
-    public function getDefinition()
+    public function getDefinition(): ?string
     {
         return $this->definition;
     }
@@ -180,9 +180,9 @@ class StreamObject extends AbstractObject
     /**
      * Get the PDF stream object stream
      *
-     * @return string
+     * @return ?string
      */
-    public function getStream()
+    public function getStream(): ?string
     {
         return $this->stream;
     }
@@ -192,10 +192,10 @@ class StreamObject extends AbstractObject
      *
      * @return void
      */
-    public function encode()
+    public function encode(): void
     {
         if (($this->stream != '') && (function_exists('gzcompress')) &&
-            (strpos((string)$this->definition, ' /Image') === false) && (strpos((string)$this->definition, '/FlateDecode') === false)) {
+            (!str_contains((string)$this->definition, ' /Image')) && (!str_contains((string)$this->definition, '/FlateDecode'))) {
             $this->stream   = "\n" . gzcompress($this->stream, 9) . "\n";
             $this->encoding = 'FlateDecode';
         }
@@ -206,7 +206,7 @@ class StreamObject extends AbstractObject
      *
      * @return bool|string
      */
-    public function decode()
+    public function decode(): bool|string
     {
         $decoded = false;
         if (($this->stream != '') && function_exists('gzuncompress')) {
@@ -220,7 +220,7 @@ class StreamObject extends AbstractObject
      *
      * @return bool
      */
-    public function isEncoded()
+    public function isEncoded(): bool
     {
         return ($this->encoding !== null);
     }
@@ -228,9 +228,9 @@ class StreamObject extends AbstractObject
     /**
      * Get the encoding filter
      *
-     * @return string
+     * @return ?string
      */
-    public function getEncoding()
+    public function getEncoding(): ?string
     {
         return $this->encoding;
     }
@@ -239,11 +239,12 @@ class StreamObject extends AbstractObject
      * Set whether the PDF stream object is a palette object
      *
      * @param  bool $isPalette
-     * @return void
+     * @return StreamObject
      */
-    public function setPalette($isPalette)
+    public function setPalette(bool $isPalette): StreamObject
     {
-        $this->isPalette = (bool)$isPalette;
+        $this->isPalette = $isPalette;
+        return $this;
     }
 
     /**
@@ -251,7 +252,7 @@ class StreamObject extends AbstractObject
      *
      * @return bool
      */
-    public function isPalette()
+    public function isPalette(): bool
     {
         return $this->isPalette;
     }
@@ -261,7 +262,7 @@ class StreamObject extends AbstractObject
      *
      * @return bool
      */
-    public function isXObject()
+    public function isXObject(): bool
     {
         return $this->isXObject;
     }
@@ -271,9 +272,9 @@ class StreamObject extends AbstractObject
      *
      * @return int
      */
-    public function getByteLength()
+    public function getByteLength(): int
     {
-        return $this->calculateByteLength($this);
+        return $this->calculateByteLength((string)$this);
     }
 
     /**
@@ -282,9 +283,9 @@ class StreamObject extends AbstractObject
      * @param  string $string
      * @return int
      */
-    protected function calculateByteLength($string)
+    protected function calculateByteLength(string $string): int
     {
-        return strlen((string)$string);
+        return strlen($string);
     }
 
     /**
@@ -292,14 +293,14 @@ class StreamObject extends AbstractObject
      *
      * @return string
      */
-    public function __toString()
+    public function __toString(): string
     {
         // Set the stream.
         $stream = ($this->stream !== null) ? "stream" . $this->stream . "endstream\n" : '';
 
         // Set up the Length definition.
-        if ((strpos((string)$this->definition, '/Length ') !== false) && (strpos((string)$this->definition, '/Length1') === false) &&
-            (strpos((string)$this->definition, '/Image') === false)) {
+        if ((str_contains((string)$this->definition, '/Length ')) && (!str_contains((string)$this->definition, '/Length1')) &&
+            (!str_contains((string)$this->definition, '/Image'))) {
             $matches = [];
             preg_match('/\/Length\s\d*/', $this->definition, $matches);
             if (isset($matches[0])) {
@@ -308,13 +309,13 @@ class StreamObject extends AbstractObject
                 $len = str_replace(' ', '', $len);
                 $this->definition = str_replace($len, '[{byte_length}]', $this->definition);
             }
-        } else if (strpos((string)$this->definition, '/Length') === false) {
+        } else if (!str_contains((string)$this->definition, '/Length')) {
             $this->definition .= "<</Length [{byte_length}]>>\n";
         }
 
         // Calculate the byte length of the stream and swap out the placeholders.
         $byteLength = (($this->encoding == 'FlateDecode') && (function_exists('gzcompress')) &&
-            (strpos((string)$this->definition, ' /Image') === false) && (strpos((string)$this->definition, '/FlateDecode') === false)) ?
+            (!str_contains((string)$this->definition, ' /Image')) && (!str_contains((string)$this->definition, '/FlateDecode'))) ?
             $this->calculateByteLength($this->stream) . " /Filter /FlateDecode" : $this->calculateByteLength($this->stream);
 
         $data = str_replace(
@@ -324,7 +325,7 @@ class StreamObject extends AbstractObject
         );
 
         // Clear Length definition if it is zero.
-        if (strpos((string)$data, '<</Length 0>>') !== false) {
+        if (str_contains((string)$data, '<</Length 0>>')) {
             $data = str_replace('<</Length 0>>', '', $data);
         }
 

@@ -28,15 +28,15 @@ class ParentObject extends AbstractObject
 
     /**
      * PDF parent object index
-     * @var int
+     * @var ?int
      */
-    protected $index = 2;
+    protected ?int $index = 2;
 
     /**
      * PDF parent kids
      * @var array
      */
-    protected $kids = [];
+    protected array $kids = [];
 
     /**
      * Constructor
@@ -45,7 +45,7 @@ class ParentObject extends AbstractObject
      *
      * @param  int $index
      */
-    public function __construct($index = 2)
+    public function __construct(int $index = 2)
     {
         $this->setIndex($index);
         $this->setData("[{parent_index}] 0 obj\n<</Type/Pages/Count [{count}]/Kids[[{kids}]]>>\nendobj\n");
@@ -57,7 +57,7 @@ class ParentObject extends AbstractObject
      * @param  string $stream
      * @return ParentObject
      */
-    public static function parse($stream)
+    public static function parse(string $stream): ParentObject
     {
         $parent = new self();
 
@@ -73,7 +73,7 @@ class ParentObject extends AbstractObject
 
         // Determine the kids object indices.
         $kids = trim(substr($stream, (strpos($stream, '/Kids') + 5)));
-        $kids = (substr($kids, 0, 1) == '[') ? substr($kids, 0, strpos($kids, ']') + 1) :
+        $kids = (str_starts_with($kids, '[')) ? substr($kids, 0, strpos($kids, ']') + 1) :
             substr($kids, 0, (strpos($kids, ' R') + 2));
 
         $kidIndices = $parent->getDictionaryReferences(substr($stream, (strpos($stream, '/Kids') + 5)));
@@ -90,7 +90,7 @@ class ParentObject extends AbstractObject
      * @param  int $kid
      * @return ParentObject
      */
-    public function addKid($kid)
+    public function addKid(int$kid): ParentObject
     {
         $this->kids[] = (int)$kid;
         return $this;
@@ -102,7 +102,7 @@ class ParentObject extends AbstractObject
      * @param  int $kid
      * @return ParentObject
      */
-    public function removeKid($kid)
+    public function removeKid(int $kid): ParentObject
     {
         if ($this->hasKid($kid)) {
             unset($this->kids[array_search($kid, $this->kids)]);
@@ -116,7 +116,7 @@ class ParentObject extends AbstractObject
      * @param  array $kids
      * @return ParentObject
      */
-    public function setKids(array $kids)
+    public function setKids(array $kids): ParentObject
     {
         $this->kids = $kids;
         return $this;
@@ -127,7 +127,7 @@ class ParentObject extends AbstractObject
      *
      * @return int
      */
-    public function getCount()
+    public function getCount(): int
     {
         return count($this->kids);
     }
@@ -137,7 +137,7 @@ class ParentObject extends AbstractObject
      *
      * @return array
      */
-    public function getKids()
+    public function getKids(): array
     {
         return $this->kids;
     }
@@ -148,7 +148,7 @@ class ParentObject extends AbstractObject
      * @param  int $kid
      * @return bool
      */
-    public function hasKid($kid)
+    public function hasKid(int $kid): bool
     {
         return (in_array($kid, $this->kids));
     }
@@ -158,7 +158,7 @@ class ParentObject extends AbstractObject
      *
      * @return string
      */
-    public function __toString()
+    public function __toString(): string
     {
         return str_replace(['[{parent_index}]', '[{count}]', '[{kids}]'],
             [$this->index, count($this->kids), implode(" 0 R ", $this->kids) . " 0 R"], $this->data);

@@ -28,21 +28,21 @@ abstract class AbstractObject implements ObjectInterface
 
     /**
      * PDF object index
-     * @var int
+     * @var ?int
      */
-    protected $index = null;
+    protected ?int $index = null;
 
     /**
      * PDF object data
-     * @var string
+     * @var ?string
      */
-    protected $data = null;
+    protected ?string $data = null;
 
     /**
      * Imported flag
-     * @var string
+     * @var bool
      */
-    protected $isImported = false;
+    protected bool $isImported = false;
 
     /**
      * Set the object index
@@ -50,9 +50,9 @@ abstract class AbstractObject implements ObjectInterface
      * @param  int $i
      * @return AbstractObject
      */
-    public function setIndex($i)
+    public function setIndex(int $i): AbstractObject
     {
-        $this->index = (int)$i;
+        $this->index = $i;
         return $this;
     }
 
@@ -62,7 +62,7 @@ abstract class AbstractObject implements ObjectInterface
      * @param  string $data
      * @return AbstractObject
      */
-    public function setData($data)
+    public function setData(string $data): AbstractObject
     {
         $this->data = $data;
         return $this;
@@ -74,18 +74,18 @@ abstract class AbstractObject implements ObjectInterface
      * @param  bool $imported
      * @return AbstractObject
      */
-    public function setImported($imported)
+    public function setImported(bool $imported)
     {
-        $this->isImported = (bool)$imported;
+        $this->isImported = $imported;
         return $this;
     }
 
     /**
      * Get the object index
      *
-     * @return int
+     * @return ?int
      */
-    public function getIndex()
+    public function getIndex(): ?int
     {
         return $this->index;
     }
@@ -93,9 +93,9 @@ abstract class AbstractObject implements ObjectInterface
     /**
      * Get the object stream
      *
-     * @return string
+     * @return ?string
      */
-    public function getData()
+    public function getData(): ?string
     {
         return $this->data;
     }
@@ -105,7 +105,7 @@ abstract class AbstractObject implements ObjectInterface
      *
      * @return bool
      */
-    public function isImported()
+    public function isImported(): bool
     {
         return $this->isImported;
     }
@@ -116,14 +116,14 @@ abstract class AbstractObject implements ObjectInterface
      * @param  string $dictionary
      * @return array
      */
-    public function getDictionaryReferences($dictionary)
+    public function getDictionaryReferences(string $dictionary): array
     {
         $dictionary = trim($dictionary);
 
-        if (substr($dictionary, 0, 1) == '[') {
+        if (str_starts_with($dictionary, '[')) {
             $dictionary = substr($dictionary, 0, strpos($dictionary, ']'));
             $dictionary = trim(str_replace(['[', '0 R', '1 R', ' '], ['', '|', '|', ''], $dictionary));
-            if (substr($dictionary, -1) == '|') {
+            if (str_ends_with($dictionary, '|')) {
                 $dictionary = substr($dictionary, 0, -1);
             }
             $references = explode('|', $dictionary);
@@ -139,6 +139,6 @@ abstract class AbstractObject implements ObjectInterface
      *
      * @return string
      */
-    abstract public function __toString();
+    abstract public function __toString(): string;
 
 }

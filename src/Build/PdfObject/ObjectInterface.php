@@ -30,9 +30,9 @@ interface ObjectInterface
      * Set the object index
      *
      * @param  int $i
-     * @return AbstractObject
+     * @return ObjectInterface
      */
-    public function setIndex($i);
+    public function setIndex(int $i): ObjectInterface;
 
     /**
      * Set the object data
@@ -40,27 +40,27 @@ interface ObjectInterface
      * @param  string $data
      * @return ObjectInterface
      */
-    public function setData($data);
+    public function setData(string $data): ObjectInterface;
 
     /**
      * Get the object index
      *
-     * @return int
+     * @return ?int
      */
-    public function getIndex();
+    public function getIndex(): ?int;
 
     /**
      * Get the object data
      *
-     * @return string
+     * @return ?string
      */
-    public function getData();
+    public function getData(): ?string;
 
     /**
      * Method to print the object
      *
      * @return string
      */
-    public function __toString();
+    public function __toString(): string;
 
 }
