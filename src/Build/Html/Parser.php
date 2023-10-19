@@ -17,7 +17,6 @@ use Pop\Css;
 use Pop\Color\Color;
 use Pop\Dom\Child;
 use Pop\Pdf\Document;
-use Pop\Pdf\Document\Exception;
 
 /**
  * Pdf HTML parser class
@@ -164,9 +163,8 @@ class Parser
     /**
      * Parse $html from URI
      *
-     * @param  string    $htmlUri
+     * @param string $htmlUri
      * @param  ?Document $document
-     * @throws Exception
      * @return Parser
      */
     public static function parseUri(string $htmlUri, ?Document $document = null): Parser

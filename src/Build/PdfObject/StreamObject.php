@@ -280,12 +280,12 @@ class StreamObject extends AbstractObject
     /**
      * Calculate the byte length of a string
      *
-     * @param  string $string
+     * @param  ?string $string
      * @return int
      */
-    protected function calculateByteLength(string $string): int
+    protected function calculateByteLength(?string $string): int
     {
-        return strlen($string);
+        return strlen((string)$string);
     }
 
     /**

@@ -52,7 +52,7 @@ class DocumentTest extends TestCase
 
     public function testCopyPageException()
     {
-        $this->expectException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Document\Exception');
         $doc = new Document();
         $doc->createPage(Page::LEGAL);
         $doc->copyPage(3);
@@ -70,7 +70,7 @@ class DocumentTest extends TestCase
 
     public function testOrderPagesBadCountException()
     {
-        $this->expectException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Document\Exception');
         $doc = new Document();
         $doc->addPages([new Page(Page::LETTER), new Page(Page::LETTER)]);
         $doc->createPage(Page::LEGAL);
@@ -80,7 +80,7 @@ class DocumentTest extends TestCase
 
     public function testOrderPagesPageNotExistException()
     {
-        $this->expectException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Document\Exception');
         $doc = new Document();
         $doc->addPages([new Page(Page::LETTER), new Page(Page::LETTER)]);
         $doc->createPage(Page::LEGAL);
@@ -99,7 +99,7 @@ class DocumentTest extends TestCase
 
     public function testDeletePageException()
     {
-        $this->expectException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Document\Exception');
         $doc = new Document();
         $doc->addPages([new Page(Page::LETTER), new Page(Page::LETTER)]);
         $doc->createPage(Page::LEGAL);
@@ -169,7 +169,7 @@ class DocumentTest extends TestCase
 
     public function testSetCurrentPageException()
     {
-        $this->expectException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Document\Exception');
         $doc = new Document();
         $doc->addPages([new Page(Page::LETTER), new Page(Page::LETTER)]);
         $doc->setCurrentPage(8);
@@ -185,7 +185,7 @@ class DocumentTest extends TestCase
 
     public function testSetCurrentFontException()
     {
-        $this->expectException('Pop\Pdf\Exception');
+        $this->expectException('Pop\Pdf\Document\Exception');
         $doc = new Document();
         $doc->setCurrentFont('Arial');
     }

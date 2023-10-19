@@ -212,9 +212,9 @@ abstract class AbstractPage implements PageInterface
     /**
      * Get the page index
      *
-     * @return int
+     * @return ?int
      */
-    public function getIndex(): int
+    public function getIndex(): ?int
     {
         return $this->index;
     }

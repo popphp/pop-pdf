@@ -69,9 +69,9 @@ interface PageInterface
     /**
      * Get the page index
      *
-     * @return int
+     * @return ?int
      */
-    public function getIndex(): int;
+    public function getIndex(): ?int;
 
     /**
      * Add an image to the PDF page

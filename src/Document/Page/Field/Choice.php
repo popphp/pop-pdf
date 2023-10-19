@@ -157,14 +157,14 @@ class Choice extends AbstractField
     /**
      * Get the field stream
      *
-     * @param  int    $i
-     * @param  int    $pageIndex
-     * @param  string $fontReference
-     * @param  int    $x
-     * @param  int    $y
+     * @param  int     $i
+     * @param  int     $pageIndex
+     * @param  ?string $fontReference
+     * @param  int     $x
+     * @param  int     $y
      * @return string
      */
-    public function getStream(int $i, int $pageIndex, string $fontReference, int $x, int $y): string
+    public function getStream(int $i, int $pageIndex, ?string $fontReference, int $x, int $y): string
     {
         $text    = null;
         $options = null;

@@ -103,9 +103,9 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Get the document object
      *
-     * @return Document
+     * @return ?Document
      */
-    public function getDocument(): Document
+    public function getDocument(): ?Document
     {
         return $this->document;
     }
@@ -228,12 +228,12 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Calculate byte length
      *
-     * @param  string $string
+     * @param  ?string $string
      * @return int
      */
-    protected function calculateByteLength(string $string): int
+    protected function calculateByteLength(?string $string): int
     {
-        return strlen($string);
+        return strlen((string)$string);
     }
 
     /**

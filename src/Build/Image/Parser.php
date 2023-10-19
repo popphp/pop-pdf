@@ -60,9 +60,9 @@ class Parser
 
     /**
      * Number of channels in the image
-     * @var int
+     * @var ?int
      */
-    protected int $channels = 0;
+    protected ?int $channels = null;
 
     /**
      * Image bit-depth

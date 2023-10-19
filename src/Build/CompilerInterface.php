@@ -31,30 +31,30 @@ interface CompilerInterface
     /**
      * Get the document object
      *
-     * @return Document
+     * @return ?Document
      */
-    public function getDocument(): Document;
+    public function getDocument(): ?Document;
 
     /**
      * Get the root object
      *
-     * @return PdfObject\RootObject
+     * @return ?PdfObject\RootObject
      */
-    public function getRoot(): PdfObject\RootObject;
+    public function getRoot(): ?PdfObject\RootObject;
 
     /**
      * Get the parent object
      *
-     * @return PdfObject\ParentObject
+     * @return ?PdfObject\ParentObject
      */
-    public function getParent(): PdfObject\ParentObject;
+    public function getParent(): ?PdfObject\ParentObject;
 
     /**
      * Get the info object
      *
-     * @return PdfObject\InfoObject
+     * @return ?PdfObject\InfoObject
      */
-    public function getInfo(): PdfObject\InfoObject;
+    public function getInfo(): ?PdfObject\InfoObject;
 
     /**
      * Return the last object index.
