@@ -63,7 +63,7 @@ class DocumentTest extends TestCase
         $doc = new Document();
         $doc->addPages([new Page(Page::LETTER), new Page(Page::LETTER)]);
         $doc->createPage(Page::LEGAL);
-        $doc->copyPage(1);
+        $doc->copyPage(1, false);
         $doc->orderPages([4, 3, 2, 1]);
         $this->assertEquals(4, $doc->getNumberOfPages());
     }
