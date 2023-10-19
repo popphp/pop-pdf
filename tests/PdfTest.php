@@ -18,6 +18,17 @@ class PdfTest extends TestCase
         $this->assertInstanceOf('Pop\Pdf\Document', Pdf\Pdf::importRawData(file_get_contents(__DIR__ . '/tmp/doc.pdf'), 1));
     }
 
+    public function testImportFromImages()
+    {
+        $this->assertInstanceOf('Pop\Pdf\Document', Pdf\Pdf::importFromImages(__DIR__ . '/tmp/images/logo-rgb.jpg'));
+    }
+
+    public function testImportFromImagesException()
+    {
+        $this->expectException('Pop\Pdf\Document\Exception');
+        $doc = Pdf\Pdf::importFromImages(__DIR__ . '/tmp/images/logo-BAD.jpg');
+    }
+
     public function testWriteToFile()
     {
         $doc = Pdf\Pdf::importFromFile(__DIR__ . '/tmp/doc.pdf', 1);

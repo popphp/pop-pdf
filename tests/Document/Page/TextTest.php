@@ -18,7 +18,25 @@ class TextTest extends TestCase
     public function testSetMbString()
     {
         $text = new Text("mb string åèä test", 12);
+        $this->assertTrue($text->hasString());
         $this->assertEquals(18, strlen($text->getString()));
+    }
+
+    public function testSetStrings()
+    {
+        $text = new Text();
+        $text->setStrings([
+            'hello world', new Text('how are you?')
+        ]);
+        $this->assertCount(2, $text->getStrings());
+    }
+
+    public function testSetTextStream()
+    {
+        $text = new Text();
+        $text->setTextStream(new Text\Stream(0, 0, 0, 0));
+        $this->assertTrue($text->hasTextStream());
+        $this->assertInstanceOf('Pop\Pdf\Document\Page\Text\Stream', $text->getTextStream());
     }
 
     public function testEscape()

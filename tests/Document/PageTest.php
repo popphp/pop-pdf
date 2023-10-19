@@ -33,6 +33,12 @@ class PageTest extends TestCase
         $this->assertNull($page->getIndex());
     }
 
+    public function testGetTextStreams()
+    {
+        $page = new Page(Page::LETTER);
+        $this->assertTrue(is_array($page->getTextStreams()));
+    }
+
     public function testAddImage()
     {
         $page = new Page(Page::LETTER);

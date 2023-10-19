@@ -93,10 +93,10 @@ class Stream
      */
     public function __construct(int $startX, int $startY, int $edgeX, ?int $edgeY = null)
     {
-        $this->startX = $startX;
-        $this->startY = $startY;
-        $this->edgeX  = $edgeX;
-        $this->edgeY  = $edgeY;
+        $this->setStartX($startX);
+        $this->setStartY($startY);
+        $this->setEdgeX($edgeX);
+        $this->setEdgeY($edgeY);
     }
 
     /**
@@ -266,6 +266,16 @@ class Stream
         ];
 
         return $this;
+    }
+
+    /**
+     * Has text streams
+     *
+     * @return bool
+     */
+    public function hasTextStreams(): bool
+    {
+        return !empty($this->streams);
     }
 
     /**
