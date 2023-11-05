@@ -707,20 +707,20 @@ class Text
 
         if ($this->fillColor !== null) {
             if ($this->fillColor instanceof Color\Rgb) {
-                $stream .= '    ' . $this->fillColor . " rg\n";
+                $stream .= '    ' . $this->fillColor->render(Color\Rgb::PERCENT) . " rg\n";
             } else if ($this->fillColor instanceof Color\Cmyk) {
-                $stream .= '    ' . $this->fillColor . " k\n";
+                $stream .= '    ' . $this->fillColor->render(Color\Cmyk::PERCENT) . " k\n";
             } else if ($this->fillColor instanceof Color\Grayscale) {
-                $stream .= '    ' . $this->fillColor . " g\n";
+                $stream .= '    ' . $this->fillColor->render(Color\Grayscale::PERCENT) . " g\n";
             }
         }
         if ($this->strokeColor !== null) {
             if ($this->strokeColor instanceof Color\Rgb) {
-                $stream .= '    ' . $this->strokeColor . " RG\n";
+                $stream .= '    ' . $this->strokeColor->render(Color\Rgb::PERCENT) . " RG\n";
             } else if ($this->strokeColor instanceof Color\Cmyk) {
-                $stream .= '    ' . $this->strokeColor . " K\n";
+                $stream .= '    ' . $this->strokeColor->render(Color\Cmyk::PERCENT) . " K\n";
             } else if ($this->strokeColor instanceof Color\Grayscale) {
-                $stream .= '    ' . $this->strokeColor . " G\n";
+                $stream .= '    ' . $this->strokeColor->render(Color\Grayscale::PERCENT) . " G\n";
             }
         }
 

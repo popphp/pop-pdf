@@ -186,13 +186,16 @@ class Document extends AbstractDocument
     /**
      * Add a font
      *
-     * @param  Font $font
-     * @param  bool $embedOverride
+     * @param  Font|string $font
+     * @param  bool        $embedOverride
      * @throws Exception
      * @return Document
      */
-    public function addFont(Font $font, bool $embedOverride = false): Document
+    public function addFont(Font|string $font, bool $embedOverride = false): Document
     {
+        if (is_string($font)) {
+            $font = new Font($font);
+        }
         if (!$font->isStandard()) {
             $this->embedFont($font, $embedOverride);
         } else {

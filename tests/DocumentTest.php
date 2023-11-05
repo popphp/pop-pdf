@@ -107,10 +107,17 @@ class DocumentTest extends TestCase
         $doc->deletePage(8);
     }
 
-    public function testAddFont()
+    public function testAddFont1()
     {
         $doc = new Document();
         $doc->addFont(new Font('Arial'));
+        $this->assertEquals(1, $doc->getNumberOfFonts());
+    }
+
+    public function testAddFont2()
+    {
+        $doc = new Document();
+        $doc->addFont(Font::ARIAL);
         $this->assertEquals(1, $doc->getNumberOfFonts());
     }
 

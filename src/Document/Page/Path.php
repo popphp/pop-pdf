@@ -91,11 +91,11 @@ class Path
     {
         $stream = null;
         if ($color instanceof Color\Rgb) {
-            $stream .= "\n" . $color . " rg\n";
+            $stream .= "\n" . $color->render(Color\Rgb::PERCENT) . " rg\n";
         } else if ($color instanceof Color\Cmyk) {
-            $stream .= "\n" . $color . " k\n";
+            $stream .= "\n" . $color->render(Color\Cmyk::PERCENT) . " k\n";
         } else if ($color instanceof Color\Grayscale) {
-            $stream .= "\n" . $color . " g\n";
+            $stream .= "\n" . $color->render(Color\Grayscale::PERCENT) . " g\n";
         }
 
         if ($stream !== null) {
@@ -117,11 +117,11 @@ class Path
     {
         $stream = null;
         if ($color instanceof Color\Rgb) {
-            $stream .= "\n" . $color . " RG\n";
+            $stream .= "\n" . $color->render(Color\Rgb::PERCENT) . " RG\n";
         } else if ($color instanceof Color\Cmyk) {
-            $stream .= "\n" . $color . " K\n";
+            $stream .= "\n" . $color->render(Color\Rgb::PERCENT) . " K\n";
         } else if ($color instanceof Color\Grayscale) {
-            $stream .= "\n" . $color . " G\n";
+            $stream .= "\n" . $color->render(Color\Rgb::PERCENT) . " G\n";
         }
 
         if ($stream !== null) {

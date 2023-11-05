@@ -154,11 +154,11 @@ class Text extends AbstractField
         $color = '0 g';
         if ($this->fontColor !== null) {
             if ($this->fontColor instanceof Color\Rgb) {
-                $color = $this->fontColor . " rg";
+                $color = $this->fontColor->render(Color\Rgb::PERCENT) . " rg";
             } else if ($this->fontColor instanceof Color\Cmyk) {
-                $color = $this->fontColor . " k";
+                $color = $this->fontColor->render(Color\Cmyk::PERCENT) . " k";
             } else if ($this->fontColor instanceof Color\Grayscale) {
-                $color = $this->fontColor . " g";
+                $color = $this->fontColor->render(Color\Grayscale::PERCENT) . " g";
             }
         }
 

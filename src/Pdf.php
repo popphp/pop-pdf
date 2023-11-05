@@ -30,32 +30,6 @@ class Pdf
 {
 
     /**
-     * Import from an existing PDF file
-     *
-     * @param  string $file
-     * @param  mixed  $pages
-     * @return AbstractDocument
-     */
-    public static function importFromFile(string $file, mixed $pages = null): AbstractDocument
-    {
-        $parser = new Build\Parser();
-        return $parser->parseFile($file, $pages);
-    }
-
-    /**
-     * Import from raw data stream
-     *
-     * @param  string $data
-     * @param  mixed  $pages
-     * @return AbstractDocument
-     */
-    public static function importRawData(string $data, mixed $pages = null): AbstractDocument
-    {
-        $parser = new Build\Parser();
-        return $parser->parseData($data, $pages);
-    }
-
-    /**
      * Write document to file
      *
      * @param  AbstractDocument $document
@@ -99,6 +73,31 @@ class Pdf
         echo $compiler->getOutput();
     }
 
+    /**
+     * Import from an existing PDF file
+     *
+     * @param  string $file
+     * @param  mixed  $pages
+     * @return AbstractDocument
+     */
+    public static function importFromFile(string $file, mixed $pages = null): AbstractDocument
+    {
+        $parser = new Build\Parser();
+        return $parser->parseFile($file, $pages);
+    }
+
+    /**
+     * Import from raw data stream
+     *
+     * @param  string $data
+     * @param  mixed  $pages
+     * @return AbstractDocument
+     */
+    public static function importRawData(string $data, mixed $pages = null): AbstractDocument
+    {
+        $parser = new Build\Parser();
+        return $parser->parseData($data, $pages);
+    }
 
     /**
      * Import from an existing PDF file

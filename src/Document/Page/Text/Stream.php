@@ -487,11 +487,11 @@ class Stream
         $stream = '';
 
         if ($color instanceof Color\Rgb) {
-            $stream .= '    ' . $color . " rg\n";
+            $stream .= '    ' . $color->render(Color\Rgb::PERCENT) . " rg\n";
         } else if ($color instanceof Color\Cmyk) {
-            $stream .= '    ' . $color . " k\n";
+            $stream .= '    ' . $color->render(Color\Cmyk::PERCENT) . " k\n";
         } else if ($color instanceof Color\Grayscale) {
-            $stream .= '    ' . $color . " g\n";
+            $stream .= '    ' . $color->render(Color\Grayscale::PERCENT) . " g\n";
         }
 
         return $stream;
