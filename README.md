@@ -516,7 +516,7 @@ There is a method on the font object that will allow you pass a string of text
 to it, as well as the desired size, to give you the approximate width those characters
 will take up rendered in that font at that size.
 
-This works for both standard and embedded font.
+This works for both standard and embedded fonts.
 
 ```php
 use Pop\Pdf\Document\Font;
@@ -526,7 +526,8 @@ $width = $font->getStringWidth('Hello World', 12);
 var_dump($width);
 ```
 
-This will give us the approximate width in points of the string `Hello World` in 12pt:
+This will give us the approximate width in points of the string `Hello World` in
+12pt Helvetica Bold:
 
 ```text
 float(66.672)
