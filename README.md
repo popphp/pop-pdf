@@ -14,7 +14,7 @@ pop-pdf
     - [Write to File](#write-to-file)
     - [Output to HTTP](#output-to-http)
     - [Import from File](#import-from-file)
-    - [Import from RaW Data](#import-from-raw-data)
+    - [Import from Raw Data](#import-from-raw-data)
     - [Import from Images](#import-from-images)
 * [Documents](#documents)
     - [Compression](#compression)
@@ -455,6 +455,8 @@ $page->addText($text, Font::ARIAL, 50, 742);
 Pdf::writeToFile($document, 'my-document.pdf');
 ```
 
+[Top](#pop-pdf)
+
 ### Alignment
 
 Alignment objects are objects that assist with handling more advanced alignment
@@ -501,6 +503,8 @@ Or align center:
 // X between 50 and 350; leading set 16
 $text->setAlignment(Alignment::createCenter(200, 412, 16));
 ```
+
+[Top](#pop-pdf)
 
 ### String Width
 
