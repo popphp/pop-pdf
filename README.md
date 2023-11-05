@@ -244,51 +244,21 @@ $document->setOrigin(Document::ORIGIN_TOP_LEFT);
 Pages
 -----
 
-Pages can be virtually any size, but there are a number of pre-defined sizes available as constants:
+Pages can be virtually any size, but there are a number of pre-defined sizes available
+as constants in the `Pop\Pdf\Document\Page` class:
 
-| Page        | (W x H)       | Page | (W x H)       | Page | (W x H)       |
-|-------------|---------------|------|---------------|------|---------------|
-| ENVELOPE_10 | (297  x 684)  | A1   | (1684 x 2384) | B1   | (2064 x 2920) |
-| ENVELOPE_C5 | (461  x 648)  | A2   | (1191 x 1684) | B2   | (1460 x 2064) |
-| ENVELOPE_DL | (312  x 624)  | A3   | (842  x 1191) | B3   | (1032 x 1460) |
-| FOLIO       | (595  x 935)  | A4   | (595  x 842)  | B4   | (729  x 1032) |
-| EXECUTIVE   | (522  x 756)  | A5   | (420  x 595)  | B5   | (516  x 729)  |
-| LETTER      | (612  x 792)  | A6   | (297  x 420)  | B6   | (363  x 516)  |
-| LEGAL       | (612  x 1008) | A7   | (210  x 297)  | B7   | (258  x 363)  |
-| LEDGER      | (1224 x 792)  | A8   | (148  x 210)  | B8   | (181  x 258)  |
-| TABLOID     | (792  x 1224) | A9   | (105  x 148)  | B9   | (127  x 181)  |
-| A0          | (2384 x 3370) | B0   | (2920 x 4127) | B10  | (91   x 127)  |
-
-- `Page::ENVELOPE_10`
-- `Page::ENVELOPE_C5`
-- `Page::ENVELOPE_DL`
-- `Page::FOLIO`
-- `Page::EXECUTIVE`
-- `Page::LETTER`
-- `Page::LEGAL`
-- `Page::LEDGER`
-- `Page::TABLOID`
-- `Page::A0`
-- `Page::A1`
-- `Page::A2`
-- `Page::A3`
-- `Page::A4`
-- `Page::A5`
-- `Page::A6`
-- `Page::A7`
-- `Page::A8`
-- `Page::A9`
-- `Page::B0`
-- `Page::B1`
-- `Page::B2`
-- `Page::B3`
-- `Page::B4`
-- `Page::B5`
-- `Page::B6`
-- `Page::B7`
-- `Page::B8`
-- `Page::B9`
-- `Page::B10`
+| Page          | (W x H)       | Page  | (W x H)       | Page  | (W x H)       |
+|---------------|---------------|-------|---------------|-------|---------------|
+| `ENVELOPE_10` | (297  x 684)  | `A1`  | (1684 x 2384) | `B1`  | (2064 x 2920) |
+| `ENVELOPE_C5` | (461  x 648)  | `A2`  | (1191 x 1684) | `B2`  | (1460 x 2064) |
+| `ENVELOPE_DL` | (312  x 624)  | `A3`  | (842  x 1191) | `B3`  | (1032 x 1460) |
+| `FOLIO`       | (595  x 935)  | `A4`  | (595  x 842)  | `B4`  | (729  x 1032) |
+| `EXECUTIVE`   | (522  x 756)  | `A5`  | (420  x 595)  | `B5`  | (516  x 729)  |
+| `LETTER`      | (612  x 792)  | `A6`  | (297  x 420)  | `B6`  | (363  x 516)  |
+| `LEGAL`       | (612  x 1008) | `A7`  | (210  x 297)  | `B7`  | (258  x 363)  |
+| `LEDGER`      | (1224 x 792)  | `A8`  | (148  x 210)  | `B8`  | (181  x 258)  |
+| `TABLOID`     | (792  x 1224) | `A9`  | (105  x 148)  | `B9`  | (127  x 181)  |
+| `A0`          | (2384 x 3370) | `B0`  | (2920 x 4127) | `B10` | (91   x 127)  |
 
 ```php
 use Pop\Pdf\Document;
