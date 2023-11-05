@@ -569,6 +569,8 @@ raw stream:
 $page->addImage(Image::loadImageFromStream($imageContents), 50, 422);
 ```
 
+[Top](#pop-pdf)
+
 ### Image Size
 
 You can resize a larger image when adding it to a page. 
@@ -681,8 +683,6 @@ Annotations
 
 Annotation objects provide a way to link to external URLs or an internal pointer 
 within the document.
-
-[Top](#pop-pdf)
 
 ### URLs
 
@@ -866,7 +866,7 @@ The above code produces a PDF with a form like this:
 HTML
 -----
 
-HTML rendering is available in `pop-pdf`, however it is still in an experiment beta stage.
+HTML rendering is available in `pop-pdf`, however it is still in an experimental beta stage.
 
 ### Parsing HTML from a file:
 
