@@ -37,10 +37,9 @@ pop-pdf
 
 Overview
 --------
-Pop PDF is a powerful and robust PDF processing component that's simple to use. With it,
-you can create PDF documents from scratch, or import existing ones and add to or modify
-them. It supports embedding images, fonts and URLs, as well as a set of drawing, effect
-and type features.
+Pop PDF is a robust PDF processing component that's simple to use. With it, you can create
+PDF documents from scratch, or import existing ones and add to or modify them. It supports
+embedding images, fonts and URLs, as well as a set of drawing, effect and type features.
 
 `pop-pdf` is a component of the [Pop PHP Framework](http://www.popphp.org/).
 
