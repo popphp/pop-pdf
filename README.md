@@ -601,7 +601,7 @@ The following methods are available to resize an image:
 
 The `$preserveResolution` flag is set to `false` by default. This will
 resize the image resource, which will reduce it in not only dimensional size,
-but also reduce it in data size as well.
+but also reduce its data size as well.
 
 If you wish to keep the image in its original higher quality, and
 only reduce the dimensions, you can set the `$preserveResolution` flag
