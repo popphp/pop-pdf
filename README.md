@@ -411,8 +411,8 @@ Pdf::writeToFile($document, 'my-document.pdf');
 Text
 ----
 
-Once font objects have been added to document object, text objects can then be added
-to page objects, while referencing the available font objects.
+Once font objects have been added to a document object, text objects can then be added
+to page objects, while referencing the available font objects in the document.
 
 The constructor of the text object takes the string and the size:
 
@@ -463,7 +463,7 @@ Alignment objects are objects that assist with handling more advanced alignment
 and wrapping of text based on geometric positioning. When creating an alignment
 object, you define a bounding areas to which the text will be confined.
 
-##### Left aligned box
+**Left-aligned box**
 
 ```php
 use Pop\Pdf\Pdf;
@@ -488,7 +488,7 @@ $page->addText($text, Font::ARIAL, 50, 742);
 Pdf::writeToFile($document, 'my-document.pdf');
 ```
 
-You can align right:
+**Right-aligned box**
 
 ```php
 // Create a right-aligned bounding area with the
@@ -496,7 +496,7 @@ You can align right:
 $text->setAlignment(Alignment::createRight(250, 550, 16));
 ```
 
-Or align center:
+**Center-aligned box**
 
 ```php
 // Create a center-aligned bounding area with the
