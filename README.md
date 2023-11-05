@@ -302,9 +302,9 @@ Fonts
 -----
 
 Fonts are required to be added to a document for any text that might be added. The font
-that a text object uses will be defined, but that font will need to be present in the
-document object. Once fonts are added to a document, they can be used repeatedly by any
-text objects on any pages of the document.
+that a text object uses will be defined when adding the text to a page object, but that
+font will need to be present in the document object. Once fonts are added to a document,
+they can be used repeatedly by any text objects on any pages of the document.
 
 There are two types of supported fonts: **standard** and **embedded**.
 
