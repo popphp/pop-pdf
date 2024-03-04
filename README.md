@@ -26,7 +26,7 @@ pop-pdf
 * [Text](#text)
     - [Alignment](#alignment)
     - [String Width](#string-width)
-* [Style](#styles)
+* [Styles](#styles)
 * [Images](#images)
     - [Image Size](#image-size)
 * [Paths](#paths)
