@@ -380,12 +380,12 @@ abstract class AbstractPage implements PageInterface
      * Add text to the PDF page
      *
      * @param  Page\Text $text
-     * @param  string    $font
+     * @param  string    $fontStyle (can be either a reference to a font or a style)
      * @param  int       $x
      * @param  int       $y
      * @return Page
      */
-    abstract public function addText(Page\Text $text, string $font, int $x = 0, int $y = 0): AbstractPage;
+    abstract public function addText(Page\Text $text, string $fontStyle, int $x = 0, int $y = 0): AbstractPage;
 
     /**
      * Add text stream to the PDF page

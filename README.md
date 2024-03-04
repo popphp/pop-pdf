@@ -26,6 +26,7 @@ pop-pdf
 * [Text](#text)
     - [Alignment](#alignment)
     - [String Width](#string-width)
+* [Style](#styles)
 * [Images](#images)
     - [Image Size](#image-size)
 * [Paths](#paths)
@@ -454,6 +455,29 @@ $page->addText($text, Font::ARIAL, 50, 742);
 
 Pdf::writeToFile($document, 'my-document.pdf');
 ```
+
+[Top](#pop-pdf)
+
+Styles
+------
+
+Style objects can be added to the document to provide easier management of text and font styles used in multiple
+places across the PDF document and its pages.
+
+```php
+use Pop\Pdf\Document;
+use Pop\Pdf\Document\Font;
+
+$document = new Document();
+$document->addFont(Font::ARIAL);
+$document->createStyle('normal', Font::ARIAL, 12);
+
+$page = $document->createPage(Page::LETTER);
+$page->addText($text, 'normal', 50, 742); // The second parameter can either be a font or a reference to a style
+```
+
+So any text added to any page referencing the same style can easily be changed across the entire document by only
+changing the style object.
 
 [Top](#pop-pdf)
 

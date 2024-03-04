@@ -87,12 +87,12 @@ interface PageInterface
      * Add text to the PDF page
      *
      * @param  Page\Text $text
-     * @param  string    $font
+     * @param  string    $fontStyle (can be either a reference to a font or a style)
      * @param  int       $x
      * @param  int       $y
      * @return PageInterface
      */
-    public function addText(Page\Text $text, string $font, int $x = 0, int $y = 0): PageInterface;
+    public function addText(Page\Text $text, string $fontStyle, int $x = 0, int $y = 0): PageInterface;
 
     /**
      * Add an annotation to the PDF page
