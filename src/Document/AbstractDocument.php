@@ -510,7 +510,16 @@ abstract class AbstractDocument implements DocumentInterface
     abstract public function addFont(Font $font): AbstractDocument;
 
     /**
-     * Add a font
+     * Add fonts
+     *
+     * @param  array $fonts
+     * @throws Exception
+     * @return AbstractDocument
+     */
+    abstract public function addFonts(array $fonts): AbstractDocument;
+
+    /**
+     * Embed a font
      *
      * @param  Font $font
      * @param  bool $embedOverride
@@ -518,6 +527,40 @@ abstract class AbstractDocument implements DocumentInterface
      * @return AbstractDocument
      */
     abstract public function embedFont(Font $font, bool $embedOverride = false): AbstractDocument;
+
+    /**
+     * Embed fonts
+     *
+     * @param  array $fonts
+     * @param  bool $embedOverride
+     * @throws Exception
+     * @return AbstractDocument
+     */
+    abstract public function embedFonts(array $fonts, bool $embedOverride = false): AbstractDocument;
+
+    /**
+     * Create style
+     *
+     * @param  Style|string $style
+     * @return AbstractDocument
+     */
+    abstract public function createStyle(Style|string $style, ?string $font = null, int|float|null $size = null): AbstractDocument;
+
+    /**
+     * Add a style
+     *
+     * @param  Style|string $style
+     * @return AbstractDocument
+     */
+    abstract public function addStyle(Style|string $style): AbstractDocument;
+
+    /**
+     * Add styles
+     *
+     * @param  array $styles
+     * @return AbstractDocument
+     */
+    abstract public function addStyles(array $styles): AbstractDocument;
 
     /**
      * Set the current page of the PDF document

@@ -286,6 +286,15 @@ interface DocumentInterface
     public function addFont(Font $font): DocumentInterface;
 
     /**
+     * Add fonts
+     *
+     * @param  array $fonts
+     * @throws Exception
+     * @return AbstractDocument
+     */
+    public function addFonts(array $fonts): DocumentInterface;
+
+    /**
      * Add a font
      *
      * @param  Font $font
@@ -294,6 +303,40 @@ interface DocumentInterface
      * @return DocumentInterface
      */
     public function embedFont(Font $font, bool $embedOverride = false): DocumentInterface;
+
+    /**
+     * Embed fonts
+     *
+     * @param  array $fonts
+     * @param  bool $embedOverride
+     * @throws Exception
+     * @return DocumentInterface
+     */
+    public function embedFonts(array $fonts, bool $embedOverride = false): DocumentInterface;
+
+    /**
+     * Create style
+     *
+     * @param  Style|string $style
+     * @return DocumentInterface
+     */
+    public function createStyle(Style|string $style, ?string $font = null, int|float|null $size = null): DocumentInterface;
+
+    /**
+     * Add a style
+     *
+     * @param  Style|string $style
+     * @return DocumentInterface
+     */
+    public function addStyle(Style|string $style): DocumentInterface;
+
+    /**
+     * Add styles
+     *
+     * @param  array $styles
+     * @return DocumentInterface
+     */
+    public function addStyles(array $styles): DocumentInterface;
 
     /**
      * Set the current page of the PDF document

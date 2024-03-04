@@ -50,16 +50,25 @@ class Document extends AbstractDocument
      *
      * Instantiate a PDF document
      *
-     * @param  ?Page     $page
-     * @param  ?Metadata $metadata
+     * @param ?Page            $page
+     * @param ?Metadata        $metadata
+     * @param Style|array|null $style
      */
-    public function __construct(?Page $page = null, ?Metadata $metadata = null)
+    public function __construct(?Page $page = null, ?Metadata $metadata = null, Style|array|null $style = null)
     {
         if ($page !== null) {
             $this->addPage($page);
         }
-        $metadata = ($metadata !== null) ? $metadata : new Metadata();
-        $this->setMetadata($metadata);
+
+        $this->setMetadata((($metadata !== null) ? $metadata : new Metadata()));
+
+        if ($style !== null) {
+            if (is_array($style)) {
+                $this->addStyles($style);
+            } else {
+                $this->addStyle($style);
+            }
+        }
     }
 
     /**
@@ -210,6 +219,23 @@ class Document extends AbstractDocument
     }
 
     /**
+     * Add fonts
+     *
+     * @param  array $fonts
+     * @param  bool  $embedOverride
+     * @throws Exception
+     * @return Document
+     */
+    public function addFonts(array $fonts, bool $embedOverride = false): Document
+    {
+        foreach ($fonts as $font) {
+            $this->addFont($font, $embedOverride);
+        }
+
+        return $this;
+    }
+
+    /**
      * Add a font
      *
      * @param  Font $font
@@ -231,6 +257,23 @@ class Document extends AbstractDocument
                 $this->fonts[$font->parser()->getFontName()] = $font;
                 $this->currentFont = $font->parser()->getFontName();
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Embed fonts
+     *
+     * @param  array $fonts
+     * @param  bool  $embedOverride
+     * @throws Exception
+     * @return Document
+     */
+    public function embedFonts(array $fonts, bool $embedOverride = false): Document
+    {
+        foreach ($fonts as $font) {
+            $this->embedFont($font, $embedOverride);
         }
 
         return $this;
@@ -264,6 +307,20 @@ class Document extends AbstractDocument
             $this->styles[$style->getName()] = $style;
         }
 
+        return $this;
+    }
+
+    /**
+     * Add styles
+     *
+     * @param  array $styles
+     * @return AbstractDocument
+     */
+    public function addStyles(array $styles): Document
+    {
+        foreach ($styles as $style) {
+            $this->addStyle($style);
+        }
         return $this;
     }
 
