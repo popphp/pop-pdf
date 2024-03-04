@@ -19,7 +19,7 @@ class TextTest extends TestCase
     {
         $text = new Text("mb string åèä test", 12);
         $this->assertTrue($text->hasString());
-        $this->assertEquals(18, strlen($text->getString()));
+        $this->assertEquals(18, mb_strlen($text->getString()));
     }
 
     public function testSetStrings()

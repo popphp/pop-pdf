@@ -5,16 +5,25 @@ namespace Pop\Pdf\Test;
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Font;
+use Pop\Pdf\Document\Style;
 use Pop\Pdf\Document\Form;
 use PHPUnit\Framework\TestCase;
 
 class DocumentTest extends TestCase
 {
 
-    public function testConstructor()
+    public function testConstructor1()
     {
-        $doc = new Document(new Page(Page::LETTER));
+        $doc = new Document(new Page(Page::LETTER), null, new Style('normal'));
         $this->assertInstanceOf('Pop\Pdf\Document', $doc);
+        $this->assertTrue($doc->hasStyles());
+    }
+
+    public function testConstructor2()
+    {
+        $doc = new Document(new Page(Page::LETTER), null, [new Style('normal')]);
+        $this->assertInstanceOf('Pop\Pdf\Document', $doc);
+        $this->assertTrue($doc->hasStyles());
     }
 
     public function testSetOrigin()
@@ -121,6 +130,13 @@ class DocumentTest extends TestCase
         $this->assertEquals(1, $doc->getNumberOfFonts());
     }
 
+    public function testAddFonts()
+    {
+        $doc = new Document();
+        $doc->addFonts([new Font('Arial')]);
+        $this->assertEquals(1, $doc->getNumberOfFonts());
+    }
+
     public function testAddFontWithEmbedFont()
     {
         $doc = new Document();
@@ -132,6 +148,18 @@ class DocumentTest extends TestCase
     {
         $doc = new Document();
         $doc->embedFont(new Font(__DIR__ . '/tmp/fonts/times.ttf'));
+        $this->assertInstanceOf('Pop\Pdf\Build\Font\AbstractFont', $doc->getFont('Times-Bold')->getParsedFont());
+        $this->assertEquals(2, count($doc->getFont('Times-Bold')->getParsedFont()->getWidthsForGlyphs([0, 1])));
+        $this->assertEquals(33.0, ceil($doc->getFont('Times-Bold')->getParsedFont()->getStringWidth('Hello World', 12)));
+        $this->assertEquals(1, $doc->getNumberOfFonts());
+        $this->assertFalse($doc->hasImportedFonts());
+        $this->assertEquals(0, count($doc->getImportedFonts()));
+    }
+
+    public function testEmbedFonts()
+    {
+        $doc = new Document();
+        $doc->embedFonts([new Font(__DIR__ . '/tmp/fonts/times.ttf')]);
         $this->assertInstanceOf('Pop\Pdf\Build\Font\AbstractFont', $doc->getFont('Times-Bold')->getParsedFont());
         $this->assertEquals(2, count($doc->getFont('Times-Bold')->getParsedFont()->getWidthsForGlyphs([0, 1])));
         $this->assertEquals(33.0, ceil($doc->getFont('Times-Bold')->getParsedFont()->getStringWidth('Hello World', 12)));
@@ -163,6 +191,38 @@ class DocumentTest extends TestCase
         $this->expectException('Pop\Pdf\Exception');
         $doc = new Document();
         $this->assertInstanceOf('Pop\Pdf\Document\Font', $doc->getFont('Arial'));
+    }
+
+    public function testCreateStyle()
+    {
+        $doc = new Document();
+        $doc->createStyle('normal', 'Arial', 12);
+        $this->assertCount(1, $doc->getStyles());
+        $this->assertTrue($doc->hasStyle('normal'));
+    }
+
+    public function testAddStyle1()
+    {
+        $doc = new Document();
+        $doc->addStyle(new Style('normal', 'Arial', 12));
+        $this->assertCount(1, $doc->getStyles());
+        $this->assertTrue($doc->hasStyle('normal'));
+    }
+
+    public function testAddStyle2()
+    {
+        $doc = new Document();
+        $doc->addStyle('normal');
+        $this->assertCount(1, $doc->getStyles());
+        $this->assertTrue($doc->hasStyle('normal'));
+    }
+
+    public function testAddStyles()
+    {
+        $doc = new Document();
+        $doc->addStyles([new Style('normal', 'Arial', 12)]);
+        $this->assertCount(1, $doc->getStyles());
+        $this->assertTrue($doc->hasStyle('normal'));
     }
 
     public function testSetCurrentPage()

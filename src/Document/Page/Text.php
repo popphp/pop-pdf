@@ -147,7 +147,7 @@ class Text
     {
         if (function_exists('mb_strlen')) {
             if (mb_strlen($string, 'UTF-8') < strlen($string)) {
-                $string = utf8_decode($string);
+                $string = mb_convert_encoding($string, 'UTF-8', mb_detect_encoding($string));
             }
         }
         $this->string = $string;
@@ -167,11 +167,11 @@ class Text
                 if ($value instanceof Text) {
                     $v = $value->getString();
                     if (mb_strlen($v, 'UTF-8') < strlen($v)) {
-                        return utf8_decode($v);
+                        return mb_convert_encoding($v, 'UTF-8', mb_detect_encoding($v));
                     }
                     $value->setString($v);
                 } else if (mb_strlen($value, 'UTF-8') < strlen($value)) {
-                    $value = utf8_decode($value);
+                    $value = mb_convert_encoding($value, 'UTF-8', mb_detect_encoding($value));
                 }
                 return $value;
             }, $strings);
@@ -192,7 +192,7 @@ class Text
     {
         if (function_exists('mb_strlen')) {
             if (mb_strlen($string, 'UTF-8') < strlen($string)) {
-                $string = utf8_decode($string);
+                $string = mb_convert_encoding($string, 'UTF-8', mb_detect_encoding($string));
             }
         }
         $this->stringsWithOffsets[] = [

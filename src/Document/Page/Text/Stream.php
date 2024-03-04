@@ -30,38 +30,38 @@ class Stream
 
     /**
      * Start X
-     * @var ?int
+     * @var int|float|null
      */
-    protected ?int $startX = null;
+    protected int|float|null $startX = null;
 
     /**
      * Start Y
-     * @var ?int
+     * @var int|float|null
      */
-    protected ?int $startY = null;
+    protected int|float|null $startY = null;
 
     /**
      * Edge X boundary
      * @var ?int
      */
-    protected ?int $edgeX = null;
+    protected int|float|null $edgeX = null;
 
     /**
      * Edge Y boundary
-     * @var ?int
+     * @var int|float|null
      */
-    protected ?int $edgeY = null;
+    protected int|float|null $edgeY = null;
     /**
      * Current X
-     * @var ?int
+     * @var int|float|null
      */
-    protected ?int $currentX = null;
+    protected int|float|null $currentX = null;
 
     /**
      * Current Y
-     * @var ?int
+     * @var int|float|null
      */
-    protected ?int $currentY = null;
+    protected int|float|null $currentY = null;
 
     /**
     * Text streams
@@ -102,10 +102,10 @@ class Stream
     /**
      * Set start X
      *
-     * @param  int $startX
+     * @param  int|float $startX
      * @return Stream
      */
-    public function setStartX(int $startX): Stream
+    public function setStartX(int|float $startX): Stream
     {
         $this->startX = $startX;
         return $this;
@@ -114,10 +114,10 @@ class Stream
     /**
      * Set start Y
      *
-     * @param  int $startY
+     * @param  int|float $startY
      * @return Stream
      */
-    public function setStartY(int $startY): Stream
+    public function setStartY(int|float $startY): Stream
     {
         $this->startY = $startY;
         return $this;
@@ -126,10 +126,10 @@ class Stream
     /**
      * Set edge X boundary
      *
-     * @param  int $edgeX
+     * @param  int|float $edgeX
      * @return Stream
      */
-    public function setEdgeX(int $edgeX): Stream
+    public function setEdgeX(int|float $edgeX): Stream
     {
         $this->edgeX = $edgeX;
         return $this;
@@ -138,10 +138,10 @@ class Stream
     /**
      * Set edge Y boundary
      *
-     * @param  int $edgeY
+     * @param  int|float $edgeY
      * @return Stream
      */
-    public function setEdgeY(int $edgeY): Stream
+    public function setEdgeY(int|float $edgeY): Stream
     {
         $this->edgeY = $edgeY;
         return $this;
@@ -150,10 +150,10 @@ class Stream
     /**
      * Set current X
      *
-     * @param  int $currentX
+     * @param  int|float $currentX
      * @return Stream
      */
-    public function setCurrentX(int $currentX): Stream
+    public function setCurrentX(int|float $currentX): Stream
     {
         $this->currentX = $currentX;
         return $this;
@@ -162,10 +162,10 @@ class Stream
     /**
      * Set current Y
      *
-     * @param  int $currentY
+     * @param  int|float $currentY
      * @return Stream
      */
-    public function setCurrentY(int $currentY): Stream
+    public function setCurrentY(int|float $currentY): Stream
     {
         $this->currentY = $currentY;
         return $this;
@@ -174,9 +174,9 @@ class Stream
     /**
      * Get start X
      *
-     * @return ?int
+     * @return int|float|null
      */
-    public function getStartX(): ?int
+    public function getStartX(): int|float|null
     {
         return $this->startX;
     }
@@ -184,9 +184,9 @@ class Stream
     /**
      * Get start Y
      *
-     * @return ?int
+     * @return int|float|null
      */
-    public function getStartY(): ?int
+    public function getStartY(): int|float|null
     {
         return $this->startY;
     }
@@ -194,9 +194,9 @@ class Stream
     /**
      * Get edge X boundary
      *
-     * @return ?int
+     * @return int|float|null
      */
-    public function getEdgeX(): ?int
+    public function getEdgeX(): int|float|null
     {
         return $this->edgeX;
     }
@@ -204,9 +204,9 @@ class Stream
     /**
      * Get edge Y boundary
      *
-     * @return ?int
+     * @return int|float|null
      */
-    public function getEdgeY(): ?int
+    public function getEdgeY(): int|float|null
     {
         return $this->edgeY;
     }
@@ -214,9 +214,9 @@ class Stream
     /**
      * Get current X
      *
-     * @return ?int
+     * @return int|float|null
      */
-    public function getCurrentX(): ?int
+    public function getCurrentX(): int|float|null
     {
         return $this->currentX;
     }
@@ -224,9 +224,9 @@ class Stream
     /**
      * Get current Y
      *
-     * @return ?int
+     * @return int|float|null
      */
-    public function getCurrentY(): ?int
+    public function getCurrentY(): int|float|null
     {
         return $this->currentY;
     }
@@ -234,11 +234,11 @@ class Stream
     /**
      * Add text to the stream
      *
-     * @param  string $string
-     * @param  ?int   $y
+     * @param  string         $string
+     * @param  int|float|null $y
      * @return Stream
      */
-    public function addText(string $string, ?int $y = null): Stream
+    public function addText(string $string, int|float|null $y = null): Stream
     {
         $this->streams[] = [
             'string' => $string,
