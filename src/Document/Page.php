@@ -126,16 +126,16 @@ class Page extends AbstractPage
     /**
      * Add text to the PDF page
      *
-     * @param  Page\Text $text
-     * @param  string    $font
-     * @param  int       $x
-     * @param  int       $y
+     * @param  Page\Text|string $text
+     * @param  string           $font
+     * @param  int              $x
+     * @param  int              $y
      * @return Page
      */
-    public function addText(Page\Text $text, string $font, int $x = 0, int $y = 0): Page
+    public function addText(Page\Text|string $text, string $font, int $x = 0, int $y = 0): Page
     {
         $this->text[] = [
-            'text' => $text,
+            'text' => (is_string($text)) ? new Page\Text($text) : $text,
             'font' => $font,
             'x'    => $x,
             'y'    => $y

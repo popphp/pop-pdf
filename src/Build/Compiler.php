@@ -317,6 +317,15 @@ class Compiler extends AbstractCompiler
         $pageObject->addContentIndex($contentObject->getIndex());
 
         foreach ($text as $txt) {
+            if ($this->document->hasStyle($txt['font'])) {
+                $style = $this->document->getStyle($txt['font']);
+                if ($style->hasSize()) {
+                    $txt['text']->setSize($style->getSize());
+                }
+                if ($style->hasFont()) {
+                    $txt['font'] = $style->getFont();
+                }
+            }
             if (!isset($this->fontReferences[$txt['font']])) {
                 throw new Exception('Error: The font \'' . $txt['font'] . '\' has not been added to the document.');
             }

@@ -60,6 +60,12 @@ abstract class AbstractDocument implements DocumentInterface
     protected array $fonts = [];
 
     /**
+     * Styles array
+     * @var array
+     */
+    protected array $styles = [];
+
+    /**
      * Forms array
      * @var array
      */
@@ -257,6 +263,73 @@ abstract class AbstractDocument implements DocumentInterface
     public function hasFont(string $font): bool
     {
         return array_key_exists($font, $this->fonts);
+    }
+
+    /**
+     * Get the PDF style objects array
+     *
+     * @return array
+     */
+    public function getStyles(): array
+    {
+        return $this->styles;
+    }
+
+    /**
+     * Get a PDF style object
+     *
+     * @param  string $name
+     * @throws \Pop\Pdf\Exception
+     * @return Style
+     */
+    public function getStyle(string $name): Style
+    {
+        if (!isset($this->styles[$name])) {
+            throw new \Pop\Pdf\Exception("Error: The style '" . $name . "' has not been added to the PDF document.");
+        }
+        return $this->styles[$name];
+    }
+
+    /**
+     * Determine if the document has style objects
+     *
+     * @return bool
+     */
+    public function hasStyles(): bool
+    {
+        return (count($this->styles) > 0);
+    }
+
+    /**
+     * Get available styles that have been added to the PDF document
+     *
+     * @return array
+     */
+    public function getAvailableStyles(): array
+    {
+        return array_keys($this->styles);
+    }
+
+    /**
+     * Determine if a style has been added to the PDF document
+     *
+     * @param  string $style
+     * @return bool
+     */
+    public function isStyleAvailable(string $style): bool
+    {
+        return array_key_exists($style, $this->styles);
+    }
+
+    /**
+     * Determine if a style has been added to the PDF document (alias)
+     *
+     * @param  string $style
+     * @return bool
+     */
+    public function hasStyle(string $style): bool
+    {
+        return array_key_exists($style, $this->styles);
     }
 
     /**

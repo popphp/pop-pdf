@@ -18,6 +18,7 @@ use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Font;
 use Pop\Pdf\Document\Metadata;
 use Pop\Pdf\Document\Exception;
+use Pop\Pdf\Document\Style;
 
 /**
  * Pdf document class
@@ -230,6 +231,37 @@ class Document extends AbstractDocument
                 $this->fonts[$font->parser()->getFontName()] = $font;
                 $this->currentFont = $font->parser()->getFontName();
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Create style
+     *
+     * @param  Style|string $style
+     * @return Document
+     */
+    public function createStyle(Style|string $style, ?string $font = null, int|float|null $size = null): Document
+    {
+        return ($style instanceof Style) ?
+            $this->addStyle($style) : $this->addStyle(new Style($style, $font, $size));
+    }
+
+    /**
+     * Add a style
+     *
+     * @param  Style|string $style
+     * @return Document
+     */
+    public function addStyle(Style|string $style): Document
+    {
+        if (is_string($style)) {
+            $style = new Style($style);
+        }
+
+        if (!array_key_exists($style->getName(), $this->styles)) {
+            $this->styles[$style->getName()] = $style;
         }
 
         return $this;
