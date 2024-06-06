@@ -197,6 +197,23 @@ use Pop\Pdf\Pdf;
 $doc = Pdf::importFromImages($arrayOfImages);
 ```
 
+### Extract Text
+
+If you just want to extract the text from a PDF that contains text (not a PDF comprised of images with text in them),
+you can do so like this:
+
+```php
+use Pop\Pdf\Pdf;
+
+$text = Pdf::extractTextFromFile('path/to/document.pdf');
+```
+
+```php
+use Pop\Pdf\Pdf;
+
+$text = Pdf::extractTextFromData($pdfStream);
+```
+
 [Top](#pop-pdf)
 
 Documents
