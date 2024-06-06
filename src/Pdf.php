@@ -126,24 +126,60 @@ class Pdf
      * Extract text from file
      *
      * @param  string $file
+     * @param  mixed  $pages
      * @param  ?int   $pageLimit
      * @return string
      */
-    public static function extractTextFromFile(string $file, ?int $pageLimit = null): string
+    public static function extractTextFromFile(string $file, mixed $pages = null, ?int $pageLimit = null): string
     {
-        return (new \Smalot\PdfParser\Parser())->parseFile($file)->getText($pageLimit);
+        $parser   = new \Smalot\PdfParser\Parser();
+        $document = $parser->parseFile($file);
+
+        if ($pages !== null) {
+            $text     = '';
+            $pages    = (!is_array($pages)) ? [$pages] : $pages;
+            $docPages = $document->getPages();
+
+            foreach ($docPages as $i => $docPage) {
+                if (in_array(($i + 1), $pages)) {
+                    $text .= $docPage->getText();
+                }
+            }
+        } else {
+            $text = $document->getText($pageLimit);
+        }
+
+        return $text;
     }
 
     /**
      * Extract text from raw data stream
      *
      * @param  string $data
+     * @param  mixed  $pages
      * @param  ?int   $pageLimit
      * @return string
      */
-    public static function extractTextFromData(string $data, ?int $pageLimit = null): string
+    public static function extractTextFromData(string $data, mixed $pages = null, ?int $pageLimit = null): string
     {
-        return (new \Smalot\PdfParser\Parser())->parseContent($data)->getText($pageLimit);
+        $parser   = new \Smalot\PdfParser\Parser();
+        $document = $parser->parseContent($data);
+
+        if ($pages !== null) {
+            $text     = '';
+            $pages    = (!is_array($pages)) ? [$pages] : $pages;
+            $docPages = $document->getPages();
+
+            foreach ($docPages as $i => $docPage) {
+                if (in_array(($i + 1), $pages)) {
+                    $text .= $docPage->getText();
+                }
+            }
+        } else {
+            $text = $document->getText($pageLimit);
+        }
+
+        return $text;
     }
 
 }

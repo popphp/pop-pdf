@@ -16,6 +16,7 @@ pop-pdf
     - [Import from File](#import-from-file)
     - [Import from Raw Data](#import-from-raw-data)
     - [Import from Images](#import-from-images)
+    - [Extract Text](#extract-text)
 * [Documents](#documents)
     - [Compression](#compression)
     - [Page Origin](#page-origin)

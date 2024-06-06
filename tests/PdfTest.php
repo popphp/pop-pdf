@@ -29,7 +29,7 @@ class PdfTest extends TestCase
         $doc = Pdf\Pdf::importFromImages(__DIR__ . '/tmp/images/logo-BAD.jpg');
     }
 
-    public function testExtractTextFromFile()
+    public function testExtractTextFromFile1()
     {
         $text = Pdf\Pdf::extractTextFromFile(__DIR__ . '/tmp/test-extract.pdf');
         $this->assertStringContainsString('Hello World!', $text);
@@ -39,9 +39,29 @@ class PdfTest extends TestCase
         $this->assertStringContainsString('Thanks for stopping by!', $text);
     }
 
-    public function testExtractTextFromData()
+    public function testExtractTextFromFile2()
+    {
+        $text = Pdf\Pdf::extractTextFromFile(__DIR__ . '/tmp/test-extract.pdf', 1);
+        $this->assertStringContainsString('Hello World!', $text);
+        $this->assertStringContainsString('Lorem ipsum dolor', $text);
+        $this->assertStringContainsString('Aliquet lectus proin', $text);
+        $this->assertStringContainsString('Pharetra convallis posuere', $text);
+        $this->assertStringContainsString('Thanks for stopping by!', $text);
+    }
+
+    public function testExtractTextFromData1()
     {
         $text = Pdf\Pdf::extractTextFromData(file_get_contents(__DIR__ . '/tmp/test-extract.pdf'));
+        $this->assertStringContainsString('Hello World!', $text);
+        $this->assertStringContainsString('Lorem ipsum dolor', $text);
+        $this->assertStringContainsString('Aliquet lectus proin', $text);
+        $this->assertStringContainsString('Pharetra convallis posuere', $text);
+        $this->assertStringContainsString('Thanks for stopping by!', $text);
+    }
+
+    public function testExtractTextFromData2()
+    {
+        $text = Pdf\Pdf::extractTextFromData(file_get_contents(__DIR__ . '/tmp/test-extract.pdf'), 1);
         $this->assertStringContainsString('Hello World!', $text);
         $this->assertStringContainsString('Lorem ipsum dolor', $text);
         $this->assertStringContainsString('Aliquet lectus proin', $text);
