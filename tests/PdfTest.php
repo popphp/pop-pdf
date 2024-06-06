@@ -29,6 +29,26 @@ class PdfTest extends TestCase
         $doc = Pdf\Pdf::importFromImages(__DIR__ . '/tmp/images/logo-BAD.jpg');
     }
 
+    public function testExtractTextFromFile()
+    {
+        $text = Pdf\Pdf::extractTextFromFile(__DIR__ . '/tmp/test-extract.pdf');
+        $this->assertStringContainsString('Hello World!', $text);
+        $this->assertStringContainsString('Lorem ipsum dolor', $text);
+        $this->assertStringContainsString('Aliquet lectus proin', $text);
+        $this->assertStringContainsString('Pharetra convallis posuere', $text);
+        $this->assertStringContainsString('Thanks for stopping by!', $text);
+    }
+
+    public function testExtractTextFromData()
+    {
+        $text = Pdf\Pdf::extractTextFromData(file_get_contents(__DIR__ . '/tmp/test-extract.pdf'));
+        $this->assertStringContainsString('Hello World!', $text);
+        $this->assertStringContainsString('Lorem ipsum dolor', $text);
+        $this->assertStringContainsString('Aliquet lectus proin', $text);
+        $this->assertStringContainsString('Pharetra convallis posuere', $text);
+        $this->assertStringContainsString('Thanks for stopping by!', $text);
+    }
+
     public function testWriteToFile()
     {
         $doc = Pdf\Pdf::importFromFile(__DIR__ . '/tmp/doc.pdf', 1);

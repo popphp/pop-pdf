@@ -27,6 +27,7 @@
         "popphp/pop-css" : "^2.0.0",
         "popphp/pop-dom" : "^4.0.0",
         "popphp/pop-utils" : "^2.1.0",
+        "smalot/pdfparser" : "^2.10.0",
         "ext-gd": "*",
         "ext-iconv": "*",
         "ext-mbstring": "*",
@@ -50,7 +51,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "5.0.x-dev"
+            "dev-master": "5.2.x-dev"
         }
     }
 }

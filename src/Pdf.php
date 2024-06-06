@@ -122,4 +122,28 @@ class Pdf
         return $document;
     }
 
+    /**
+     * Extract text from file
+     *
+     * @param  string $file
+     * @param  ?int   $pageLimit
+     * @return string
+     */
+    public static function extractTextFromFile(string $file, ?int $pageLimit = null): string
+    {
+        return (new \Smalot\PdfParser\Parser())->parseFile($file)->getText($pageLimit);
+    }
+
+    /**
+     * Extract text from raw data stream
+     *
+     * @param  string $data
+     * @param  ?int   $pageLimit
+     * @return string
+     */
+    public static function extractTextFromData(string $data, ?int $pageLimit = null): string
+    {
+        return (new \Smalot\PdfParser\Parser())->parseContent($data)->getText($pageLimit);
+    }
+
 }
