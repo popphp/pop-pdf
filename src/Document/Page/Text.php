@@ -64,7 +64,7 @@ class Text
      * Text stroke color
      * @var ?ColorInterface
      */
-    protected ?ColorInterface$strokeColor = null;
+    protected ?ColorInterface $strokeColor = null;
 
     /**
      * Text stroke
