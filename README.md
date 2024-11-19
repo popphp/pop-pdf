@@ -4,7 +4,6 @@ pop-pdf
 [![Build Status](https://github.com/popphp/pop-pdf/workflows/phpunit/badge.svg)](https://github.com/popphp/pop-pdf/actions)
 [![Coverage Status](http://cc.popphp.org/coverage.php?comp=pop-pdf)](http://cc.popphp.org/pop-pdf/)
 
-[![Join the chat at https://popphp.slack.com](https://media.popphp.org/img/slack.svg)](https://popphp.slack.com)
 [![Join the chat at https://discord.gg/TZjgT74U7E](https://media.popphp.org/img/discord.svg)](https://discord.gg/TZjgT74U7E)
 
 * [Overview](#overview)
@@ -43,7 +42,7 @@ Pop PDF is a robust PDF processing component that's simple to use. With it, you 
 PDF documents from scratch, or import existing ones and add to or modify them. It supports
 embedding images, fonts and URLs, as well as a set of drawing, effect and type features.
 
-`pop-pdf` is a component of the [Pop PHP Framework](http://www.popphp.org/).
+`pop-pdf` is a component of the [Pop PHP Framework](https://www.popphp.org/).
 
 [Top](#pop-pdf)
 
@@ -57,7 +56,7 @@ Install `pop-pdf` using Composer.
 Or, require it in your composer.json file
 
     "require": {
-        "popphp/pop-pdf" : "^5.0.0"
+        "popphp/pop-pdf" : "^5.2.0"
     }
 
 [Top](#pop-pdf)
