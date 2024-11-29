@@ -23,18 +23,20 @@
     ],
     "require": {
         "php": ">=8.1.0",
-        "popphp/pop-color" : "^1.0.0",
-        "popphp/pop-css" : "^2.0.0",
-        "popphp/pop-dom" : "^4.0.3",
-        "popphp/pop-utils" : "^2.1.2",
-        "smalot/pdfparser" : "^2.10.0",
-        "ext-gd": "*",
-        "ext-iconv": "*",
-        "ext-mbstring": "*",
-        "ext-zlib": "*"
+        "popphp/pop-color" : "^1.0.1",
+        "popphp/pop-css" : "^2.0.1",
+        "popphp/pop-dom" : "^4.0.4",
+        "popphp/pop-utils" : "^2.1.3",
+        "smalot/pdfparser" : "^2.10.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0.0"
+    },
+    "suggest": {
+        "ext-gd": "For added images to PDFs",
+        "ext-iconv": "For string conversion",
+        "ext-mbstring": "For working with multi-byte string",
+        "ext-zlib": "For compression"
     },
     "autoload": {
         "psr-4": {

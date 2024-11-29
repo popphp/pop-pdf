@@ -23,7 +23,7 @@ use Pop\Utils\ArrayObject as Data;
  * @author     Nick Sagona, III <dev@noladev.com>
  * @copyright  Copyright (c) 2009-2025 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.0
+ * @version    5.2.1
  */
 class Type1 extends AbstractFont
 {
