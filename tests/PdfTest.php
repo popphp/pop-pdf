@@ -77,9 +77,7 @@ class PdfTest extends TestCase
         unlink(__DIR__ . '/tmp/mytest.pdf');
     }
 
-    /**
-     * @runInSeparateProcess
-     */
+    #[runInSeparateProcess]
     public function testOutputToHttp()
     {
         $pdf = new Pdf\Pdf();
@@ -92,9 +90,7 @@ class PdfTest extends TestCase
         $this->assertStringContainsString('%PDF', $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     */
+    #[runInSeparateProcess]
     public function testToString()
     {
         $doc = Pdf\Pdf::importFromFile(__DIR__ . '/tmp/doc.pdf', 1);
