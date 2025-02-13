@@ -22,7 +22,7 @@
         }
     ],
     "require": {
-        "php": ">=8.1.0",
+        "php": ">=8.2.0",
         "popphp/pop-color" : "^1.0.2",
         "popphp/pop-css" : "^2.0.2",
         "popphp/pop-dom" : "^4.0.5",
