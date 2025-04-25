@@ -294,8 +294,8 @@ class StreamObject extends AbstractObject
      */
     public function __toString()
     {
-        // Set the stream.
-        $stream = (null !== $this->stream) ? "stream" . $this->stream . "endstream\n" : '';
+        // Set the stream, adding linefeed
+        $stream = (null !== $this->stream) ? "stream" . $this->stream . "\nendstream\n" : '';
 
         // Set up the Length definition.
         if ((strpos((string)$this->definition, '/Length ') !== false) && (strpos((string)$this->definition, '/Length1') === false) &&
