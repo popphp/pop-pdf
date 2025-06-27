@@ -156,8 +156,12 @@ class Compiler extends AbstractCompiler
         $numObjs       = count($this->objects) + 1;
         $this->trailer = "xref\n0 {$numObjs}\n0000000000 65535 f \n";
 
-        $this->byteLength += $this->calculateByteLength($this->root);
+        // Intial Length is the length of the version string
+        $this->byteLength = 9;
         $this->trailer    .= $this->formatByteLength($this->byteLength) . " 00000 n \n";
+
+        // New Length is the distance to the second object
+        $this->byteLength = $this->calculateByteLength($this->root);
 
         $this->output .= $this->root;
 
@@ -169,15 +173,15 @@ class Compiler extends AbstractCompiler
                     (!$object->isEncoded() && !$object->isImported() && (stripos((string)$object->getDefinition(), '/length') === false))) {
                     $object->encode();
                 }
-                $this->byteLength += $this->calculateByteLength($object);
                 $this->trailer    .= $this->formatByteLength($this->byteLength) . " 00000 n \n";
                 $this->output     .= $object;
+                $this->byteLength += $this->calculateByteLength($object);
             }
         }
 
         // Finalize the trailer.
         $this->trailer .= "trailer\n<</Size {$numObjs}/Root " . $this->root->getIndex() . " 0 R/Info " .
-            $this->info->getIndex() . " 0 R>>\nstartxref\n" . ($this->byteLength + 68) . "\n%%EOF";
+            $this->info->getIndex() . " 0 R>>\nstartxref\n" . ($this->byteLength) . "\n%%EOF";
 
         // Append the trailer to the final output.
         $this->output .= $this->trailer;
