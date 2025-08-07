@@ -126,11 +126,12 @@ class Text
      *
      * @param ?string $string
      * @param ?string $size
+     * @param bool    $escape
      */
-    public function __construct(?string $string = null, ?string $size = null)
+    public function __construct(?string $string = null, ?string $size = null, bool $escape = true)
     {
         if ($string !== null) {
-            $this->setString($string);
+            $this->setString($string, $escape);
         }
         if ($size !== null) {
             $this->setSize($size);
@@ -141,16 +142,19 @@ class Text
      * Set the text string
      *
      * @param  string $string
+     * @param  bool   $escape
      * @return Text
      */
-    public function setString(string $string): Text
+    public function setString(string $string, bool $escape = true): Text
     {
         if (function_exists('mb_strlen')) {
             if (mb_strlen($string, 'UTF-8') < strlen($string)) {
                 $string = mb_convert_encoding($string, 'UTF-8', mb_detect_encoding($string));
             }
         }
-        $this->string = $string;
+
+        $this->string = ($escape) ? $this->escape($string) : $string;
+
         return $this;
     }
 
@@ -158,20 +162,24 @@ class Text
      * Set the text strings
      *
      * @param  array $strings
+     * @param  bool  $excape
      * @return Text
      */
-    public function setStrings(array $strings): Text
+    public function setStrings(array $strings, bool $escape = true): Text
     {
         if (function_exists('mb_strlen')) {
-            $strings = array_map(function($value) {
+            $strings = array_map(function($value) use ($escape) {
                 if ($value instanceof Text) {
                     $v = $value->getString();
                     if (mb_strlen($v, 'UTF-8') < strlen($v)) {
                         return mb_convert_encoding($v, 'UTF-8', mb_detect_encoding($v));
                     }
-                    $value->setString($v);
+                    $value->setString($v, $escape);
                 } else if (mb_strlen($value, 'UTF-8') < strlen($value)) {
                     $value = mb_convert_encoding($value, 'UTF-8', mb_detect_encoding($value));
+                    if ($escape) {
+                        $value = $this->escape($value);
+                    }
                 }
                 return $value;
             }, $strings);
@@ -349,28 +357,18 @@ class Text
     /**
      * Escape string
      *
-     * @param  mixed $search
-     * @param  mixed $replace
-     * @return Text
+     * @param  string $subject
+     * @param  mixed  $search
+     * @param  mixed  $replace
+     * @return string
      */
-    public function escape(mixed $search = null, mixed $replace = null): Text
+    public function escape(string $subject, mixed $search  = null, mixed $replace = null): string
     {
-        $searchAry  = ['(', ')'];
-        $replaceAry = ['\(', '\)'];
-
-        if (($search !== null) && ($replace !== null)) {
-            if (!is_array($search)) {
-                $search = [$search];
-            }
-            if (!is_array($replace)) {
-                $replace = [$replace];
-            }
-            $searchAry  = array_merge($searchAry, $search);
-            $replaceAry = array_merge($replaceAry, $replace);
+        if (($search === null) && ($replace === null)) {
+            $search  = ["\\", '(', ')', "\n", "\r", "\t", "\b", "\f"];
+            $replace = ["\\\\", '\(', '\)', "\\n", "\\r", "\\t", "\\b", "\\f"];
         }
-
-        $this->string = str_replace($searchAry, $replaceAry, $this->string);
-        return $this;
+        return str_replace($search, $replace, $subject);
     }
 
     /**

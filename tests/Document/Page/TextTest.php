@@ -41,9 +41,8 @@ class TextTest extends TestCase
 
     public function testEscape()
     {
-        $text = new Text("Testing (Hello World) What's up!", 12);
-        $text->escape("'", "");
-        $this->assertEquals("Testing \(Hello World\) Whats up!", $text->getString());
+        $text = new Text("Testing (Hello World) What's up\n Man!", 12);
+        $this->assertEquals("Testing \(Hello World\) What's up\\n Man!", $text->getString());
     }
 
     public function testAddStringWithOffset()
