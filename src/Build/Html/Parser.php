@@ -582,12 +582,12 @@ class Parser
         $htmlNodes = $this->prepare();
 
         if ($htmlNodes instanceof Child) {
-            foreach ($htmlNodes->getChildNodes() as $child) {
-                $this->addNodeToDocument($child);
+            foreach ($htmlNodes->getChildNodes() as $i => $child) {
+                $this->addNodeToDocument($child, $i);
             }
         } else {
-            foreach ($htmlNodes as $child) {
-                $this->addNodeToDocument($child);
+            foreach ($htmlNodes as $i => $child) {
+                $this->addNodeToDocument($child, $i);
             }
         }
 
@@ -597,11 +597,12 @@ class Parser
     /**
      * Add node to document
      *
-     * @param Child $child
+     * @param  Child $child
+     * @param  int   $i
      * @throws Exception|\Pop\Pdf\Exception
      * @return void
      */
-    protected function addNodeToDocument(Child $child): void
+    protected function addNodeToDocument(Child $child, int $i = 0): void
     {
         $styles   = $this->prepareNodeStyles($child->getNodeName(), $child->getAttributes());
         $currentX = $this->getCurrentX();
@@ -610,7 +611,7 @@ class Parser
             $currentY        = $this->yOverride;
             $this->yOverride = null;
         } else {
-            $currentY = $this->getCurrentY();
+            $currentY = $this->getCurrentY(($i != 0) ? $styles['marginBottom'] ?? 0 : 0);
         }
 
         $wrapLength = ($this->x > $this->pageMargins['left']) ?
@@ -810,8 +811,11 @@ class Parser
                 new Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2])
             );
             $streamY = $styles['lineHeight'] ?? null;
-            $textStream->addText($child->getNodeValue(), $streamY);
+            if (!empty($child->getNodeValue())) {
+                $textStream->addText($child->getNodeValue(), $streamY);
+            }
 
+            $childTextStreams = [];
             if ($child->hasChildNodes()) {
                 foreach ($child->getChildNodes() as $grandChild) {
                     $gcStyles = $this->prepareNodeStyles($grandChild->getNodeName(), $grandChild->getAttributes(), $styles);
@@ -821,11 +825,18 @@ class Parser
                         new Color\Rgb($gcStyles['color'][0], $gcStyles['color'][1], $gcStyles['color'][2])
                     );
                     $streamY = $gcStyles['lineHeight'] ?? null;
-                    $textStream->addText($grandChild->getNodeValue(), $streamY);
+                    if (!empty($grandChild->getNodeValue())) {
+                        $textStream->addText($grandChild->getNodeValue(), $streamY, ($grandChild->getNodeName() == 'br'));
+                    }
                 }
             }
 
             $this->page->addTextStream($textStream);
+            if (!empty($childTextStreams)) {
+                foreach ($childTextStreams as $childTextStream) {
+                    $this->page->addTextStream($childTextStream);
+                }
+            }
 
             $orphanStream = clone $textStream;
             $hasOrphans   = false;
@@ -1330,9 +1341,10 @@ class Parser
     /**
      * Get current Y-position
      *
+     * @param  int $marginBottom
      * @return int
      */
-    protected function getCurrentY(): int
+    protected function getCurrentY($marginBottom = 0): int
     {
         if (!($this->document->hasPages())) {
             $this->page = (is_array($this->pageSize)) ?
@@ -1342,7 +1354,7 @@ class Parser
             $this->page = $this->document->getPage($this->document->getCurrentPage());
         }
 
-        $currentY = $this->page->getHeight() - $this->pageMargins['top'] - $this->y;
+        $currentY = $this->page->getHeight() - $this->pageMargins['top'] - $this->y - $marginBottom;
 
         if ($currentY <= $this->pageMargins['bottom']) {
             $this->page = (is_array($this->pageSize)) ?

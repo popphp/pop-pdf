@@ -389,8 +389,15 @@ class Compiler extends AbstractCompiler
         $this->objects[$contentObject->getIndex()] = $contentObject;
         $pageObject->addContentIndex($contentObject->getIndex());
 
+        $curY = null;
+
         foreach ($textStreams as $txt) {
-            $contentObject->appendStream($txt->getStream($this->fonts, $this->fontReferences));
+            if (($curY !== null) && ($txt->getStartY() > $curY)) {
+                $txt->setStartY($curY - (($txt->getTextStreams()[0]['y'] ?? 12) * 2));
+            }
+            $stream = $txt->getStream($this->fonts, $this->fontReferences);
+            $curY   = $txt->getCurrentY();
+            $contentObject->appendStream($stream);
         }
     }
 

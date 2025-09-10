@@ -236,13 +236,15 @@ class Stream
      *
      * @param  string         $string
      * @param  int|float|null $y
+     * @param  bool           $newLine
      * @return Stream
      */
-    public function addText(string $string, int|float|null $y = null): Stream
+    public function addText(string $string, int|float|null $y = null, bool $newLine = false): Stream
     {
         $this->streams[] = [
-            'string' => $string,
-            'y'      => $y
+            'string'  => $string,
+            'y'       => $y,
+            'newLine' => $newLine,
         ];
 
         return $this;
@@ -354,10 +356,19 @@ class Stream
             if (isset($this->styles[$i]) && !empty($this->styles[$i]['color'])) {
                 $stream .= $this->getColorStream($this->styles[$i]['color']);
             }
+
+            if ($str['newLine']) {
+                $nextY             = ($str['y'] !== null) ? $str['y'] : $fontSize;
+                $stream           .= "    0 -" . $nextY . " Td\n";
+                $this->currentX    = $this->startX;
+                $this->currentY   -= $nextY;
+            }
+
             $curString = explode(' ', $str['string']);
 
             foreach ($curString as $j => $string) {
-                if (($this->edgeX !== null) && ($this->currentX >= $this->edgeX)) {
+                $newX = $this->currentX + $curFont->getStringWidth($string, $fontSize);
+                if (($this->edgeX !== null) && (($this->currentX >= $this->edgeX) || ($newX >= $this->edgeX))) {
                     $nextY             = ($str['y'] !== null) ? $str['y'] : $fontSize;
                     $stream           .= "    0 -" . $nextY . " Td\n";
                     $this->currentX    = $this->startX;
