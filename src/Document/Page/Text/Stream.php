@@ -256,15 +256,17 @@ class Stream
      * @param  string                $font
      * @param  int                   $size
      * @param  ?Color\ColorInterface $color
+     * @param  ?string               $align
      * @return Stream
      */
-    public function setCurrentStyle(string $font, int $size, ?Color\ColorInterface $color = null): Stream
+    public function setCurrentStyle(string $font, int $size, ?Color\ColorInterface $color = null, ?string $align = null): Stream
     {
         $key = (!empty($this->streams)) ? count($this->streams) : 0;
         $this->styles[$key] = [
             'font'  => $font,
             'size'  => $size,
-            'color' => $color
+            'color' => $color,
+            'align' => $align,
         ];
 
         return $this;
@@ -291,11 +293,13 @@ class Stream
         $currentFont  = 'Arial';
         $currentSize  = 10;
         $currentColor = new Color\Rgb(0, 0, 0);
+        $currentAlign = null;
 
         if (isset($this->styles[0])) {
             $currentFont  = $this->styles[0]['font'] ?? 'Arial';
             $currentSize  = $this->styles[0]['size'] ?? 10;
             $currentColor = $this->styles[0]['color'] ?? new Color\Rgb(0, 0, 0);
+            $currentAlign = $this->styles[0]['align'] ?? null;
         }
 
         foreach ($streams as $i => $stream) {
@@ -303,10 +307,12 @@ class Stream
                 $currentFont  = $this->styles[$i]['font'] ?? $currentFont;
                 $currentSize  = $this->styles[$i]['size'] ?? $currentSize;
                 $currentColor = $this->styles[$i]['color'] ?? $currentColor;
+                $currentAlign = $this->styles[$i]['align'] ?? $currentAlign;
             }
             $streams[$i]['font']  = $currentFont;
             $streams[$i]['size']  = $currentSize;
             $streams[$i]['color'] = $currentColor;
+            $streams[$i]['align'] = $currentAlign;
         }
 
         return $streams;
@@ -343,60 +349,79 @@ class Stream
             }
         }
 
-        $stream  = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$this->currentX} {$this->currentY} Tm\n    0 Tc 0 Tw 0 Tr\n";
+        $firstStringWidth = null;
+        if (count($this->streams) == 1) {
+            $fontName         = $this->styles[0]['font'];
+            $fontReference    = substr($fontReferences[$fontName], 0, strpos($fontReferences[$fontName], ' '));
+            $fontSize         = (!empty($this->styles[0]['size'])) ? $this->styles[0]['size'] : $fontSize;
+            $curFont          = $fonts[$fontName] ?? null;
+            $firstStringWidth = $curFont->getStringWidth($this->streams[0]['string'], $fontSize);
+        }
 
-        foreach ($this->streams as $i => $str) {
-            if (isset($this->styles[$i]) && !empty($this->styles[$i]['font']) && isset($fontReferences[$this->styles[$i]['font']])) {
-                $fontName      = $this->styles[$i]['font'];
-                $fontReference = substr($fontReferences[$fontName], 0, strpos($fontReferences[$fontName], ' '));
-                $fontSize      = (!empty($this->styles[$i]['size'])) ? $this->styles[$i]['size'] : $fontSize;
-                $curFont       = $fonts[$fontName] ?? null;
-                $stream       .= "    {$fontReference} {$fontSize} Tf\n";
-            }
-            if (isset($this->styles[$i]) && !empty($this->styles[$i]['color'])) {
-                $stream .= $this->getColorStream($this->styles[$i]['color']);
-            }
+        if (($firstStringWidth !== null) && isset($style['align']) && ($style['align'] == 'center') && ($firstStringWidth <= $this->edgeX - $this->startX)) {
+            $centerX = ($this->currentX + $this->edgeX - $this->startX - $firstStringWidth) / 2;
+            $stream  = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$centerX} {$this->currentY} Tm\n    0 Tc 0 Tw 0 Tr\n";
+            $stream .= "    {$fontReference} {$fontSize} Tf\n";
+            $stream .= "    (" . $this->streams[0]['string'] . ")Tj\n";
+        } else {
+            $stream  = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$this->currentX} {$this->currentY} Tm\n    0 Tc 0 Tw 0 Tr\n";
 
-            if ($str['newLine']) {
-                $nextY             = ($str['y'] !== null) ? $str['y'] : $fontSize;
-                $stream           .= "    0 -" . $nextY . " Td\n";
-                $this->currentX    = $this->startX;
-                $this->currentY   -= $nextY;
-            }
+            foreach ($this->streams as $i => $str) {
+                if (isset($this->styles[$i]) && !empty($this->styles[$i]['font']) && isset($fontReferences[$this->styles[$i]['font']])) {
+                    $fontName      = $this->styles[$i]['font'];
+                    $fontReference = substr($fontReferences[$fontName], 0, strpos($fontReferences[$fontName], ' '));
+                    $fontSize      = (!empty($this->styles[$i]['size'])) ? $this->styles[$i]['size'] : $fontSize;
+                    $curFont       = $fonts[$fontName] ?? null;
+                    $stream       .= "    {$fontReference} {$fontSize} Tf\n";
+                }
+                if (isset($this->styles[$i]) && !empty($this->styles[$i]['color'])) {
+                    $stream .= $this->getColorStream($this->styles[$i]['color']);
+                }
 
-            $curString = explode(' ', $str['string']);
-
-            foreach ($curString as $j => $string) {
-                $newX = $this->currentX + $curFont->getStringWidth($string, $fontSize);
-                if (($this->edgeX !== null) && (($this->currentX >= $this->edgeX) || ($newX >= $this->edgeX))) {
+                if ($str['newLine']) {
                     $nextY             = ($str['y'] !== null) ? $str['y'] : $fontSize;
                     $stream           .= "    0 -" . $nextY . " Td\n";
                     $this->currentX    = $this->startX;
                     $this->currentY   -= $nextY;
-                    if (($this->edgeY !== null) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
-                        break;
-                    }
                 }
 
-                if (!isset($curString[$j + 1])) {
-                    if (isset($this->streams[$i + 1]) &&
-                        preg_match('/[a-zA-Z0-9]/', substr($this->streams[$i + 1]['string'], 0, 1))) {
+                $curString = explode(' ', $str['string']);
+
+                foreach ($curString as $j => $string) {
+                    $newX = $this->currentX + $curFont->getStringWidth($string, $fontSize);
+                    if (($this->edgeX !== null) && (($this->currentX >= $this->edgeX) || ($newX >= $this->edgeX))) {
+                        $nextY             = ($str['y'] !== null) ? $str['y'] : $fontSize;
+                        $stream           .= "    0 -" . $nextY . " Td\n";
+                        $this->currentX    = $this->startX;
+                        $this->currentY   -= $nextY;
+                        if (($this->edgeY !== null) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
+                            break;
+                        }
+                    }
+
+                    if (!isset($curString[$j + 1])) {
+                        if (isset($this->streams[$i + 1]) &&
+                            preg_match('/[a-zA-Z0-9]/', substr($this->streams[$i + 1]['string'], 0, 1))) {
+                            $string .= ' ';
+                        }
+                    } else {
                         $string .= ' ';
                     }
-                } else {
-                    $string .= ' ';
-                }
 
-                $stream .= "    (" . $string . ")Tj\n";
-                if ($curFont !== null) {
-                    $this->currentX += $curFont->getStringWidth($string, $fontSize);
+                    $stream .= "    (" . $string . ")Tj\n";
+                    if ($curFont !== null) {
+                        $this->currentX += $curFont->getStringWidth($string, $fontSize);
+                    }
                 }
-            }
-            if (($this->edgeY !== null) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
-                $this->orphanIndex = (isset($j)) ? [$i, $j] : [$i, 0];
-                break;
+                if (($this->edgeY !== null) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
+                    $this->orphanIndex = (isset($j)) ? [$i, $j] : [$i, 0];
+                    break;
+                }
             }
         }
+
+
+
 
         $stream .= "ET\n";
 

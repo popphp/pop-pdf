@@ -808,7 +808,8 @@ class Parser
             $textStream->setCurrentStyle(
                 $styles['currentFont'],
                 $styles['fontSize'],
-                new Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2])
+                new Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2]),
+                $styles['textAlign']
             );
             $streamY = $styles['lineHeight'] ?? null;
             if (!empty($child->getNodeValue())) {
@@ -1041,7 +1042,8 @@ class Parser
             'marginBottom'  => 0,
             'paddingBottom' => 0,
             'marginLeft'    => 0,
-            'paddingLeft'   => 0
+            'paddingLeft'   => 0,
+            'textAlign'     => null
         ];
 
         if (in_array($name, ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])) {
@@ -1125,6 +1127,9 @@ class Parser
             if ((int)$this->css[$name]['padding-left'] > 0) {
                 $styles['paddingLeft'] = (int)$this->css[$name]['padding-left'];
             }
+            if ($this->css[$name]->hasProperty('text-align')) {
+                $styles['textAlign'] = $this->css[$name]['text-align'];
+            }
         }
 
         if (isset($attribs['id']) && $this->css->hasSelector('#' . $attribs['id'])) {
@@ -1180,6 +1185,9 @@ class Parser
             if ((int)$this->css['#' . $attribs['id']]['padding-left'] > 0) {
                 $styles['paddingLeft'] = (int)$this->css['#' . $attribs['id']]['padding-left'];
             }
+            if ($this->css['#' . $attribs['id']]->hasProperty('text-align')) {
+                $styles['textAlign'] = $this->css['#' . $attribs['id']]['text-align'];
+            }
         }
 
         if (isset($attribs['class']) && $this->css->hasSelector('.' . $attribs['class'])) {
@@ -1234,6 +1242,9 @@ class Parser
             }
             if ((int)$this->css['.' . $attribs['class']]['padding-left'] > 0) {
                 $styles['paddingLeft'] = (int)$this->css['.' . $attribs['class']]['padding-left'];
+            }
+            if ($this->css['.' . $attribs['class']]->hasProperty('text-align')) {
+                $styles['textAlign'] = $this->css['.' . $attribs['class']]['text-align'];
             }
         }
 
