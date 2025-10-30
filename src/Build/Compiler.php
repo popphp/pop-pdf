@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2025 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -22,9 +22,9 @@ use Pop\Pdf\Document\Page\Text;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2025 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.2
+ * @version    5.2.3
  */
 class Compiler extends AbstractCompiler
 {
@@ -90,7 +90,7 @@ class Compiler extends AbstractCompiler
      * @throws Exception
      * @return void
      */
-    public function finalize(Document\AbstractDocument $document = null): void
+    public function finalize(?Document\AbstractDocument $document = null): void
     {
         if ($document !== null) {
             $this->setDocument($document);

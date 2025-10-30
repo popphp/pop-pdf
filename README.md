@@ -56,7 +56,7 @@ Install `pop-pdf` using Composer.
 Or, require it in your composer.json file
 
     "require": {
-        "popphp/pop-pdf" : "^5.2.2"
+        "popphp/pop-pdf" : "^5.2.3"
     }
 
 [Top](#pop-pdf)
