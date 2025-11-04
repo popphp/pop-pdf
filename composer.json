@@ -23,9 +23,9 @@
     ],
     "require": {
         "php": ">=8.3.0",
-        "popphp/pop-color" : "^1.0.2",
-        "popphp/pop-css" : "^2.0.2",
-        "popphp/pop-dom" : "^4.0.5",
+        "popphp/pop-color" : "^1.0.3",
+        "popphp/pop-css" : "^2.0.3",
+        "popphp/pop-dom" : "^4.0.7",
         "popphp/pop-utils" : "^2.3.0",
         "smalot/pdfparser" : "^2.11.0"
     },
