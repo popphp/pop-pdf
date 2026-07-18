@@ -37,11 +37,11 @@ class Url extends AbstractAnnotation
      *
      * Instantiate a PDF URL annotation object.
      *
-     * @param  int    $width
-     * @param  int    $height
-     * @param  string $url
+     * @param  int|float $width
+     * @param  int|float $height
+     * @param  string    $url
      */
-    public function __construct(int $width, int $height, string $url)
+    public function __construct(int|float $width, int|float $height, string $url)
     {
         parent::__construct($width, $height);
         $this->setUrl($url);
@@ -72,12 +72,12 @@ class Url extends AbstractAnnotation
     /**
      * Get the annotation stream
      *
-     * @param  int $i
-     * @param  int $x
-     * @param  int $y
+     * @param  int       $i
+     * @param  int|float $x
+     * @param  int|float $y
      * @return string
      */
-    public function getStream(int $i, int $x, int $y): string
+    public function getStream(int $i, int|float $x, int|float $y): string
     {
         // Assemble the border parameters
         $border = $this->hRadius . ' ' . $this->vRadius . ' ' . $this->borderWidth;

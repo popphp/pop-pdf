@@ -28,55 +28,55 @@ abstract class AbstractAnnotation implements AnnotationInterface
 
     /**
      * Annotation width
-     * @var int
+     * $var int|float
      */
-    protected int $width = 0;
+    protected int|float $width = 0;
 
     /**
      * Annotation height
-     * @var int
+     * $var int|float
      */
-    protected int $height = 0;
+    protected int|float $height = 0;
 
     /**
      * Horizontal border radius
-     * @var int
+     * $var int|float
      */
-    protected int $hRadius = 0;
+    protected int|float $hRadius = 0;
 
     /**
      * Vertical border radius
-     * @var int
+     * $var int|float
      */
-    protected int $vRadius = 0;
+    protected int|float $vRadius = 0;
 
     /**
      * Border width
-     * @var int
+     * $var int|float
      */
-    protected int $borderWidth = 0;
+    protected int|float $borderWidth = 0;
 
     /**
      * Border dash length
-     * @var int
+     * $var int|float
      */
-    protected int $dashLength = 0;
+    protected int|float $dashLength = 0;
 
     /**
      * Border dash gap
-     * @var int
+     * $var int|float
      */
-    protected int $dashGap = 0;
+    protected int|float $dashGap = 0;
 
     /**
      * Constructor
      *
      * Instantiate a PDF annotation object.
      *
-     * @param  int $width
-     * @param  int $height
+     * @param  int|float $width
+     * @param  int|float $height
      */
-    public function __construct(int $width, int $height)
+    public function __construct(int|float $width, int|float $height)
     {
         $this->setWidth($width);
         $this->setHeight($height);
@@ -85,10 +85,10 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Set the width
      *
-     * @param  int $width
+     * @param  int|float $width
      * @return AbstractAnnotation
      */
-    public function setWidth(int $width): AbstractAnnotation
+    public function setWidth(int|float $width): AbstractAnnotation
     {
         $this->width = $width;
         return $this;
@@ -97,10 +97,10 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Set the height
      *
-     * @param  int $height
+     * @param  int|float $height
      * @return AbstractAnnotation
      */
-    public function setHeight(int $height): AbstractAnnotation
+    public function setHeight(int|float $height): AbstractAnnotation
     {
         $this->height = $height;
         return $this;
@@ -109,10 +109,10 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Set the horizontal border radius
      *
-     * @param  int $radius
+     * @param  int|float $radius
      * @return AbstractAnnotation
      */
-    public function setHRadius(int $radius): AbstractAnnotation
+    public function setHRadius(int|float $radius): AbstractAnnotation
     {
         $this->hRadius = $radius;
         return $this;
@@ -121,10 +121,10 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Set the vertical border radius
      *
-     * @param  int $radius
+     * @param  int|float $radius
      * @return AbstractAnnotation
      */
-    public function setVRadius(int $radius): AbstractAnnotation
+    public function setVRadius(int|float $radius): AbstractAnnotation
     {
         $this->vRadius = $radius;
         return $this;
@@ -133,10 +133,10 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Set the border width
      *
-     * @param  int $width
+     * @param  int|float $width
      * @return AbstractAnnotation
      */
-    public function setBorderWidth(int $width): AbstractAnnotation
+    public function setBorderWidth(int|float $width): AbstractAnnotation
     {
         $this->borderWidth = $width;
         return $this;
@@ -145,10 +145,10 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Set the border dash length
      *
-     * @param  int $length
+     * @param  int|float $length
      * @return AbstractAnnotation
      */
-    public function setDashLength(int $length): AbstractAnnotation
+    public function setDashLength(int|float $length): AbstractAnnotation
     {
         $this->dashLength = $length;
         return $this;
@@ -157,10 +157,10 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Set the border dash gap
      *
-     * @param  int $gap
+     * @param  int|float $gap
      * @return AbstractAnnotation
      */
-    public function setDashGap(int $gap): AbstractAnnotation
+    public function setDashGap(int|float $gap): AbstractAnnotation
     {
         $this->dashGap = $gap;
         return $this;
@@ -169,9 +169,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Get the width
      *
-     * @return int
+     * @return int|float
      */
-    public function getWidth(): int
+    public function getWidth(): int|float
     {
         return $this->width;
     }
@@ -179,9 +179,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Get the height
      *
-     * @return int
+     * @return int|float
      */
-    public function getHeight(): int
+    public function getHeight(): int|float
     {
         return $this->height;
     }
@@ -189,9 +189,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Get the horizontal border radius
      *
-     * @return int
+     * @return int|float
      */
-    public function getHRadius(): int
+    public function getHRadius(): int|float
     {
         return $this->hRadius;
     }
@@ -199,9 +199,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Get the vertical border radius
      *
-     * @return int
+     * @return int|float
      */
-    public function getVRadius(): int
+    public function getVRadius(): int|float
     {
         return $this->vRadius;
     }
@@ -209,9 +209,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Get the border width
      *
-     * @return int
+     * @return int|float
      */
-    public function getBorderWidth(): int
+    public function getBorderWidth(): int|float
     {
         return $this->borderWidth;
     }
@@ -219,9 +219,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Get the border dash length
      *
-     * @return int
+     * @return int|float
      */
-    public function getDashLength(): int
+    public function getDashLength(): int|float
     {
         return $this->dashLength;
     }
@@ -229,9 +229,9 @@ abstract class AbstractAnnotation implements AnnotationInterface
     /**
      * Get the border dash gap
      *
-     * @return int
+     * @return int|float
      */
-    public function getDashGap(): int
+    public function getDashGap(): int|float
     {
         return $this->dashGap;
     }

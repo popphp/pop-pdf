@@ -136,12 +136,12 @@ class Path
     /**
      * Set the stroke properties
      *
-     * @param  int  $width
-     * @param  ?int $dashLength
-     * @param  ?int $dashGap
+     * @param  int|float      $width
+     * @param  int|float|null $dashLength
+     * @param  int|float|null $dashGap
      * @return Path
      */
-    public function setStroke(int $width, ?int $dashLength = null, ?int $dashGap = null): Path
+    public function setStroke(int|float $width, int|float|null $dashLength = null, int|float|null $dashGap = null): Path
     {
         $stream = "\n" . $width . "w\n";
         if ($width != 0) {

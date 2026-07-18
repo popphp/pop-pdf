@@ -40,15 +40,15 @@ class Image
 
     /**
      * Image width
-     * @var ?int
+     * @var int|float|null
      */
-    protected ?int $width = null;
+    protected int|float|null $width = null;
 
     /**
      * Image height
-     * @var ?int
+     * @var int|float|null
      */
-    protected ?int $height = null;
+    protected int|float|null $height = null;
 
     /**
      * Image resize value
@@ -150,11 +150,11 @@ class Image
     /**
      * Resize image to width
      *
-     * @param  int  $width
-     * @param  bool $preserveResolution
+     * @param  int|float $width
+     * @param  bool      $preserveResolution
      * @return Image
      */
-    public function resizeToWidth(int $width, bool $preserveResolution = false): Image
+    public function resizeToWidth(int|float $width, bool $preserveResolution = false): Image
     {
         $this->resize = [
             'width'  => $width,
@@ -168,11 +168,11 @@ class Image
     /**
      * Resize image to height
      *
-     * @param  int  $height
-     * @param  bool $preserveResolution
+     * @param  int|float $height
+     * @param  bool      $preserveResolution
      * @return Image
      */
-    public function resizeToHeight(int $height, bool $preserveResolution = false): Image
+    public function resizeToHeight(int|float $height, bool $preserveResolution = false): Image
     {
         $this->resize = [
             'width'  => round($this->width * ($height / $this->height)),
@@ -186,11 +186,11 @@ class Image
     /**
      * Resize image on whichever dimension is the greatest
      *
-     * @param  int  $pixel
-     * @param  bool $preserveResolution
+     * @param  int|float $pixel
+     * @param  bool      $preserveResolution
      * @return Image
      */
-    public function resize(int $pixel, bool $preserveResolution = false): Image
+    public function resize(int|float $pixel, bool $preserveResolution = false): Image
     {
         $scale        = ($this->width > $this->height) ? ($pixel / $this->width) : ($pixel / $this->height);
         $this->resize = [
@@ -262,9 +262,9 @@ class Image
     /**
      * Get the image width
      *
-     * @return ?int
+     * @return int|float|null
      */
-    public function getWidth(): ?int
+    public function getWidth(): int|float|null
     {
         return $this->width;
     }
@@ -272,9 +272,9 @@ class Image
     /**
      * Get the image height
      *
-     * @return ?int
+     * @return int|float|null
      */
-    public function getHeight(): ?int
+    public function getHeight(): int|float|null
     {
         return $this->height;
     }
@@ -282,9 +282,9 @@ class Image
     /**
      * Get the image resized width
      *
-     * @return ?int
+     * @return int|float|null
      */
-    public function getResizedWidth(): ?int
+    public function getResizedWidth(): int|float|null
     {
         return (($this->resize !== null) && isset($this->resize['width'])) ? $this->resize['width'] : null;
     }
@@ -292,9 +292,9 @@ class Image
     /**
      * Get the image resized height
      *
-     * @return ?int
+     * @return int|float|null
      */
-    public function getResizedHeight(): ?int
+    public function getResizedHeight(): int|float|null
     {
         return (($this->resize !== null) && isset($this->resize['height'])) ? $this->resize['height'] : null;
     }

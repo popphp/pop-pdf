@@ -29,106 +29,106 @@ interface AnnotationInterface
     /**
      * Set the width
      *
-     * @param  int $width
+     * @param  int|float $width
      * @return AnnotationInterface
      */
-    public function setWidth(int $width): AnnotationInterface;
+    public function setWidth(int|float $width): AnnotationInterface;
 
     /**
      * Set the height
      *
-     * @param  int $height
+     * @param  int|float $height
      * @return AnnotationInterface
      */
-    public function setHeight(int $height): AnnotationInterface;
+    public function setHeight(int|float $height): AnnotationInterface;
 
     /**
      * Set the horizontal border radius
      *
-     * @param  int $radius
+     * @param  int|float $radius
      * @return AnnotationInterface
      */
-    public function setHRadius(int $radius): AnnotationInterface;
+    public function setHRadius(int|float $radius): AnnotationInterface;
 
     /**
      * Set the vertical border radius
      *
-     * @param  int $radius
+     * @param  int|float $radius
      * @return AnnotationInterface
      */
-    public function setVRadius(int $radius): AnnotationInterface;
+    public function setVRadius(int|float $radius): AnnotationInterface;
 
     /**
      * Set the border width
      *
-     * @param  int $width
+     * @param  int|float $width
      * @return AnnotationInterface
      */
-    public function setBorderWidth(int $width): AnnotationInterface;
+    public function setBorderWidth(int|float $width): AnnotationInterface;
 
     /**
      * Set the border dash length
      *
-     * @param  int $length
+     * @param  int|float $length
      * @return AnnotationInterface
      */
-    public function setDashLength(int $length): AnnotationInterface;
+    public function setDashLength(int|float $length): AnnotationInterface;
 
     /**
      * Set the border dash gap
      *
-     * @param  int $gap
+     * @param  int|float $gap
      * @return AnnotationInterface
      */
-    public function setDashGap(int $gap): AnnotationInterface;
+    public function setDashGap(int|float $gap): AnnotationInterface;
 
     /**
      * Get the width
      *
-     * @return int
+     * @return int|float
      */
-    public function getWidth(): int;
+    public function getWidth(): int|float;
 
     /**
      * Get the height
      *
-     * @return int
+     * @return int|float
      */
-    public function getHeight(): int;
+    public function getHeight(): int|float;
 
     /**
      * Get the horizontal border radius
      *
-     * @return int
+     * @return int|float
      */
-    public function getHRadius(): int;
+    public function getHRadius(): int|float;
 
     /**
      * Get the vertical border radius
      *
-     * @return int
+     * @return int|float
      */
-    public function getVRadius(): int;
+    public function getVRadius(): int|float;
 
     /**
      * Get the border width
      *
-     * @return int
+     * @return int|float
      */
-    public function getBorderWidth(): int;
+    public function getBorderWidth(): int|float;
 
     /**
      * Get the border dash length
      *
-     * @return int
+     * @return int|float
      */
-    public function getDashLength(): int;
+    public function getDashLength(): int|float;
 
     /**
      * Get the border dash gap
      *
-     * @return int
+     * @return int|float
      */
-    public function getDashGap(): int;
+    public function getDashGap(): int|float;
 
 }
