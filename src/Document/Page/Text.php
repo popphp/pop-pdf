@@ -259,12 +259,12 @@ class Text
     /**
      * Set the text stroke properties
      *
-     * @param  int  $width
-     * @param  ?int $dashLength
-     * @param  ?int $dashGap
+     * @param  int|float       $width
+     * @param  int|float|null $dashLength
+     * @param  int|float|null $dashGap
      * @return Text
      */
-    public function setStroke(int $width, ?int $dashLength = null, ?int $dashGap = null): Text
+    public function setStroke(int|float $width, int|float|null $dashLength = null, int|float|null $dashGap = null): Text
     {
         $this->stroke = [
             'width'      => $width,
@@ -277,11 +277,11 @@ class Text
     /**
      * Method to set the rotation of the text
      *
-     * @param  int $rotation
+     * @param  int|float $rotation
      * @throws OutOfRangeException
      * @return Text
      */
-    public function setRotation(int $rotation): Text
+    public function setRotation(int|float $rotation): Text
     {
         if (abs($rotation) > 90) {
             throw new OutOfRangeException('Error: The rotation parameter must be between -90 and 90 degrees.');
@@ -574,16 +574,16 @@ class Text
     /**
      * Set the text parameters for rendering text content
      *
-     * @param  int $c    (character spacing)
-     * @param  int $w    (word spacing)
-     * @param  int $h    (horz stretch)
-     * @param  int $v    (vert stretch)
+     * @param  int|float $c    (character spacing)
+     * @param  int|float $w    (word spacing)
+     * @param  int|float $h    (horz stretch)
+     * @param  int|float $v    (vert stretch)
      * @param  int $rot  (rotation, -90 - 90)
      * @param  int $rend (render flag, 0 - 7)
      * @throws OutOfRangeException
      * @return Text
      */
-    public function setTextParams(int $c = 0, int $w = 0, int $h = 100, int $v = 100, int $rot = 0, int $rend = 0): Text
+    public function setTextParams(int|float $c = 0, int|float $w = 0, int|float $h = 100, int|float $v = 100, int $rot = 0, int $rend = 0): Text
     {
         // Check the rotation parameter.
         if (abs($rot) > 90) {
@@ -609,12 +609,12 @@ class Text
     /**
      * Start the text stream
      *
-     * @param  string $fontReference
-     * @param  int    $x
-     * @param  int    $y
+     * @param  string    $fontReference
+     * @param  int|float $x
+     * @param  int|float $y
      * @return string
      */
-    public function startStream(string $fontReference, int $x, int $y): string
+    public function startStream(string $fontReference, int|float $x, int|float $y): string
     {
         $stream        = '';
         $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
@@ -639,12 +639,12 @@ class Text
     /**
      * Get the text stream
      *
-     * @param  string $fontReference
-     * @param  int    $x
-     * @param  int    $y
+     * @param  string    $fontReference
+     * @param  int|float $x
+     * @param  int|float $y
      * @return string
      */
-    public function getStream(string $fontReference, int $x, int $y): string
+    public function getStream(string $fontReference, int|float $x, int|float $y): string
     {
         return $this->startStream($fontReference, $x, $y) . $this->getPartialStream() . $this->endStream();
     }

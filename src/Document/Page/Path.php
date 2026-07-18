@@ -219,13 +219,13 @@ class Path
     /**
      * Draw a line
      *
-     * @param  int $x1
-     * @param  int $y1
-     * @param  int $x2
-     * @param  int $y2
+     * @param  int|float $x1
+     * @param  int|float $y1
+     * @param  int|float $x2
+     * @param  int|float $y2
      * @return Path
      */
-    public function drawLine(int $x1, int $y1, int $x2, int $y2): Path
+    public function drawLine(int|float $x1, int|float $y1, int|float $x2, int|float $y2): Path
     {
         $this->streams[] = [
             'points' => [
@@ -241,13 +241,13 @@ class Path
     /**
      * Draw a rectangle
      *
-     * @param  int  $x
-     * @param  int  $y
-     * @param  int  $w
-     * @param  ?int $h
+     * @param  int|float      $x
+     * @param  int|float      $y
+     * @param  int|float      $w
+     * @param  int|float|null $h
      * @return Path
      */
-    public function drawRectangle(int $x, int $y, int $w, ?int $h = null): Path
+    public function drawRectangle(int|float $x, int|float $y, int|float $w, int|float|null $h = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -266,15 +266,15 @@ class Path
     /**
      * Draw a rounded rectangle
      *
-     * @param  int  $x
-     * @param  int  $y
-     * @param  int  $w
-     * @param  ?int $h
-     * @param  int  $rx
-     * @param  ?int $ry
+     * @param  int|float $x
+     * @param  int|float $y
+     * @param  int|float $w
+     * @param  int|float|null $h
+     * @param  int|float $rx
+     * @param  int|float|null $ry
      * @return Path
      */
-    public function drawRoundedRectangle(int $x, int $y, int $w, ?int $h = null, int $rx = 10, ?int $ry = null): Path
+    public function drawRoundedRectangle(int|float $x, int|float $y, int|float $w, int|float|null $h = null, int|float $rx = 10, int|float|null $ry = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -333,12 +333,12 @@ class Path
     /**
      * Draw a square
      *
-     * @param  int $x
-     * @param  int $y
-     * @param  int $w
+     * @param  int|float $x
+     * @param  int|float $y
+     * @param  int|float $w
      * @return Path
      */
-    public function drawSquare(int $x, int $y, int $w): Path
+    public function drawSquare(int|float $x, int|float $y, int|float $w): Path
     {
         return $this->drawRectangle($x, $y, $w, $w);
     }
@@ -346,14 +346,14 @@ class Path
     /**
      * Draw a rounded square
      *
-     * @param  int  $x
-     * @param  int  $y
-     * @param  int  $w
-     * @param  int  $rx
-     * @param  ?int $ry
+     * @param  int|float $x
+     * @param  int|float $y
+     * @param  int|float $w
+     * @param  int|float $rx
+     * @param  int|float|null $ry
      * @return Path
      */
-    public function drawRoundedSquare(int $x, int $y, int $w, int $rx = 10, ?int $ry = null): Path
+    public function drawRoundedSquare(int|float $x, int|float $y, int|float $w, int|float $rx = 10, int|float|null $ry = null): Path
     {
         return $this->drawRoundedRectangle($x, $y, $w, $w, $rx, $ry);
     }
@@ -401,13 +401,13 @@ class Path
     /**
      * Draw an ellipse
      *
-     * @param  int  $x
-     * @param  int  $y
-     * @param  int  $w
-     * @param  ?int $h
+     * @param  int|float $x
+     * @param  int|float $y
+     * @param  int|float $w
+     * @param  int|float|null $h
      * @return Path
      */
-    public function drawEllipse(int $x, int $y, int $w, ?int $h = null): Path
+    public function drawEllipse(int|float $x, int|float $y, int|float $w, int|float|null $h = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -473,12 +473,12 @@ class Path
     /**
      * Draw a circle
      *
-     * @param  int $x
-     * @param  int $y
-     * @param  int $w
+     * @param  int|float $x
+     * @param  int|float $y
+     * @param  int|float $w
      * @return Path
      */
-    public function drawCircle(int $x, int $y, int $w): Path
+    public function drawCircle(int|float $x, int|float $y, int|float $w): Path
     {
         return $this->drawEllipse($x, $y, $w, $w);
     }
@@ -486,15 +486,15 @@ class Path
     /**
      * Draw an arc
      *
-     * @param  int  $x
-     * @param  int  $y
-     * @param  int  $start
-     * @param  int  $end
-     * @param  int  $w
-     * @param  ?int $h
+     * @param  int|float $x
+     * @param  int|float $y
+     * @param  int|float $start
+     * @param  int|float $end
+     * @param  int|float $w
+     * @param  int|float|null $h
      * @return Path
      */
-    public function drawArc(int $x, int $y, int $start, int $end, int $w, ?int $h = null): Path
+    public function drawArc(int|float $x, int|float $y, int|float $start, int|float $end, int|float $w, int|float|null $h = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -507,15 +507,15 @@ class Path
     /**
      * Draw a chord
      *
-     * @param  int  $x
-     * @param  int  $y
-     * @param  int  $start
-     * @param  int  $end
-     * @param  int  $w
-     * @param  ?int $h
+     * @param  int|float $x
+     * @param  int|float $y
+     * @param  int|float $start
+     * @param  int|float $end
+     * @param  int|float $w
+     * @param  int|float|null $h
      * @return Path
      */
-    public function drawChord(int $x, int $y, int $start, int $end, int $w, ?int $h = null): Path
+    public function drawChord(int|float $x, int|float $y, int|float $start, int|float $end, int|float $w, int|float|null $h = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -528,15 +528,15 @@ class Path
     /**
      * Draw a pie slice
      *
-     * @param  int  $x
-     * @param  int  $y
-     * @param  int  $start
-     * @param  int  $end
-     * @param  int  $w
-     * @param  ?int $h
+     * @param  int|float $x
+     * @param  int|float $y
+     * @param  int|float $start
+     * @param  int|float $end
+     * @param  int|float $w
+     * @param  int|float|null $h
      * @return Path
      */
-    public function drawPie(int $x, int $y, int $start, int $end, int $w, ?int $h = null): Path
+    public function drawPie(int|float $x, int|float $y, int|float $start, int|float $end, int|float $w, int|float|null $h = null): Path
     {
         if ($h === null) {
             $h = $w;
@@ -549,18 +549,18 @@ class Path
     /**
      * Draw an open cubic bezier curve
      *
-     * @param  int $x1
-     * @param  int $y1
-     * @param  int $x2
-     * @param  int $y2
-     * @param  int $bezierX1
-     * @param  int $bezierY1
-     * @param  int $bezierX2
-     * @param  int $bezierY2
+     * @param  int|float $x1
+     * @param  int|float $y1
+     * @param  int|float $x2
+     * @param  int|float $y2
+     * @param  int|float $bezierX1
+     * @param  int|float $bezierY1
+     * @param  int|float $bezierX2
+     * @param  int|float $bezierY2
      * @return Path
      */
     public function drawOpenCubicBezierCurve(
-        int $x1, int $y1, int $x2, int $y2, int $bezierX1, int $bezierY1, int $bezierX2, int $bezierY2
+        int|float $x1, int|float $y1, int|float $x2, int|float $y2, int|float $bezierX1, int|float $bezierY1, int|float $bezierX2, int|float $bezierY2
     ): Path
     {
         $this->streams[] = [
@@ -579,18 +579,18 @@ class Path
     /**
      * Draw a closed cubic bezier curve
      *
-     * @param  int $x1
-     * @param  int $y1
-     * @param  int $x2
-     * @param  int $y2
-     * @param  int $bezierX1
-     * @param  int $bezierY1
-     * @param  int $bezierX2
-     * @param  int $bezierY2
+     * @param  int|float $x1
+     * @param  int|float $y1
+     * @param  int|float $x2
+     * @param  int|float $y2
+     * @param  int|float $bezierX1
+     * @param  int|float $bezierY1
+     * @param  int|float $bezierX2
+     * @param  int|float $bezierY2
      * @return Path
      */
     public function drawClosedCubicBezierCurve(
-        int $x1, int $y1, int $x2, int $y2, int $bezierX1, int $bezierY1, int $bezierX2, int $bezierY2
+        int|float $x1, int|float $y1, int|float $x2, int|float $y2, int|float $bezierX1, int|float $bezierY1, int|float $bezierX2, int|float $bezierY2
     ): Path
     {
         $this->streams[] = [
@@ -609,16 +609,16 @@ class Path
     /**
      * Draw an open quadratic bezier curve, single control point
      *
-     * @param  int  $x1
-     * @param  int  $y1
-     * @param  int  $x2
-     * @param  int  $y2
-     * @param  int  $bezierX
-     * @param  int  $bezierY
+     * @param  int|float $x1
+     * @param  int|float $y1
+     * @param  int|float $x2
+     * @param  int|float $y2
+     * @param  int|float $bezierX
+     * @param  int|float $bezierY
      * @param  bool $first
      * @return Path
      */
-    public function drawOpenQuadraticBezierCurve(int $x1, int $y1, int $x2, int $y2, int $bezierX, int $bezierY, bool $first = true): Path
+    public function drawOpenQuadraticBezierCurve(int|float $x1, int|float $y1, int|float $x2, int|float $y2, int|float $bezierX, int|float $bezierY, bool $first = true): Path
     {
         $this->streams[] = [
             'points' => [
@@ -635,16 +635,16 @@ class Path
     /**
      * Draw an open quadratic bezier curve, single control point
      *
-     * @param  int  $x1
-     * @param  int  $y1
-     * @param  int  $x2
-     * @param  int  $y2
-     * @param  int  $bezierX
-     * @param  int  $bezierY
+     * @param  int|float $x1
+     * @param  int|float $y1
+     * @param  int|float $x2
+     * @param  int|float $y2
+     * @param  int|float $bezierX
+     * @param  int|float $bezierY
      * @param  bool $first
      * @return Path
      */
-    public function drawClosedQuadraticBezierCurve(int $x1, int $y1, int $x2, int $y2, int $bezierX, int $bezierY, bool $first = true): Path
+    public function drawClosedQuadraticBezierCurve(int|float $x1, int|float $y1, int|float $x2, int|float $y2, int|float $bezierX, int|float $bezierY, bool $first = true): Path
     {
         $this->streams[] = [
             'points' => [
@@ -661,12 +661,12 @@ class Path
     /**
      * Calculate degrees
      *
-     * @param  int $start
-     * @param  int $end
+     * @param  int|float $start
+     * @param  int|float $end
      * @throws OutOfRangeException
      * @return array
      */
-    protected function calculateDegrees(int $start, int $end): array
+    protected function calculateDegrees(int|float $start, int|float $end): array
     {
         if (($start < 0) || ($end > 360)) {
             throw new OutOfRangeException('The start and end angles must be between 0 and 360.');
@@ -708,16 +708,16 @@ class Path
     /**
      * Calculate arc
      *
-     * @param  int   $x
-     * @param  int   $y
+     * @param  int|float  $x
+     * @param  int|float  $y
      * @param  array $degrees
-     * @param  int   $w
-     * @param  ?int  $h
+     * @param  int|float  $w
+     * @param  int|float|null  $h
      * @param  bool  $closed
      * @param  bool  $pie
      * @return void
      */
-    protected function calculateArc(int $x, int $y, array $degrees, int $w, ?int $h = null, bool $closed = false, bool $pie = false): void
+    protected function calculateArc(int|float $x, int|float $y, array $degrees, int|float $w, int|float|null $h = null, bool $closed = false, bool $pie = false): void
     {
         foreach ($degrees as $key => $value) {
             $start  = $value[0];

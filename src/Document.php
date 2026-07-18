@@ -102,11 +102,11 @@ class Document extends AbstractDocument
      * Create and return a new page object, adding it to the PDF document
      *
      * @param  mixed $size
-     * @param  ?int  $height
+     * @param  mixed $height
      * @throws Exception
      * @return Page
      */
-    public function createPage(mixed $size, ?int $height = null): Page
+    public function createPage(mixed $size, mixed $height = null): Page
     {
         $page = new Page($size, $height);
         $this->addPage($page);

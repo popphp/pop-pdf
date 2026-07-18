@@ -370,22 +370,22 @@ abstract class AbstractPage implements PageInterface
      * Add an image to the PDF page
      *
      * @param  Page\Image $image
-     * @param  int        $x
-     * @param  int        $y
+     * @param  int|float  $x
+     * @param  int|float  $y
      * @return Page
      */
-    abstract public function addImage(Page\Image $image, int $x = 0, int $y = 0): AbstractPage;
+    abstract public function addImage(Page\Image $image, int|float $x = 0, int|float $y = 0): AbstractPage;
 
     /**
      * Add text to the PDF page
      *
      * @param  Page\Text $text
      * @param  string    $fontStyle (can be either a reference to a font or a style)
-     * @param  int       $x
-     * @param  int       $y
+     * @param  int|float $x
+     * @param  int|float $y
      * @return Page
      */
-    abstract public function addText(Page\Text $text, string $fontStyle, int $x = 0, int $y = 0): AbstractPage;
+    abstract public function addText(Page\Text $text, string $fontStyle, int|float $x = 0, int|float $y = 0): AbstractPage;
 
     /**
      * Add text stream to the PDF page
@@ -399,31 +399,31 @@ abstract class AbstractPage implements PageInterface
      * Add an annotation to the PDF page
      *
      * @param  Annotation\AbstractAnnotation $annotation
-     * @param  int                           $x
-     * @param  int                           $y
+     * @param  int|float                     $x
+     * @param  int|float                     $y
      * @return Page
      */
-    abstract public function addAnnotation(Annotation\AbstractAnnotation $annotation, int $x = 0, int $y = 0): AbstractPage;
+    abstract public function addAnnotation(Annotation\AbstractAnnotation $annotation, int|float $x = 0, int|float $y = 0): AbstractPage;
 
     /**
      * Add a URL annotation to the PDF page
      *
      * @param  Annotation\Url $url
-     * @param  int            $x
-     * @param  int            $y
+     * @param  int|float      $x
+     * @param  int|float      $y
      * @return Page
      */
-    abstract public function addUrl(Annotation\Url $url, int $x = 0, int $y = 0): AbstractPage;
+    abstract public function addUrl(Annotation\Url $url, int|float $x = 0, int|float $y = 0): AbstractPage;
 
     /**
      * Add a link annotation to the PDF page
      *
      * @param  Annotation\Link $link
-     * @param  int             $x
-     * @param  int             $y
+     * @param  int|float       $x
+     * @param  int|float       $y
      * @return Page
      */
-    abstract public function addLink(Annotation\Link $link, int $x = 0, int $y = 0): AbstractPage;
+    abstract public function addLink(Annotation\Link $link, int|float $x = 0, int|float $y = 0): AbstractPage;
 
     /**
      * Add a path to the Pdf page
@@ -438,10 +438,10 @@ abstract class AbstractPage implements PageInterface
      *
      * @param  Page\Field\AbstractField $field
      * @param  string                   $form
-     * @param  int                      $x
-     * @param  int                      $y
+     * @param  int|float                $x
+     * @param  int|float                $y
      * @return Page
      */
-    abstract public function addField(Page\Field\AbstractField $field, string $form, int $x = 0, int $y = 0): Page;
+    abstract public function addField(Page\Field\AbstractField $field, string $form, int|float $x = 0, int|float $y = 0): Page;
 
 }

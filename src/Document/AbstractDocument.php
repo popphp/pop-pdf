@@ -468,10 +468,10 @@ abstract class AbstractDocument implements DocumentInterface
      * Create and return a new page object, adding it to the PDF document
      *
      * @param  mixed $size
-     * @param  ?int   $height
+     * @param  mixed $height
      * @return Page
      */
-    abstract public function createPage(mixed $size, ?int $height = null): Page;
+    abstract public function createPage(mixed $size, mixed $height = null): Page;
 
     /**
      * Copy and return a page of the PDF, adding it to the PDF document
