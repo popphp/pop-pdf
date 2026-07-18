@@ -250,12 +250,12 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Get coordinates based on document origin
      *
-     * @param  int $x
-     * @param  int $y
+     * @param  int|float $x
+     * @param  int|float $y
      * @param  PdfObject\PageObject $pageObject
      * @return array
      */
-    protected function getCoordinates(int $x, int $y, PdfObject\PageObject $pageObject): array
+    protected function getCoordinates(int|float $x, int|float $y, PdfObject\PageObject $pageObject): array
     {
         $coordinates = ['x' => $x, 'y' => $y];
         $width       = $pageObject->getWidth();
