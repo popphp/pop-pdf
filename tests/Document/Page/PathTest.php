@@ -39,6 +39,17 @@ class PathTest extends TestCase
         $this->assertStringContainsString('0 d', $path->getStreams()[0]['stream']);
     }
 
+    public function testSetStrokeWidthOperatorIsSpaceSeparated()
+    {
+        // The line-width value and the 'w' operator must be whitespace-separated
+        // (PDF content stream tokenization has no delimiter between a number and
+        // a following letter, so "0.5w" is one ambiguous token, not two).
+        $path = new Path();
+        $path->setStroke(0.5);
+        $this->assertMatchesRegularExpression('/\d(\s)w\b/', $path->getStreams()[0]['stream']);
+        $this->assertDoesNotMatchRegularExpression('/\dw\b/', $path->getStreams()[0]['stream']);
+    }
+
     public function testOpenLayer()
     {
         $path = new Path();

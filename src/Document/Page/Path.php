@@ -143,7 +143,7 @@ class Path
      */
     public function setStroke(int|float $width, int|float|null $dashLength = null, int|float|null $dashGap = null): Path
     {
-        $stream = "\n" . $width . "w\n";
+        $stream = "\n" . $width . " w\n";
         if ($width != 0) {
             $stream .= (($dashLength !== null) && ($dashGap !== null)) ?
                 "[" . $dashLength . " " . $dashGap . "] 0 d\n" : "[] 0 d\n";
