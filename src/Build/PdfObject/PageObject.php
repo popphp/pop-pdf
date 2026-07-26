@@ -94,7 +94,7 @@ class PageObject extends AbstractObject
         $this->setWidth($width);
         $this->setHeight($height);
         $this->setIndex($index);
-        $this->setData("\n[{page_index}] 0 obj\n<</Type/Page/Parent [{parent}] 0 R[{annotations}]/MediaBox[0 0 " .
+        $this->setData("[{page_index}] 0 obj\n<</Type/Page/Parent [{parent}] 0 R[{annotations}]/MediaBox[0 0 " .
             "[{width}] [{height}]][{content_objects}]/Resources" .
             "<</ProcSet[/PDF/Text/ImageB/ImageC/ImageI][{xobjects}][{fonts}]>>>>\nendobj\n");
     }
@@ -229,7 +229,7 @@ class PageObject extends AbstractObject
             $resources .= str_repeat('>>', (substr_count($resources, '<<') - substr_count($resources, '>>')));
         }
 
-        $page->setData("\n[{page_index}] 0 obj\n<</Type/Page/Parent [{parent}] 0 R[{annotations}]/MediaBox" .
+        $page->setData("[{page_index}] 0 obj\n<</Type/Page/Parent [{parent}] 0 R[{annotations}]/MediaBox" .
             "[0 0 [{width}] [{height}]]{$group}[{content_objects}]{$resources}>>\nendobj\n");
 
         return $page;

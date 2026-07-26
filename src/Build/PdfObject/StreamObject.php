@@ -72,7 +72,7 @@ class StreamObject extends AbstractObject
     public function __construct(int $index = 5)
     {
         $this->setIndex($index);
-        $this->setData("\n[{object_index}] 0 obj\n[{definition}]\n[{stream}]\nendobj\n\n");
+        $this->setData("[{object_index}] 0 obj\n[{definition}]\n[{stream}]\nendobj\n\n");
     }
 
     /**
@@ -94,13 +94,23 @@ class StreamObject extends AbstractObject
             $def = substr($s, 0, strpos($s, 'stream'));
             $str = substr($s, (strpos($s, 'stream') + 6));
             $str = substr($str, 0, strpos($str, 'endstream'));
+
+            // __toString() always re-adds the EOL before 'endstream' itself, so
+            // an EOL captured here from the original string would otherwise be
+            // duplicated, making the declared and actual stream lengths disagree.
+            if (str_ends_with($str, "\r\n")) {
+                $str = substr($str, 0, -2);
+            } else if (str_ends_with($str, "\n") || str_ends_with($str, "\r")) {
+                $str = substr($str, 0, -1);
+            }
+
             $object->setDefinition($def);
             $object->appendStream($str);
         } else {
             $object->setDefinition($s);
         }
 
-        $object->setData("\n[{object_index}] 0 obj\n[{definition}]\n[{stream}]\nendobj\n\n");
+        $object->setData("[{object_index}] 0 obj\n[{definition}]\n[{stream}]\nendobj\n\n");
         return $object;
     }
 

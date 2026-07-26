@@ -65,6 +65,59 @@ class CompilerTest extends TestCase
         $this->assertStringContainsString('%PDF', $compiler->getOutput());
     }
 
+    public function testFinalizeXrefOffsetsPointToObjects()
+    {
+        $doc = new Document();
+        $doc->setCompression(true);
+        $doc->addFont(new Font('Arial'));
+        $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/times.ttf'));
+
+        $doc->addForm(new Form('contact_form'));
+
+        $page1 = new Page(Page::LETTER);
+        $page1->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page1->addText(new Page\Text('Hello World', 36), $doc->getCurrentFont(), 50, 400);
+        $page1->addText(new Page\Text('Hello World', 12), 'Arial', 50, 350);
+
+        $path = new Page\Path();
+        $path->setFillColor(new Color\Rgb(255, 0, 0));
+        $path->drawRectangle(320, 320, 300, 150);
+
+        $page2 = new Page(Page::LETTER);
+        $page2->addPath($path);
+
+        $page2->addUrl(new Page\Annotation\Url(150, 20, 'http://www.google.com/'));
+        $page2->addLink(new Page\Annotation\Link(150, 20, 300, 300));
+
+        $page2->addField(new Page\Field\Text('name', 'Arial', 10), 'contact_form', 50, 200);
+        $page2->addField(new Page\Field\Text('email', 'Arial', 10), 'contact_form', 50, 175);
+
+        $doc->addPages([$page1, $page2]);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        preg_match('/\nxref\n(.*?)trailer/s', $output, $xrefMatch);
+        $this->assertNotEmpty($xrefMatch, 'xref table not found in compiled output');
+
+        $lines = array_values(array_filter(explode("\n", trim($xrefMatch[1]))));
+        array_shift($lines); // subsection header, e.g. "0 12"
+
+        foreach ($lines as $i => $line) {
+            if (str_ends_with(trim($line), 'f')) {
+                continue; // free-list head entry
+            }
+            $offset         = (int)substr($line, 0, 10);
+            $expectedPrefix = $i . ' 0 obj';
+            $actual         = substr($output, $offset, strlen($expectedPrefix));
+            $this->assertEquals(
+                $expectedPrefix, $actual,
+                "xref offset for object {$i} does not point to '{$expectedPrefix}' (found '" . addcslashes($actual, "\0..\37") . "' instead)"
+            );
+        }
+    }
+
     public function testFinalizeOriginTopLeft()
     {
         $doc = new Document();
