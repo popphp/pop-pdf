@@ -3,6 +3,7 @@
 namespace Pop\Pdf\Test\Document\Page;
 
 use Pop\Color\Color;;
+use Pop\Pdf\Document\Font;
 use Pop\Pdf\Document\Page\Text;
 use PHPUnit\Framework\TestCase;
 
@@ -217,6 +218,163 @@ class TextTest extends TestCase
         $stream = $text->getPartialStream();
         $this->assertStringContainsString("0 -12 Td", $stream);
         $this->assertStringContainsString(")Tj", $stream);
+    }
+
+    public function testEscapeIsCallableStatically()
+    {
+        $this->assertEquals('Hello \(World\)', Text::escape('Hello (World)'));
+    }
+
+    public function testSetStringsConvertsMultibyteStringsAndTextObjects()
+    {
+        // Both branches of setStrings()'s array_map() closure convert a
+        // multibyte string to UTF-8 - one for a nested Text object's own
+        // string (returned in place of the object), one for a plain string
+        // element (which is then also escaped, same as setString() does).
+        // Neither is exercised by the existing testSetStrings(), which only
+        // uses plain ASCII.
+        $text = new Text();
+        $text->setStrings([new Text('café'), 'café (test)']);
+
+        $strings = $text->getStrings();
+        $this->assertCount(2, $strings);
+        $this->assertIsString($strings[0]);
+        $this->assertEquals('café', $strings[0]);
+        // The plain-string element must have gone through escape() too.
+        $this->assertEquals('café \(test\)', $strings[1]);
+    }
+
+    public function testSetFont()
+    {
+        $text = new Text('Hello World', 12);
+        $font = new Font('Arial');
+        $text->setFont($font);
+        $this->assertTrue($text->hasFont());
+        $this->assertSame($font, $text->getFont());
+    }
+
+    public function testGetPartialStreamWithCidFontEmitsHexString()
+    {
+        $text = new Text("\u{041F}\u{0420}\u{0418}", 36);
+        $text->setFont(new Font(__DIR__ . '/../../tmp/fonts/DejaVuSans.ttf'));
+
+        $stream = $text->getPartialStream();
+
+        $this->assertStringContainsString('<', $stream);
+        $this->assertStringContainsString('>Tj', $stream);
+        $this->assertStringNotContainsString('(', $stream);
+    }
+
+    public function testGetPartialStreamWithStandardFontAndUnsupportedCharacterThrows()
+    {
+        $this->expectException('Pop\Pdf\Build\Font\Exception');
+        $text = new Text("\u{041F}\u{0420}\u{0418}", 36);
+        $text->setFont(new Font('Arial'));
+        $text->getPartialStream();
+    }
+
+    public function testGetPartialStreamWithCidFontAndCharWrapThrows()
+    {
+        $this->expectException('Pop\Pdf\Build\Font\Exception');
+        $text = new Text(str_repeat("\u{041F}", 40), 12);
+        $text->setFont(new Font(__DIR__ . '/../../tmp/fonts/DejaVuSans.ttf'));
+        $text->setCharWrap(20);
+        $text->getPartialStream();
+    }
+
+    public function testGetPartialStreamWithStandardFontValidatesStringsWithOffsets()
+    {
+        $this->expectException('Pop\Pdf\Build\Font\Exception');
+        // The primary string is plain ASCII - only the TJ offset string
+        // carries the Cyrillic, which must be validated too.
+        $text = new Text('Hello', 12);
+        $text->setFont(new Font('Arial'));
+        $text->addStringWithOffset("\u{041F}\u{0420}\u{0418}", 100);
+        $text->getPartialStream();
+    }
+
+    public function testGetPartialStreamWithStandardFontAllowsSupportedStringsWithOffsets()
+    {
+        $text = new Text('Hello', 12);
+        $text->setFont(new Font('Arial'));
+        $text->addStringWithOffset('World', 100);
+
+        $stream = $text->getPartialStream();
+
+        $this->assertStringContainsString('[(Hello)', $stream);
+        $this->assertStringContainsString('(World)', $stream);
+        $this->assertStringContainsString(']TJ', $stream);
+    }
+
+    public function testGetPartialStreamWithStandardFontAllowsWinAnsiPunctuation()
+    {
+        // U+00A0 no-break space, U+00AD soft hyphen, U+2018 left single quote
+        // and U+2020 dagger are all real WinAnsi codepoints - they must not be
+        // rejected by the glyph-coverage pre-flight check.
+        $text = new Text("A\u{00A0}B\u{00AD}C\u{2018}D\u{2020}", 12);
+        $text->setFont(new Font('Arial'));
+
+        $this->assertStringContainsString('Tj', $text->getPartialStream());
+    }
+
+    public function testGetPartialStreamWithoutFontIsUnchanged()
+    {
+        // No font set at all (matches every pre-existing Text test in this
+        // file) must keep behaving exactly as before - literal string, no
+        // validation, no exception.
+        $text = new Text('Hello World', 12);
+        $stream = $text->getPartialStream();
+        $this->assertStringContainsString('(Hello World)Tj', $stream);
+    }
+
+    public function testGetPartialStreamWithStandardFontTranscodesToWinAnsi()
+    {
+        $text = new Text('café', 12);
+        $text->setFont(new Font('Arial'));
+
+        $stream = $text->getPartialStream();
+
+        // 'é' (U+00E9) must appear as the single WinAnsi byte 0xE9, not the
+        // 2-byte UTF-8 sequence C3 A9 - the raw bytes previously written
+        // would have mojibaked to "Ã©" in any PDF viewer.
+        $this->assertStringContainsString("caf\xE9", $stream);
+        $this->assertStringNotContainsString("caf\xC3\xA9", $stream);
+    }
+
+    public function testGetPartialStreamWithStandardFontTranscodesCurlyQuoteAndDagger()
+    {
+        $text = new Text("\u{2018}\u{2020}", 12);
+        $text->setFont(new Font('Arial'));
+
+        $stream = $text->getPartialStream();
+
+        // U+2018 (left single quote) -> WinAnsi 0x91, U+2020 (dagger) -> WinAnsi 0x86
+        $this->assertStringContainsString("\x91\x86", $stream);
+    }
+
+    public function testGetPartialStreamWithStandardFontTranscodesStringsWithOffsets()
+    {
+        $text = new Text('café', 12);
+        $text->setFont(new Font('Arial'));
+        $text->addStringWithOffset('résumé', 100);
+
+        $stream = $text->getPartialStream();
+
+        $this->assertStringContainsString("caf\xE9", $stream);
+        $this->assertStringContainsString("r\xE9sum\xE9", $stream);
+        $this->assertStringNotContainsString("\xC3\xA9", $stream);
+    }
+
+    public function testGetPartialStreamWithStandardFontTranscodesCharWrap()
+    {
+        $text = new Text(str_repeat('café ', 20), 12);
+        $text->setFont(new Font('Arial'));
+        $text->setCharWrap(24);
+
+        $stream = $text->getPartialStream();
+
+        $this->assertStringContainsString("caf\xE9", $stream);
+        $this->assertStringNotContainsString("\xC3\xA9", $stream);
     }
 
 }

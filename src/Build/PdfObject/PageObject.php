@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Build\PdfObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class PageObject extends AbstractObject
 {
@@ -81,6 +81,22 @@ class PageObject extends AbstractObject
     protected array $fonts = [];
 
     /**
+     * Additional page-level dictionary entries beyond what this class
+     * templates (e.g. /Rotate, /CropBox, /Group), pre-rendered as literal
+     * PDF syntax
+     * @var string
+     */
+    protected string $pageExtra = '';
+
+    /**
+     * Additional /Resources sub-dictionary entries beyond /ProcSet,
+     * /XObject, /Font (e.g. /ColorSpace, /ExtGState, /Shading, /Pattern),
+     * pre-rendered as literal PDF syntax
+     * @var string
+     */
+    protected string $otherResources = '';
+
+    /**
      * Constructor
      *
      * Instantiate a PDF page object, defaults to letter size.
@@ -95,8 +111,8 @@ class PageObject extends AbstractObject
         $this->setHeight($height);
         $this->setIndex($index);
         $this->setData("[{page_index}] 0 obj\n<</Type/Page/Parent [{parent}] 0 R[{annotations}]/MediaBox[0 0 " .
-            "[{width}] [{height}]][{content_objects}]/Resources" .
-            "<</ProcSet[/PDF/Text/ImageB/ImageC/ImageI][{xobjects}][{fonts}]>>>>\nendobj\n");
+            "[{width}] [{height}]][{content_objects}][{page_extra}]/Resources" .
+            "<</ProcSet[/PDF/Text/ImageB/ImageC/ImageI][{xobjects}][{fonts}][{other_resources}]>>>>\nendobj\n");
     }
 
     /**
@@ -338,6 +354,30 @@ class PageObject extends AbstractObject
     }
 
     /**
+     * Set additional page-level dictionary entries (pre-rendered PDF syntax)
+     *
+     * @param  string $pageExtra
+     * @return PageObject
+     */
+    public function setPageExtra(string $pageExtra): PageObject
+    {
+        $this->pageExtra = $pageExtra;
+        return $this;
+    }
+
+    /**
+     * Set additional /Resources sub-dictionary entries (pre-rendered PDF syntax)
+     *
+     * @param  string $otherResources
+     * @return PageObject
+     */
+    public function setOtherResources(string $otherResources): PageObject
+    {
+        $this->otherResources = $otherResources;
+        return $this;
+    }
+
+    /**
      * Add annotation index
      *
      * @param  int $i
@@ -526,8 +566,8 @@ class PageObject extends AbstractObject
 
         // Swap out the placeholders.
         $obj = str_replace(
-            ['[{page_index}]', '[{parent}]', '[{width}]', '[{height}]'],
-            [$this->index, $this->parent, $this->width, $this->height],
+            ['[{page_index}]', '[{parent}]', '[{width}]', '[{height}]', '[{page_extra}]', '[{other_resources}]'],
+            [$this->index, $this->parent, $this->width, $this->height, $this->pageExtra, $this->otherResources],
             $this->data
         );
 

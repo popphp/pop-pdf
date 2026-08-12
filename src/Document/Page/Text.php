@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -15,6 +15,8 @@ namespace Pop\Pdf\Document\Page;
 
 use Pop\Color\Color;
 use Pop\Color\Color\ColorInterface;
+use Pop\Pdf\Build\Font\Exception as FontException;
+use Pop\Pdf\Document\Font;
 use OutOfRangeException;
 
 /**
@@ -23,9 +25,9 @@ use OutOfRangeException;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class Text
 {
@@ -35,6 +37,18 @@ class Text
      * @var ?string
      */
     protected ?string $string = null;
+
+    /**
+     * Raw (unescaped) text string value, used for CID glyph-ID conversion
+     * @var string
+     */
+    protected string $rawString = '';
+
+    /**
+     * Font used to render this text, resolved at compile time
+     * @var ?Font
+     */
+    protected ?Font $font = null;
 
     /**
      * Text strings as array for streaming
@@ -153,7 +167,8 @@ class Text
             }
         }
 
-        $this->string = ($escape) ? $this->escape($string) : $string;
+        $this->rawString = $string;
+        $this->string    = ($escape) ? $this->escape($string) : $string;
 
         return $this;
     }
@@ -162,7 +177,7 @@ class Text
      * Set the text strings
      *
      * @param  array $strings
-     * @param  bool  $excape
+     * @param  bool  $escape
      * @return Text
      */
     public function setStrings(array $strings, bool $escape = true): Text
@@ -183,8 +198,8 @@ class Text
                 }
                 return $value;
             }, $strings);
-
         }
+
         $this->strings = $strings;
         return $this;
     }
@@ -355,6 +370,42 @@ class Text
     }
 
     /**
+     * Set the font this text will be rendered with
+     *
+     * Resolved and set by Build\Compiler at compile time - determines
+     * whether getPartialStream() emits literal PDF strings or CID glyph-ID
+     * hex strings, and whether standard-font glyph coverage is validated.
+     *
+     * @param  Font $font
+     * @return Text
+     */
+    public function setFont(Font $font): Text
+    {
+        $this->font = $font;
+        return $this;
+    }
+
+    /**
+     * Has font
+     *
+     * @return bool
+     */
+    public function hasFont(): bool
+    {
+        return ($this->font !== null);
+    }
+
+    /**
+     * Get font
+     *
+     * @return ?Font
+     */
+    public function getFont(): ?Font
+    {
+        return $this->font;
+    }
+
+    /**
      * Escape string
      *
      * @param  string $subject
@@ -362,13 +413,37 @@ class Text
      * @param  mixed  $replace
      * @return string
      */
-    public function escape(string $subject, mixed $search  = null, mixed $replace = null): string
+    public static function escape(string $subject, mixed $search  = null, mixed $replace = null): string
     {
         if (($search === null) && ($replace === null)) {
             $search  = ["\\", '(', ')', "\n", "\r", "\t", "\b", "\f"];
             $replace = ["\\\\", '\(', '\)', "\\n", "\\r", "\\t", "\\b", "\\f"];
         }
         return str_replace($search, $replace, $subject);
+    }
+
+    /**
+     * Transcode a raw UTF-8 string to WinAnsiEncoding (Windows-1252) bytes and escape it for a literal PDF string
+     *
+     * requireGlyphCoverage() has already confirmed the font's cmap covers
+     * every character in the string, so iconv failing here should never
+     * happen in practice - the exception is a safety net against cmap/
+     * encoding drift, not an expected runtime path.
+     *
+     * @param  string $string
+     * @throws FontException
+     * @return string
+     */
+    protected function encodeWinAnsi(string $string): string
+    {
+        $encoded = @iconv('UTF-8', 'Windows-1252', $string);
+        if ($encoded === false) {
+            throw new FontException(
+                "Error: The font '" . $this->font->getName() . "' cannot represent the given text in WinAnsiEncoding."
+            );
+        }
+
+        return $this->escape($encoded);
     }
 
     /**
@@ -666,28 +741,74 @@ class Text
 
         $stream .= $this->getColorStream();
 
-        if (count($this->stringsWithOffsets) > 0) {
-            $stream .= "    [({$this->string})";
+        $isCid      = ($this->font !== null) && $this->font->isCid();
+        $isStandard = ($this->font !== null) && $this->font->isStandard();
+
+        if ($isStandard) {
+            $this->font->requireGlyphCoverage($this->rawString);
             foreach ($this->stringsWithOffsets as $string) {
-                $stream .= " " . (0 - $string['offset']) . " (" . $string['string'] . ")";
+                $this->font->requireGlyphCoverage($string['string']);
             }
-            $stream .= "]TJ\n";
+        }
+
+        if (count($this->stringsWithOffsets) > 0) {
+            if ($isCid) {
+                $stream .= "    [<" . $this->font->stringToGidHex($this->rawString) . ">";
+                foreach ($this->stringsWithOffsets as $string) {
+                    $stream .= " " . (0 - $string['offset']) . " <" . $this->font->stringToGidHex($string['string']) . ">";
+                }
+                $stream .= "]TJ\n";
+            } else if ($isStandard) {
+                $stream .= "    [(" . $this->encodeWinAnsi($this->rawString) . ")";
+                foreach ($this->stringsWithOffsets as $string) {
+                    $stream .= " " . (0 - $string['offset']) . " (" . $this->encodeWinAnsi($string['string']) . ")";
+                }
+                $stream .= "]TJ\n";
+            } else {
+                $stream .= "    [({$this->string})";
+                foreach ($this->stringsWithOffsets as $string) {
+                    $stream .= " " . (0 - $string['offset']) . " (" . $string['string'] . ")";
+                }
+                $stream .= "]TJ\n";
+            }
         } else {
             if (($this->hasCharWrap()) && (strlen($this->string) > $this->charWrap)) {
+                if ($isCid) {
+                    throw new FontException(
+                        "Error: Character wrap is not yet supported with a CID/Unicode-embedded font ('" .
+                        $this->font->getName() . "')."
+                    );
+                }
+
                 if ((int)$this->leading == 0) {
                     $this->leading = $this->size;
                 }
 
-                $strings = explode("\n", wordwrap($this->string, $this->charWrap, "\n"));
-
-                foreach ($strings as $i => $string) {
-                    $stream .= "    ({$string})Tj\n";
-                    if ($i < count($strings)) {
-                        $stream .= "    0 -" . $this->leading . " Td\n";
+                if ($isStandard) {
+                    $strings = explode("\n", wordwrap($this->rawString, $this->charWrap, "\n"));
+                    foreach ($strings as $i => $string) {
+                        $stream .= "    (" . $this->encodeWinAnsi($string) . ")Tj\n";
+                        if ($i < count($strings)) {
+                            $stream .= "    0 -" . $this->leading . " Td\n";
+                        }
+                    }
+                } else {
+                    $strings = explode("\n", wordwrap($this->string, $this->charWrap, "\n"));
+                    foreach ($strings as $i => $string) {
+                        $stream .= "    ({$string})Tj\n";
+                        if ($i < count($strings)) {
+                            $stream .= "    0 -" . $this->leading . " Td\n";
+                        }
                     }
                 }
             } else {
-                $stream .= "    ({$this->string})Tj\n";
+                if ($isCid) {
+                    $stream .= "    <" . $this->font->stringToGidHex($this->rawString) . ">Tj\n";
+                } else if ($isStandard) {
+                    $stream .= "    (" . $this->encodeWinAnsi($this->rawString) . ")Tj\n";
+                } else {
+                    $stream .= "    ({$this->string})Tj\n";
+                }
             }
         }
 

@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -22,9 +22,9 @@ use OutOfRangeException;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class Path
 {
@@ -690,14 +690,13 @@ class Path
             }
             $degrees[] = [$current, $end];
         } else if (($start < 180) && ($start > 90) && ($end > 180)) {
+            // This branch only runs when (end - start) <= 90 (the guard
+            // above already claimed the > 90 case), so combined with
+            // start < 180, end < start + 90 < 270 always - the same
+            // continuation loop as above can never iterate here since it
+            // requires end > 270.
             $degrees[] = [$start, 180];
-            $current = 180;
-            while (($current + 90) < $end) {
-                $next = ($current + 90) - ($current % 90);
-                $degrees[] = [$current, $next];
-                $current = $next;
-            }
-            $degrees[] = [$current, $end];
+            $degrees[] = [180, $end];
         } else {
             $degrees[] = [$start, $end];
         }

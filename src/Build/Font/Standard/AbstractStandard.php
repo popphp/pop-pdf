@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Build\Font\Standard;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 abstract class AbstractStandard
 {
@@ -67,6 +67,17 @@ abstract class AbstractStandard
         } else {
             return 0;
         }
+    }
+
+    /**
+     * Determine if this font's character map has a glyph for the given codepoint
+     *
+     * @param  int $code
+     * @return bool
+     */
+    public function hasGlyph(int $code): bool
+    {
+        return isset($this->cmap[$code]);
     }
 
 }

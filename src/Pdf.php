@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -22,9 +22,9 @@ use Pop\Pdf\Document\Exception;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class Pdf
 {
@@ -74,6 +74,36 @@ class Pdf
     }
 
     /**
+     * Import from an HTML string
+     *
+     * @param  string   $html
+     * @param  Document $document
+     * @return AbstractDocument
+     */
+    public static function importFromHtml(string $html, Document $document = new Document()): AbstractDocument
+    {
+        $parser = new Build\Html\Parser($document);
+        $parser->parseHtml($html)->process();
+
+        return $parser->document();
+    }
+
+    /**
+     * Import from an HTML file
+     *
+     * @param  string   $htmlFile
+     * @param  Document $document
+     * @return AbstractDocument
+     */
+    public static function importFromHtmlFile(string $htmlFile, Document $document = new Document()): AbstractDocument
+    {
+        $parser = new Build\Html\Parser($document);
+        $parser->parseHtmlFile($htmlFile)->process();
+
+        return $parser->document();
+    }
+
+    /**
      * Import from an existing PDF file
      *
      * @param  string $file
@@ -97,6 +127,30 @@ class Pdf
     {
         $parser = new Build\Parser();
         return $parser->parseData($data, $pages);
+    }
+
+    /**
+     * Merge PDF files into one document
+     *
+     * @param  array $files
+     * @return AbstractDocument
+     */
+    public static function merge(array $files): AbstractDocument
+    {
+        $merger = new Build\Merger();
+        return $merger->mergeFiles($files);
+    }
+
+    /**
+     * Merge raw PDF data streams into one document
+     *
+     * @param  array $data
+     * @return AbstractDocument
+     */
+    public static function mergeRawData(array $data): AbstractDocument
+    {
+        $merger = new Build\Merger();
+        return $merger->mergeData($data);
     }
 
     /**
@@ -132,24 +186,8 @@ class Pdf
      */
     public static function extractTextFromFile(string $file, mixed $pages = null, ?int $pageLimit = null): string
     {
-        $parser   = new \Smalot\PdfParser\Parser();
-        $document = $parser->parseFile($file);
-
-        if ($pages !== null) {
-            $text     = '';
-            $pages    = (!is_array($pages)) ? [$pages] : $pages;
-            $docPages = $document->getPages();
-
-            foreach ($docPages as $i => $docPage) {
-                if (in_array(($i + 1), $pages)) {
-                    $text .= $docPage->getText();
-                }
-            }
-        } else {
-            $text = $document->getText($pageLimit);
-        }
-
-        return $text;
+        $doc = Extract\Document::fromFile($file);
+        return self::extractTextFromDocument($doc, $pages, $pageLimit);
     }
 
     /**
@@ -162,24 +200,187 @@ class Pdf
      */
     public static function extractTextFromData(string $data, mixed $pages = null, ?int $pageLimit = null): string
     {
-        $parser   = new \Smalot\PdfParser\Parser();
-        $document = $parser->parseContent($data);
+        $doc = new Extract\Document($data);
+        return self::extractTextFromDocument($doc, $pages, $pageLimit);
+    }
+
+    /**
+     * Extract text from a parsed Extract\Document, joining pages/runs
+     *
+     * @param  Extract\Document $doc
+     * @param  mixed            $pages
+     * @param  ?int             $pageLimit
+     * @return string
+     */
+    protected static function extractTextFromDocument(Extract\Document $doc, mixed $pages, ?int $pageLimit): string
+    {
+        $pages    = ($pages !== null) ? ((!is_array($pages)) ? [$pages] : $pages) : null;
+        $docPages = Extract\Content\PageWalker::walk($doc, $pages, $pageLimit);
 
         if ($pages !== null) {
-            $text     = '';
-            $pages    = (!is_array($pages)) ? [$pages] : $pages;
-            $docPages = $document->getPages();
-
+            $selected = [];
             foreach ($docPages as $i => $docPage) {
                 if (in_array(($i + 1), $pages)) {
-                    $text .= $docPage->getText();
+                    $selected[] = $docPage;
                 }
             }
-        } else {
-            $text = $document->getText($pageLimit);
+            $docPages = $selected;
+        } elseif (is_int($pageLimit) && ($pageLimit > 0)) {
+            $docPages = array_slice($docPages, 0, $pageLimit);
+        }
+
+        $texts = [];
+
+        foreach ($docPages as $docPage) {
+            $pageText = self::extractTextFromPage($doc, $docPage);
+            $pageText = trim($pageText);
+
+            if ($pageText !== '') {
+                $texts[] = $pageText;
+            }
+        }
+
+        return implode("\n\n", $texts);
+    }
+
+    /**
+     * Extract text from a single page, joining runs by their separator
+     *
+     * @param  Extract\Document         $doc
+     * @param  Extract\Content\PageInfo $page
+     * @return string
+     */
+    protected static function extractTextFromPage(Extract\Document $doc, Extract\Content\PageInfo $page): string
+    {
+        $interpreter = new Extract\Content\Interpreter();
+        $runs        = $interpreter->run($doc, $page->content, $page->resources);
+
+        $text = '';
+
+        foreach ($runs as $run) {
+            $text .= match ($run->separator) {
+                Extract\Content\TextRun::SEPARATOR_SPACE   => ' ',
+                Extract\Content\TextRun::SEPARATOR_TAB     => "\t",
+                Extract\Content\TextRun::SEPARATOR_NEWLINE => "\n",
+                default                                    => '',
+            };
+
+            $decoded = Extract\Font\Resolver::decodeRun($run, $doc);
+
+            if ($run->reversed) {
+                // /ReversedChars marked content (Interpreter::isReversedActive())
+                // stores its character stream in reversed logical order - the
+                // decoder faithfully decodes byte-for-byte, so the CONSUMER
+                // (here) is responsible for restoring logical reading order.
+                // mb_str_split(), not strrev(), since the decoded text is
+                // UTF-8 and a byte-level reverse would corrupt multi-byte
+                // sequences.
+                $decoded = implode('', array_reverse(mb_str_split($decoded)));
+            }
+
+            $text .= $decoded;
         }
 
         return $text;
+    }
+
+    /**
+     * Determine if every page of a PDF file is nothing but a single scanned/drawn image
+     *
+     * @param  string $file
+     * @param  mixed  $pages
+     * @param  ?int   $pageLimit
+     * @return bool
+     */
+    public static function isImageOnlyDocument(string $file, mixed $pages = null, ?int $pageLimit = null): bool
+    {
+        return self::allPagesImageOnly(self::getImageOnlyPages($file, $pages, $pageLimit));
+    }
+
+    /**
+     * Determine if every page of raw PDF data is nothing but a single scanned/drawn image
+     *
+     * @param  string $data
+     * @param  mixed  $pages
+     * @param  ?int   $pageLimit
+     * @return bool
+     */
+    public static function isImageOnlyData(string $data, mixed $pages = null, ?int $pageLimit = null): bool
+    {
+        return self::allPagesImageOnly(self::getImageOnlyPagesFromData($data, $pages, $pageLimit));
+    }
+
+    /**
+     * Get a per-page image-only classification for a PDF file
+     *
+     * @param  string $file
+     * @param  mixed  $pages
+     * @param  ?int   $pageLimit
+     * @return array
+     */
+    public static function getImageOnlyPages(string $file, mixed $pages = null, ?int $pageLimit = null): array
+    {
+        $doc = Extract\Document::fromFile($file);
+        return self::classifyPages($doc, $pages, $pageLimit);
+    }
+
+    /**
+     * Get a per-page image-only classification for raw PDF data
+     *
+     * @param  string $data
+     * @param  mixed  $pages
+     * @param  ?int   $pageLimit
+     * @return array
+     */
+    public static function getImageOnlyPagesFromData(string $data, mixed $pages = null, ?int $pageLimit = null): array
+    {
+        $doc = new Extract\Document($data);
+        return self::classifyPages($doc, $pages, $pageLimit);
+    }
+
+    /**
+     * Classify every page of a parsed Extract\Document as image-only or not
+     *
+     * @param  Extract\Document $doc
+     * @param  mixed            $pages
+     * @param  ?int             $pageLimit
+     * @return array
+     */
+    protected static function classifyPages(Extract\Document $doc, mixed $pages = null, ?int $pageLimit = null): array
+    {
+        $pages    = ($pages !== null) ? ((!is_array($pages)) ? [$pages] : $pages) : null;
+        $docPages = Extract\Content\PageWalker::walk($doc, $pages, $pageLimit);
+
+        if ($pages !== null) {
+            $selected = [];
+            foreach ($docPages as $i => $docPage) {
+                if (in_array(($i + 1), $pages)) {
+                    $selected[] = $docPage;
+                }
+            }
+            $docPages = $selected;
+        } elseif (is_int($pageLimit) && ($pageLimit > 0)) {
+            $docPages = array_slice($docPages, 0, $pageLimit);
+        }
+
+        $result = [];
+
+        foreach ($docPages as $i => $docPage) {
+            $result[$i] = Extract\Content\PageClassifier::isImageOnly($doc, $docPage);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Determine if a set of per-page image-only results means the whole document is image-only
+     *
+     * @param  array $pages
+     * @return bool
+     */
+    protected static function allPagesImageOnly(array $pages): bool
+    {
+        return (!empty($pages)) && !in_array(false, $pages, true);
     }
 
 }

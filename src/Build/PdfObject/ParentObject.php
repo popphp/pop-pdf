@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Build\PdfObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class ParentObject extends AbstractObject
 {
@@ -37,6 +37,14 @@ class ParentObject extends AbstractObject
      * @var array
      */
     protected array $kids = [];
+
+    /**
+     * Explicit kid count override, used when kids are not leaf pages
+     * themselves (e.g. a merge's master node, whose kids are each source's
+     * own top-level Pages node) - null falls back to count($this->kids)
+     * @var ?int
+     */
+    protected ?int $countOverride = null;
 
     /**
      * Constructor
@@ -123,13 +131,25 @@ class ParentObject extends AbstractObject
     }
 
     /**
+     * Set an explicit kid count, overriding count($this->kids)
+     *
+     * @param  int $count
+     * @return ParentObject
+     */
+    public function setCount(int $count): ParentObject
+    {
+        $this->countOverride = $count;
+        return $this;
+    }
+
+    /**
      * Get the parent object kid count
      *
      * @return int
      */
     public function getCount(): int
     {
-        return count($this->kids);
+        return $this->countOverride ?? count($this->kids);
     }
 
     /**
@@ -161,7 +181,7 @@ class ParentObject extends AbstractObject
     public function __toString(): string
     {
         return str_replace(['[{parent_index}]', '[{count}]', '[{kids}]'],
-            [$this->index, count($this->kids), implode(" 0 R ", $this->kids) . " 0 R"], $this->data);
+            [$this->index, $this->getCount(), implode(" 0 R ", $this->kids) . " 0 R"], $this->data);
     }
 
 }

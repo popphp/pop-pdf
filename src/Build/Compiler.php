@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -22,9 +22,9 @@ use Pop\Pdf\Document\Page\Text;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class Compiler extends AbstractCompiler
 {
@@ -152,12 +152,19 @@ class Compiler extends AbstractCompiler
             $this->prepareForms();
         }
 
-        $numObjs       = count($this->objects) + 1;
-        $this->trailer = "xref\n0 {$numObjs}\n0000000000 65535 f \n";
+        // Compute each object's byte offset keyed by its real object number
+        // rather than assuming objects are inserted in dense, ascending,
+        // gapless order - imported/merged documents commonly have gaps
+        // (excluded source Root/Info numbers) and PHP array insertion order
+        // need not match ascending numeric order. The classical xref table
+        // requires row N to correspond exactly to object number N, so the
+        // table is built from this offset map afterward, not inline during
+        // emission.
+        $offsets = [];
 
         // Intial Length is the length of the version string
         $this->byteLength = 9;
-        $this->trailer    .= $this->formatByteLength($this->byteLength) . " 00000 n \n";
+        $offsets[$this->root->getIndex()] = $this->byteLength;
 
         // New Length is the distance to the second object
         $this->byteLength = $this->calculateByteLength($this->root);
@@ -172,10 +179,20 @@ class Compiler extends AbstractCompiler
                     (!$object->isEncoded() && !$object->isImported() && (stripos((string)$object->getDefinition(), '/length') === false))) {
                     $object->encode();
                 }
-                $this->trailer    .= $this->formatByteLength($this->byteLength) . " 00000 n \n";
+                $offsets[$object->getIndex()] = $this->byteLength;
                 $this->output     .= $object;
                 $this->byteLength += $this->calculateByteLength($object);
             }
+        }
+
+        $maxObjNum = max(array_keys($offsets));
+        $numObjs   = $maxObjNum + 1;
+
+        $this->trailer = "xref\n0 {$numObjs}\n0000000000 65535 f \n";
+        for ($i = 1; $i <= $maxObjNum; $i++) {
+            $this->trailer .= isset($offsets[$i])
+                ? $this->formatByteLength($offsets[$i]) . " 00000 n \n"
+                : "0000000000 65535 f \n";
         }
 
         // Finalize the trailer.
@@ -206,17 +223,25 @@ class Compiler extends AbstractCompiler
                         $font->getName() . "\n    /Encoding /WinAnsiEncoding\n>>\nendobj\n\n"
                     );
                 } else {
-                    $font->parser()
+                    $parser = $font->parser()
                         ->setCompression($this->compression)
                         ->setFontIndex($f)
-                        ->setFontObjectIndex($i)
-                        ->setFontDescIndex($i + 1)
-                        ->setFontFileIndex($i + 2);
+                        ->setFontObjectIndex($i);
 
-                    $font->parser()->parse();
+                    if ($font->isCid()) {
+                        $parser->setCidFontObjectIndex($i + 1)
+                            ->setFontDescIndex($i + 2)
+                            ->setFontFileIndex($i + 3)
+                            ->setToUnicodeIndex($i + 4);
+                    } else {
+                        $parser->setFontDescIndex($i + 1)
+                            ->setFontFileIndex($i + 2);
+                    }
 
-                    $this->fontReferences[$font->parser()->getFontName()] = $font->parser()->getFontReference();
-                    foreach ($font->parser()->getObjects() as $fontObject) {
+                    $parser->parse();
+
+                    $this->fontReferences[$parser->getFontName()] = $parser->getFontReference();
+                    foreach ($parser->getObjects() as $fontObject) {
                         $this->objects[$fontObject->getIndex()] = $fontObject;
                     }
                 }
@@ -241,34 +266,32 @@ class Compiler extends AbstractCompiler
         $this->objects[$contentObject->getIndex()] = $contentObject;
         $pageObject->addContentIndex($contentObject->getIndex());
 
+        // Page::addImage() always appends to $images with a fresh
+        // auto-incrementing key, so within a single call every $key here is
+        // unique - $imgs (built up only inside this same loop) can never
+        // already hold one.
         foreach ($images as $key => $image) {
             $coordinates = $this->getCoordinates($image['x'], $image['y'], $pageObject);
-            if (!array_key_exists($key, $imgs)) {
-                $i = $this->lastIndex() + 1;
-                if ($image['image']->isStream()) {
-                    $imageParser = Image\Parser::createImageFromStream(
-                        $image['image']->getStream(), $coordinates['x'], $coordinates['y'],
-                        $image['image']->getResizeDimensions(), $image['image']->isPreserveResolution()
-                    );
-                } else {
-                    $imageParser = Image\Parser::createImageFromFile(
-                        $image['image']->getImage(), $coordinates['x'], $coordinates['y'],
-                        $image['image']->getResizeDimensions(), $image['image']->isPreserveResolution()
-                    );
-                }
-
-                $imageParser->setIndex($i);
-                $contentObject->appendStream($imageParser->getStream());
-                $pageObject->addXObjectReference($imageParser->getXObject());
-                foreach ($imageParser->getObjects() as $oi => $imageObject) {
-                    $this->objects[$oi] = $imageObject;
-                }
-                $imgs[$key] = $imageParser;
+            $i = $this->lastIndex() + 1;
+            if ($image['image']->isStream()) {
+                $imageParser = Image\Parser::createImageFromStream(
+                    $image['image']->getStream(), $coordinates['x'], $coordinates['y'],
+                    $image['image']->getResizeDimensions(), $image['image']->isPreserveResolution()
+                );
             } else {
-                $imgs[$key]->setX($coordinates['x']);
-                $imgs[$key]->setY($coordinates['y']);
-                $contentObject->appendStream($imgs[$key]->getStream());
+                $imageParser = Image\Parser::createImageFromFile(
+                    $image['image']->getImage(), $coordinates['x'], $coordinates['y'],
+                    $image['image']->getResizeDimensions(), $image['image']->isPreserveResolution()
+                );
             }
+
+            $imageParser->setIndex($i);
+            $contentObject->appendStream($imageParser->getStream());
+            $pageObject->addXObjectReference($imageParser->getXObject());
+            foreach ($imageParser->getObjects() as $oi => $imageObject) {
+                $this->objects[$oi] = $imageObject;
+            }
+            $imgs[$key] = $imageParser;
         }
     }
 
@@ -333,6 +356,12 @@ class Compiler extends AbstractCompiler
             if (!isset($this->fontReferences[$txt['font']])) {
                 throw new Exception('Error: The font \'' . $txt['font'] . '\' has not been added to the document.');
             }
+
+            $fontObject = $this->fonts[$txt['font']] ?? null;
+            if ($fontObject instanceof \Pop\Pdf\Document\Font) {
+                $txt['text']->setFont($fontObject);
+            }
+
             $coordinates = $this->getCoordinates($txt['x'], $txt['y'], $pageObject);
 
             // Auto-wrap text by character length
@@ -344,24 +373,28 @@ class Compiler extends AbstractCompiler
                 $contentObject->appendStream($stream);
             // Left/right/center align text
             } else if ($txt['text']->hasAlignment()) {
-                $fontObject = $this->fonts[$txt['font']];
-                $strings    = $txt['text']->getAlignment()->getStrings($txt['text'], $fontObject, $coordinates['y']);
+                $strings = $txt['text']->getAlignment()->getStrings($txt['text'], $fontObject, $coordinates['y']);
                 foreach ($strings as $string) {
                     $textString = new Text($string['string'], $txt['text']->getSize());
+                    if ($fontObject instanceof \Pop\Pdf\Document\Font) {
+                        $textString->setFont($fontObject);
+                    }
                     $contentObject->appendStream(
                         $textString->getStream($this->fontReferences[$txt['font']], $string['x'], $string['y'])
                     );
                 }
             // Left/right wrap text around box boundary
             } else if ($txt['text']->hasWrap()) {
-                $fontObject = $this->fonts[$txt['font']];
-                $strings    = $txt['text']->getWrap()->getStrings($txt['text'], $fontObject, $coordinates['y']);
-                $stream     = $txt['text']->getColorStream();
+                $strings = $txt['text']->getWrap()->getStrings($txt['text'], $fontObject, $coordinates['y']);
+                $stream  = $txt['text']->getColorStream();
                 if (!empty($stream)) {
                     $contentObject->appendStream($stream);
                 }
                 foreach ($strings as $string) {
                     $textString = new Text($string['string'], $txt['text']->getSize());
+                    if ($fontObject instanceof \Pop\Pdf\Document\Font) {
+                        $textString->setFont($fontObject);
+                    }
                     $contentObject->appendStream(
                         $textString->getStream($this->fontReferences[$txt['font']], $string['x'], $string['y'])
                     );
@@ -389,14 +422,8 @@ class Compiler extends AbstractCompiler
         $this->objects[$contentObject->getIndex()] = $contentObject;
         $pageObject->addContentIndex($contentObject->getIndex());
 
-        $curY = null;
-
         foreach ($textStreams as $txt) {
-            if (($curY !== null) && ($txt->getStartY() > $curY)) {
-                $txt->setStartY($curY - (($txt->getTextStreams()[0]['y'] ?? 12) * 2));
-            }
             $stream = $txt->getStream($this->fonts, $this->fontReferences);
-            $curY   = $txt->getCurrentY();
             $contentObject->appendStream($stream);
         }
     }

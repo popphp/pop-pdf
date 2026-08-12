@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Pdf\Build\PdfObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class StreamObject extends AbstractObject
 {
@@ -308,17 +308,20 @@ class StreamObject extends AbstractObject
         // Set the stream, adding linefeed
         $stream = ($this->stream !== null) ? "stream" . $this->stream . "\nendstream\n" : '';
 
-        // Set up the Length definition.
-        if ((str_contains((string)$this->definition, '/Length ')) && (!str_contains((string)$this->definition, '/Length1')) &&
+        // Set up the Length definition. The match/replace is scoped to the
+        // exact "/Length N" (or indirect "/Length N G R") span via
+        // preg_replace's own single-match substitution, rather than a
+        // blanket string search-and-replace on the extracted digits - a
+        // blanket replace would corrupt any other dict value that happens
+        // to contain the same digit substring (e.g. "/Length 38" colliding
+        // with "/Width 384"), and would leave a dangling, meaningless
+        // indirect reference behind for a source using indirect /Length.
+        if ((preg_match('/\/Length\s+\d+(?:\s+\d+\s+R)?/', (string) $this->definition)) &&
+            (!str_contains((string)$this->definition, '/Length1')) &&
             (!str_contains((string)$this->definition, '/Image'))) {
-            $matches = [];
-            preg_match('/\/Length\s\d*/', $this->definition, $matches);
-            if (isset($matches[0])) {
-                $len = $matches[0];
-                $len = str_replace('/Length', '', $len);
-                $len = str_replace(' ', '', $len);
-                $this->definition = str_replace($len, '[{byte_length}]', $this->definition);
-            }
+            $this->definition = preg_replace(
+                '/\/Length\s+\d+(?:\s+\d+\s+R)?/', '/Length [{byte_length}]', $this->definition, 1
+            );
         } else if (!str_contains((string)$this->definition, '/Length')) {
             $this->definition .= "<</Length [{byte_length}]>>\n";
         }

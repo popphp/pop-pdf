@@ -150,7 +150,7 @@ class DocumentTest extends TestCase
         $doc->embedFont(new Font(__DIR__ . '/tmp/fonts/times.ttf'));
         $this->assertInstanceOf('Pop\Pdf\Build\Font\AbstractFont', $doc->getFont('Times-Bold')->getParsedFont());
         $this->assertEquals(2, count($doc->getFont('Times-Bold')->getParsedFont()->getWidthsForGlyphs([0, 1])));
-        $this->assertEquals(33.0, ceil($doc->getFont('Times-Bold')->getParsedFont()->getStringWidth('Hello World', 12)));
+        $this->assertEquals(64.0, ceil($doc->getFont('Times-Bold')->getParsedFont()->getStringWidth('Hello World', 12)));
         $this->assertEquals(1, $doc->getNumberOfFonts());
         $this->assertFalse($doc->hasImportedFonts());
         $this->assertEquals(0, count($doc->getImportedFonts()));
@@ -162,7 +162,7 @@ class DocumentTest extends TestCase
         $doc->embedFonts([new Font(__DIR__ . '/tmp/fonts/times.ttf')]);
         $this->assertInstanceOf('Pop\Pdf\Build\Font\AbstractFont', $doc->getFont('Times-Bold')->getParsedFont());
         $this->assertEquals(2, count($doc->getFont('Times-Bold')->getParsedFont()->getWidthsForGlyphs([0, 1])));
-        $this->assertEquals(33.0, ceil($doc->getFont('Times-Bold')->getParsedFont()->getStringWidth('Hello World', 12)));
+        $this->assertEquals(64.0, ceil($doc->getFont('Times-Bold')->getParsedFont()->getStringWidth('Hello World', 12)));
         $this->assertEquals(1, $doc->getNumberOfFonts());
         $this->assertFalse($doc->hasImportedFonts());
         $this->assertEquals(0, count($doc->getImportedFonts()));
@@ -264,6 +264,100 @@ class DocumentTest extends TestCase
         $this->assertTrue($doc->hasForms());
         $this->assertEquals(1, count($doc->getForms()));
         $this->assertInstanceOf('Pop\Pdf\Document\Form', $doc->getForm('contact'));
+    }
+
+    public function testSetAndGetVersion()
+    {
+        $doc = new Document();
+        $doc->setVersion(1.4);
+        $this->assertEquals(1.4, $doc->getVersion());
+    }
+
+    public function testGetStyle()
+    {
+        $doc = new Document();
+        $doc->createStyle('normal', 'Arial', 12);
+        $this->assertInstanceOf('Pop\Pdf\Document\Style', $doc->getStyle('normal'));
+        $this->assertEquals('normal', $doc->getStyle('normal')->getName());
+    }
+
+    public function testGetStyleException()
+    {
+        $this->expectException('Pop\Pdf\Exception');
+        $doc = new Document();
+        $doc->getStyle('does-not-exist');
+    }
+
+    public function testGetAvailableStyles()
+    {
+        $doc = new Document();
+        $doc->createStyle('normal', 'Arial', 12);
+        $this->assertContains('normal', $doc->getAvailableStyles());
+    }
+
+    public function testIsStyleAvailable()
+    {
+        $doc = new Document();
+        $doc->createStyle('normal', 'Arial', 12);
+        $this->assertTrue($doc->isStyleAvailable('normal'));
+        $this->assertFalse($doc->isStyleAvailable('does-not-exist'));
+    }
+
+    public function testImportFonts()
+    {
+        $doc = new Document();
+        $doc->importFonts(['Arial' => ['name' => 'Arial']]);
+        $this->assertTrue($doc->hasImportedFonts());
+        $this->assertEquals(1, count($doc->getImportedFonts()));
+        $this->assertTrue($doc->hasFont('Arial'));
+    }
+
+    public function testEmbedFontThrowsExceptionForNonEmbeddableFontLicense()
+    {
+        // Every font fixture under tests/tmp/fonts genuinely is embeddable
+        // (unrestricted OS/2.fsType), so this stubs a Font/Parser pair
+        // instead of sourcing a real font file with restricted-embedding
+        // licensing - Document::embedFont()'s license-check throw only cares
+        // about what isEmbedded()/parser()->isEmbeddable() report, not how
+        // a real font file would produce those values.
+        $parser = $this->createStub(\Pop\Pdf\Build\Font\Parser::class);
+        $parser->method('isEmbeddable')->willReturn(false);
+
+        $font = $this->createStub(Font::class);
+        $font->method('isEmbedded')->willReturn(true);
+        $font->method('parser')->willReturn($parser);
+
+        $this->expectException('Pop\Pdf\Document\Exception');
+        $this->expectExceptionMessage('does not allow for it to be embedded');
+
+        $doc = new Document();
+        $doc->embedFont($font);
+    }
+
+    public function testEmbedFontThrowsForARealTtfWithRestrictedLicenseFsType()
+    {
+        // Now that Build\Font\TrueType::parseTtfTable()'s off-by-one is fixed
+        // (OS/2 used to be silently dropped from tableInfo, so its fsType
+        // license flag was never actually read), a real font file with a
+        // patched fsType can reach this exception end-to-end, not just via
+        // stubs.
+        $data      = file_get_contents(__DIR__ . '/tmp/fonts/times.ttf');
+        $probeFont = new \Pop\Pdf\Build\Font\TrueType(__DIR__ . '/tmp/fonts/times.ttf');
+        $os2Offset = $probeFont->tableInfo['OS/2']->offset;
+        $patched   = substr_replace($data, pack('n', 2), $os2Offset + 8, 2);
+
+        $fontFile = __DIR__ . '/tmp/fonts/restricted-license-test.ttf';
+        file_put_contents($fontFile, $patched);
+
+        try {
+            $this->expectException('Pop\Pdf\Document\Exception');
+            $this->expectExceptionMessage('does not allow for it to be embedded');
+
+            $doc = new Document();
+            $doc->embedFont(new Font($fontFile));
+        } finally {
+            unlink($fontFile);
+        }
     }
 
 }

@@ -15,7 +15,9 @@ pop-pdf
     - [Import from File](#import-from-file)
     - [Import from Raw Data](#import-from-raw-data)
     - [Import from Images](#import-from-images)
+    - [Merge](#merge)
     - [Extract Text](#extract-text)
+    - [Image-Only Detection](#image-only-detection)
 * [Documents](#documents)
     - [Compression](#compression)
     - [Page Origin](#page-origin)
@@ -56,7 +58,7 @@ Install `pop-pdf` using Composer.
 Or, require it in your composer.json file
 
     "require": {
-        "popphp/pop-pdf" : "^5.2.7"
+        "popphp/pop-pdf" : "^5.2.12"
     }
 
 [Top](#pop-pdf)
@@ -126,6 +128,14 @@ to route the various object components to the right place to be processed.
 - `importFromFile($file, $pages = null): AbstractDocument`
 - `importRawData($data, $pages = null): AbstractDocument`
 - `importFromImages($images, $quality = 70): AbstractDocument`
+- `merge($files): AbstractDocument`
+- `mergeRawData($data): AbstractDocument`
+- `extractTextFromFile($file, $pages = null, $pageLimit = null): string`
+- `extractTextFromData($data, $pages = null, $pageLimit = null): string`
+- `isImageOnlyDocument($file, $pages = null, $pageLimit = null): bool`
+- `isImageOnlyData($data, $pages = null, $pageLimit = null): bool`
+- `getImageOnlyPages($file, $pages = null, $pageLimit = null): array`
+- `getImageOnlyPagesFromData($data, $pages = null, $pageLimit = null): array`
 
 ### Write to File
 
@@ -196,6 +206,27 @@ use Pop\Pdf\Pdf;
 $doc = Pdf::importFromImages($arrayOfImages);
 ```
 
+### Merge
+
+You can merge multiple, separate PDF files into a single document object. Each source file's pages
+are appended in order:
+
+```php
+use Pop\Pdf\Pdf;
+
+$doc = Pdf::merge(['path/to/one.pdf', 'path/to/two.pdf', 'path/to/three.pdf']);
+
+Pdf::writeToFile($doc, 'merged.pdf');
+```
+
+You can also merge from an array of raw PDF data streams instead of file paths:
+
+```php
+use Pop\Pdf\Pdf;
+
+$doc = Pdf::mergeRawData([$pdfStream1, $pdfStream2]);
+```
+
 ### Extract Text
 
 If you just want to extract the text from a PDF that contains text (not a PDF comprised of images with text in them),
@@ -211,6 +242,59 @@ $text = Pdf::extractTextFromFile('path/to/document.pdf');
 use Pop\Pdf\Pdf;
 
 $text = Pdf::extractTextFromData($pdfStream);
+```
+
+Text extraction is entirely native to `pop-pdf` — including PDFs that use embedded fonts, not just
+the 14 standard PDF fonts — so no third-party PDF-parsing library is required.
+
+Both methods also accept an optional `$pages` parameter (an int or array of 1-based page numbers) to
+extract text from only certain pages, and an optional `$pageLimit` to cap how many pages are walked —
+useful to bound processing time/memory on very large documents:
+
+```php
+use Pop\Pdf\Pdf;
+
+// Extract text from pages 1, 2 and 3 only
+$text = Pdf::extractTextFromFile('path/to/document.pdf', [1, 2, 3]);
+
+// Extract text, but never walk past the first 50 pages
+$text = Pdf::extractTextFromFile('path/to/document.pdf', null, 50);
+```
+
+[Top](#pop-pdf)
+
+### Image-Only Detection
+
+You can determine whether a PDF's pages are nothing but a single scanned/drawn image with no
+extractable text — useful for routing a document to OCR before attempting text extraction on it.
+
+```php
+use Pop\Pdf\Pdf;
+
+if (Pdf::isImageOnlyDocument('path/to/document.pdf')) {
+    // every page is just a single full-page image - send it to OCR
+}
+```
+
+`isImageOnlyData()` performs the same check against a raw PDF data stream instead of a file:
+
+```php
+use Pop\Pdf\Pdf;
+
+$isImageOnly = Pdf::isImageOnlyData($pdfStream);
+```
+
+Both accept the same optional `$pages` and `$pageLimit` parameters as the text-extraction methods above.
+
+If you need a per-page breakdown rather than a single whole-document answer, use `getImageOnlyPages()`
+(or `getImageOnlyPagesFromData()` for raw data). Each returns an array keyed by 0-based page index, with
+a boolean value indicating whether that specific page is image-only:
+
+```php
+use Pop\Pdf\Pdf;
+
+$pages = Pdf::getImageOnlyPages('path/to/document.pdf');
+// [0 => true, 1 => false, 2 => true]
 ```
 
 [Top](#pop-pdf)
@@ -424,6 +508,64 @@ $document->addPage($page);
 Pdf::writeToFile($document, 'my-document.pdf');
 ```
 
+#### Unicode and embedded fonts
+
+Embedded TrueType/OpenType fonts are compiled into the PDF as composite
+(`/Type0` + `/Identity-H` + `/CIDFontType2`) fonts, with a `/ToUnicode` CMap so the
+resulting text still copies and extracts correctly. Text is emitted as glyph-ID hex
+strings rather than single-byte literals.
+
+The practical effect is that **any script the embedded font has glyphs for now renders
+correctly** — Cyrillic, Greek, and so on — instead of the mojibake produced by the old
+single-byte (`/WinAnsiEncoding`) output:
+
+```php
+$font     = new Font('/path/to/DejaVuSans.ttf'); // a Unicode-capable font
+$document = new Document();
+$document->embedFont($font);
+
+$page = new Page(Page::LETTER);
+$page->addText(new Page\Text('123 ПРИВІТ:', 36), $font->getName(), 50, 600);
+```
+
+Notes and caveats:
+
+* This changes the **compiled byte structure** of any document that uses an embedded
+  TrueType/OpenType font. No PHP method signatures changed, but code that diffs or
+  post-processes exact generated PDF bytes will see different (more correct) output.
+* Embedded **Type1** (`.pfb`) fonts and the standard fonts are unchanged — they stay on
+  the single-byte encoding path.
+* Fonts are embedded in full; there is no glyph subsetting, so a large Unicode font
+  makes for a large PDF.
+* Text alignment (`Text\Alignment`) and box wrapping (`Text\Wrap`) work with embedded
+  Unicode fonts and non-Latin text. Character wrapping (`Text::setCharWrap()`) does not —
+  it splits on byte counts and throws `Build\Font\Exception` for a CID font.
+
+#### Unsupported characters now throw
+
+If text contains a character the active font has no glyph for, a
+`Pop\Pdf\Build\Font\Exception` is thrown at compile time, naming the font, the character
+and its codepoint:
+
+```
+Error: The font 'Arial' does not contain a glyph for character 'П' (U+041F).
+```
+
+This is a deliberate behavior change: previously such characters were silently written
+out and rendered as garbage. The standard (base-14) fonts contain no Cyrillic, Greek or
+CJK glyphs at all, so non-Latin text now requires an embedded Unicode font.
+
+Standard fonts also now correctly render any character their `/WinAnsiEncoding` cmap
+covers — accented Latin letters, curly quotes, en/em dashes, and similar Latin-1/
+Windows-1252 punctuation (`café`, `'quoted'`, `†`, etc.). Previously these were silently
+written as raw UTF-8 bytes into a single-byte string and mojibaked in any PDF viewer even
+though the font could represent them; text is now transcoded to `/WinAnsiEncoding` before
+being written. Only characters truly outside the font's encoding throw.
+
+Also note that importing HTML containing non-Latin text (`Pdf::importFromHtml()`) does
+not currently work, due to a double-encoding bug in the upstream `popphp/pop-dom`
+dependency that mangles non-ASCII text before `pop-pdf` receives it.
+
 [Top](#pop-pdf)
 
 Text
@@ -512,6 +654,7 @@ use Pop\Pdf\Document;
 use Pop\Pdf\Document\Font;
 use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Page\Text;
+use Pop\Pdf\Document\Page\Text\Alignment;
 
 $document = new Document();
 $document->addFont(Font::ARIAL);
@@ -908,7 +1051,10 @@ The above code produces a PDF with a form like this:
 HTML
 -----
 
-HTML rendering is available in `pop-pdf`, however it is still in an experimental beta stage.
+HTML rendering is available in `pop-pdf`, however, please note that while it will attempt preserve the style and flow
+of the HTML within the PDF pages, there are limitations in attempting to constrain and conform HTML that renders
+fluidly with in a browser window to the boundaries of a PDF page. Support is broadest for the patterns shown below.
+Less common CSS properties and nested block markup may not be fully supported yet.
 
 ### Parsing HTML from a file:
 
@@ -976,5 +1122,49 @@ $parser->process();
 
 Pdf::writeToFile($parser->document(), 'my-document.pdf');
 ```
+
+### Tables
+
+`<table>` elements are supported, including `colspan`/`rowspan`, and header rows (`<thead>`, or a row whose
+cells are all `<th>`) that automatically repeat if the table splits across a page break. Column widths are
+calculated from cell content, honoring an explicit CSS or HTML `width` first and distributing the remaining
+space proportionally across the rest.
+
+```php
+$html = <<<HTML
+<table>
+<thead>
+<tr><th>Item</th><th>Quantity</th><th>Price</th></tr>
+</thead>
+<tbody>
+<tr><td colspan="2">Widgets (assorted)</td><td>$19.99</td></tr>
+<tr><td rowspan="2">Bulk Order</td><td>100</td><td>$4.50</td></tr>
+<tr><td>250</td><td>$4.00</td></tr>
+</tbody>
+</table>
+HTML;
+
+$css = <<<CSS
+th { background-color: #dddddd; border-width: 1px; border-color: #333333; }
+td { border-width: 1px; border-color: #333333; }
+CSS;
+
+$document = new Document();
+$document->addFont(Font::ARIAL);
+$page = $document->createPage(Page::LETTER);
+
+$parser = new Parser($document);
+$parser->parseHtml($html, __DIR__);
+$parser->parseCss($css);
+$parser->process();
+
+Pdf::writeToFile($parser->document(), 'my-document.pdf');
+```
+
+`border-width`/`border-color`/`background-color` CSS properties work the same way on any element, not just
+table cells (e.g. a bordered `<div>`). Given a PDF page's fixed size (unlike a browser's scrolling viewport),
+a few limitations apply: no `border-collapse` (each cell's border is drawn independently), no nested tables,
+and a single row/cell taller than a full page renders best-effort on that page rather than splitting across a
+page break.
 
 [Top](#pop-pdf)

@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -21,9 +21,9 @@ use Pop\Pdf\Build\Font\Exception;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class OpenType extends \Pop\Pdf\Build\Font\TrueType
 {
@@ -57,7 +57,8 @@ class OpenType extends \Pop\Pdf\Build\Font\TrueType
             $this->properties['flags']['isScript']      = $this->properties['tables']['OS/2']['flags']['isScript'];
             $this->properties['flags']['isSymbolic']    = $this->properties['tables']['OS/2']['flags']['isSymbolic'];
             $this->properties['flags']['isNonSymbolic'] = $this->properties['tables']['OS/2']['flags']['isNonSymbolic'];
-            $this->properties['capHeight']              = $this->properties['tables']['OS/2']['capHeight'];
+            $this->properties['capHeight']               = $this->properties['tables']['OS/2']['capHeight'];
+            $this->properties['embeddable']               = $this->properties['tables']['OS/2']['embeddable'];
         }
     }
 

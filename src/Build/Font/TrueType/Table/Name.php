@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -22,9 +22,9 @@ use Pop\Utils\ArrayObject as Data;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class Name extends AbstractTable
 {
@@ -70,11 +70,10 @@ class Name extends AbstractTable
      */
     public function __construct(Font\TrueType $font)
     {
+        // TrueType::parseName(), the only caller, guards on
+        // isset($this->properties['tableInfo']['name']) before constructing
+        // this class, so $tableInfo['name'] is always already set here.
         $tableInfo = $font->tableInfo;
-
-        if (!isset($tableInfo['name'])) {
-            $tableInfo['name'] = [];
-        }
 
         $tableInfo['name']['header'] = new Data(
             unpack(

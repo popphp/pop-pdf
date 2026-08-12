@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -14,6 +14,9 @@
 namespace Pop\Pdf\Build;
 
 use Pop\Pdf\Document\AbstractDocument;
+use Pop\Pdf\Document\Metadata;
+use Pop\Pdf\Extract\Document as ExtractDocument;
+use Pop\Pdf\Extract\Value;
 
 /**
  * Pdf parser class
@@ -21,27 +24,34 @@ use Pop\Pdf\Document\AbstractDocument;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class Parser extends AbstractParser
 {
 
     /**
-     * Parsed object data streams
+     * Parsed object data streams - retained only for public API
+     * compatibility (getObjectStreams()); no longer populated under the
+     * Extract\Document-based implementation, since no consumer depends on
+     * its contents (only its array type).
      * @var array
      */
     protected array $objectStreams = [];
 
     /**
-     * Object map
+     * Object map - retained only for public API compatibility
+     * (getObjectMap()); see $objectStreams.
      * @var array
      */
     protected array $objectMap = [];
 
     /**
-     * Document fonts
+     * Document fonts - retained only for public API compatibility
+     * (getFonts()); font resources are now carried per-page via each
+     * translated PageObject's own structured font references instead of
+     * this document-wide bag.
      * @var array
      */
     protected array $fonts = [];
@@ -108,53 +118,69 @@ class Parser extends AbstractParser
      * Parse the data stream
      *
      * @param  mixed  $pages
+     * @throws Exception
      * @return AbstractDocument
      */
     public function parse(mixed $pages = null): AbstractDocument
     {
-        $matches = [];
-        preg_match_all('/\d*\s\d*\sobj(.*?)endobj/sm', $this->data, $matches, PREG_OFFSET_CAPTURE);
-
-        if (isset($matches[0]) && isset($matches[0][0])) {
-            foreach ($matches[0] as $match) {
-                if ((!str_contains($match[0], '/Linearized')) && (!str_contains($match[0], '/Type/Metadata'))) {
-                    $this->objectStreams[] = $match[0];
-                }
-            }
+        try {
+            $extractDoc = new ExtractDocument($this->data);
+            $graph      = Import\ObjectGraphReader::read($extractDoc, 0);
+        } catch (\Pop\Pdf\Extract\Exception $e) {
+            throw new Exception($e->getMessage(), $e->getCode(), $e);
         }
 
-        // Map the objects by parsing the object streams
-        $this->mapObjects();
+        $rootObjNum = $graph['nextOffset'] + 1;
+        $nextFree   = $rootObjNum + 1;
 
-        if (isset($this->objectMap['pages'])) {
-            // Map fonts, if any
-            if (isset($this->objectMap['streams'])) {
-                $this->mapFonts();
-            }
-            // If certain pages are to be imported, filter out the unwanted pages
-            if ($pages !== null) {
-                $this->filterPages($pages);
-            }
-        }
+        $parent = new PdfObject\ParentObject($graph['topPagesObjNum']);
+        $parent->setKids(self::kidNumbers($graph['topPagesDict']));
+        $parent->setCount(count($graph['pageObjects']));
+        $parent->setImported(true);
+
+        $root = new PdfObject\RootObject($rootObjNum);
+        $root->setParentIndex($graph['topPagesObjNum']);
+        $root->setImported(true);
+
+        $objects                           = $graph['objects'];
+        $objects[$graph['topPagesObjNum']] = $parent;
+        $objects[$rootObjNum]              = $root;
 
         $doc = new \Pop\Pdf\Document();
 
-        if (isset($this->objectMap['root']) && isset($this->objectMap['root']['object'])) {
-            $doc->setVersion($this->objectMap['root']['object']->getVersion());
-        }
-        if (isset($this->objectMap['info']) && isset($this->objectMap['info']['object'])) {
-            $doc->setMetadata($this->objectMap['info']['object']->getMetadata());
+        if ($graph['infoDict'] !== null) {
+            $doc->setMetadata(self::metadataFromDict($graph['infoDict']));
         }
 
-        $doc->importObjects($this->getObjects());
-        $doc->importFonts($this->getFonts());
+        $info = new PdfObject\InfoObject($nextFree);
+        $info->setImported(true);
+        $objects[$nextFree] = $info;
 
-        if (isset($this->objectMap['pages'])) {
-            foreach ($this->objectMap['pages'] as $i => $page) {
-                $pg = new \Pop\Pdf\Document\Page($page['width'], $page['height'], $i);
-                $pg->importPageObject($page['object']);
-                $doc->addPage($pg);
+        $doc->importObjects($objects);
+
+        $pageObjects = $graph['pageObjects'];
+
+        if ($pages !== null) {
+            $pages    = (!is_array($pages)) ? [$pages] : $pages;
+            $kept     = [];
+            $keptKids = [];
+
+            foreach ($pages as $pageNum) {
+                if (isset($pageObjects[$pageNum - 1])) {
+                    $kept[]     = $pageObjects[$pageNum - 1];
+                    $keptKids[] = $pageObjects[$pageNum - 1]->getIndex();
+                }
             }
+
+            $pageObjects = $kept;
+            $parent->setKids($keptKids);
+            $parent->setCount(count($keptKids));
+        }
+
+        foreach ($pageObjects as $pageObject) {
+            $pg = new \Pop\Pdf\Document\Page($pageObject->getWidth(), $pageObject->getHeight(), $pageObject->getIndex());
+            $pg->importPageObject($pageObject);
+            $doc->addPage($pg);
         }
 
         return $doc;
@@ -201,191 +227,60 @@ class Parser extends AbstractParser
     }
 
     /**
-     * Map the objects
+     * Extract a rewritten Pages node dict's Kids as a flat list of new object numbers
      *
-     * @return void
-     */
-    protected function mapObjects(): void
-    {
-        foreach ($this->objectStreams as $stream) {
-            switch ($this->getStreamType($stream)) {
-                case 'root':
-                    $root = PdfObject\RootObject::parse($stream);
-                    $root->setImported(true);
-                    $root->setVersion(substr($this->data, 5, 3));
-                    $this->objectMap['root'] = [
-                        'stream' => $stream,
-                        'object' => $root,
-                        'index'  => $root->getIndex(),
-                        'parent' => $root->getParentIndex()
-                    ];
-                    break;
-                case 'parent':
-                    $parent = PdfObject\ParentObject::parse($stream);
-                    $parent->setImported(true);
-                    $this->objectMap['parent'] = [
-                        'stream' => $stream,
-                        'object' => $parent,
-                        'index'  => $parent->getIndex(),
-                        'count'  => $parent->getCount(),
-                        'kids'   => $parent->getKids()
-                    ];
-                    break;
-                case 'info':
-                    $info = PdfObject\InfoObject::parse($stream);
-                    $info->setImported(true);
-                    $this->objectMap['info'] = [
-                        'stream' => $stream,
-                        'object' => $info,
-                        'index'  => $info->getIndex(),
-                    ];
-                    break;
-                case 'page':
-                    if (!isset($this->objectMap['pages'])) {
-                        $this->objectMap['pages'] = [];
-                    }
-
-                    $page = PdfObject\PageObject::parse($stream);
-                    $page->setImported(true);
-
-                    $this->objectMap['pages'][$page->getIndex()] = [
-                        'stream'   => $stream,
-                        'object'   => $page,
-                        'index'    => $page->getIndex(),
-                        'parent'   => $page->getParentIndex(),
-                        'width'    => $page->getWidth(),
-                        'height'   => $page->getHeight(),
-                        'content'  => $page->getContent(),
-                        'annots'   => $page->getAnnots(),
-                        'fonts'    => $page->getFonts(),
-                        'xObjects' => $page->getXObjects()
-                    ];
-                    break;
-                case 'stream':
-                    if (!isset($this->objectMap['streams'])) {
-                        $this->objectMap['streams'] = [];
-                    }
-                    $stream = PdfObject\StreamObject::parse($stream);
-                    $stream->setImported(true);
-                    $this->objectMap['streams'][$stream->getIndex()] = [
-                        'stream' => $stream,
-                        'object' => $stream,
-                        'index'  => $stream->getIndex()
-                    ];
-                    break;
-            }
-        }
-    }
-
-    /**
-     * Map the fonts, if any
-     *
-     * @return void
-     */
-    protected function mapFonts(): void
-    {
-        foreach ($this->objectMap['pages'] as $page) {
-            if (isset($page['fonts']) && (count($page['fonts']) > 0)) {
-                foreach ($page['fonts'] as $i => $font) {
-                    if (str_contains($this->objectMap['streams'][$i]['stream'], '/BaseFont')) {
-                        $fontName = trim(
-                            substr(
-                                $this->objectMap['streams'][$i]['stream'],
-                                (strpos($this->objectMap['streams'][$i]['stream'], '/BaseFont') + 9)
-                            )
-                        );
-
-                        if (str_starts_with($fontName, '/')) {
-                            $fontName = substr($fontName, 1);
-                        }
-                        $fontName = ((str_contains($fontName, '/'))) ?
-                            substr($fontName, 0, strpos($fontName, '/')) :
-                            substr($fontName, 0, strpos($fontName, '>'));
-
-                        $f = [
-                            'name'  => trim($fontName),
-                            'index' => $i,
-                            'ref'   => $font
-                        ];
-
-                        if (!in_array($f, $this->fonts, true)) {
-                            $this->fonts[] = $f;
-                        }
-                    }
-                }
-            }
-        }
-
-        $fontFileObjects = [];
-        foreach ($this->objectStreams as $stream) {
-            if (str_contains($stream, '/FontFile')) {
-                $fontFileObject = substr($stream, strpos($stream, '/FontFile'));
-                $fontFileObject = substr($fontFileObject, (strpos($fontFileObject, ' ') + 1));
-                $fontFileObject = trim(substr($fontFileObject, 0, strpos($fontFileObject, '0 R')));
-                $fontFileObjects[] = $fontFileObject;
-            }
-        }
-
-        if (!empty($fontFileObjects)) {
-            foreach ($fontFileObjects as $fontFileObject) {
-                if (($fontFileObject == 13) && isset($this->objectMap['streams'][$fontFileObject])) {
-                    $fontFile = $this->objectMap['streams'][$fontFileObject];
-                    $contents = ($fontFile['object']->getEncoding() == 'FlateDecode') ?
-                        gzuncompress(trim($fontFile['object']->getStream())) : $fontFile['object']->getStream();
-
-                    $fontParser = new \Pop\Pdf\Build\Font\TrueType(null, $contents);
-                }
-            }
-        }
-    }
-
-    /**
-     * Filter pages
-     *
-     * @param  mixed $pages
-     * @return void
-     */
-    protected function filterPages(mixed $pages): void
-    {
-        $pages = (!is_array($pages)) ? [$pages] : $pages;
-        $kids = $this->objectMap['parent']['object']->getKids();
-        $keep = [];
-        foreach ($pages as $page) {
-            if (isset($kids[$page - 1])) {
-                $keep[] = $kids[$page - 1];
-            }
-        }
-
-        $this->objectMap['parent']['object']->setKids($keep);
-        $this->objectMap['parent']['count']  = count($keep);
-        $this->objectMap['parent']['kids']   = $keep;
-
-        foreach ($kids as $kid) {
-            if (!in_array($kid, $keep) && isset($this->objectMap['pages'][$kid])) {
-                unset($this->objectMap['pages'][$kid]);
-            }
-        }
-    }
-
-    /**
-     * Get the objects for import
-     *
+     * @param  array $topPagesDict
      * @return array
      */
-    protected function getObjects(): array
+    protected static function kidNumbers(array $topPagesDict): array
     {
-        $objects = [];
-        foreach ($this->objectMap as $type => $object) {
-            if (($type == 'root') || ($type == 'parent') || ($type == 'info')) {
-                $objects[$object['index']] = $object['object'];
-            } else if ($type == 'streams') {
-                foreach ($object as $obj) {
-                    $objects[$obj['index']] = $obj['stream'];
+        $numbers = [];
+        $kids    = $topPagesDict['Kids'] ?? [];
+
+        if (is_array($kids)) {
+            foreach ($kids as $kid) {
+                if ($kid instanceof Value\Reference) {
+                    $numbers[] = $kid->objNum;
                 }
             }
         }
 
-        return $objects;
+        return $numbers;
+    }
+
+    /**
+     * Build a Document\Metadata from a rewritten Info dict
+     *
+     * @param  array $infoDict
+     * @return Metadata
+     */
+    protected static function metadataFromDict(array $infoDict): Metadata
+    {
+        $metadata = new Metadata();
+
+        if (isset($infoDict['Title']) && is_string($infoDict['Title'])) {
+            $metadata->setTitle($infoDict['Title']);
+        }
+        if (isset($infoDict['Author']) && is_string($infoDict['Author'])) {
+            $metadata->setAuthor($infoDict['Author']);
+        }
+        if (isset($infoDict['Subject']) && is_string($infoDict['Subject'])) {
+            $metadata->setSubject($infoDict['Subject']);
+        }
+        if (isset($infoDict['Creator']) && is_string($infoDict['Creator'])) {
+            $metadata->setCreator($infoDict['Creator']);
+        }
+        if (isset($infoDict['Producer']) && is_string($infoDict['Producer'])) {
+            $metadata->setProducer($infoDict['Producer']);
+        }
+        if (isset($infoDict['CreationDate']) && is_string($infoDict['CreationDate'])) {
+            $metadata->setCreationDate($infoDict['CreationDate']);
+        }
+        if (isset($infoDict['ModDate']) && is_string($infoDict['ModDate'])) {
+            $metadata->setModDate($infoDict['ModDate']);
+        }
+
+        return $metadata;
     }
 
 }

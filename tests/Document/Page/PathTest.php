@@ -226,4 +226,29 @@ class PathTest extends TestCase
         $this->assertEquals(340, $path->getStreams()[0]['points'][0]['y1']);
     }
 
+    public function testDrawPieWithStartBetween90And180AndEndPast180SplitsIntoTwoSegments()
+    {
+        // calculateDegrees()'s (end - start) <= 90 branch has two paths of
+        // its own: a start/end pair entirely below 180 (already covered by
+        // testCalculateDegrees's 100/135 case, which falls into the final
+        // plain "else"), and this one - start between 90 and 180 with end
+        // past 180 - which must be split into a [start, 180] and [180, end]
+        // pair instead of being drawn as a single segment.
+        $path = new Path();
+        $path->drawPie(320, 240, 150, 200, 200);
+
+        $streams = $path->getStreams();
+        // Two arc segments were produced for the one drawPie() call - one
+        // per calculateDegrees() split - and only the LAST carries the pie's
+        // closing "line back to center, then close" (calculateArc()'s
+        // pie-and-last-segment branch).
+        $this->assertCount(2, $streams);
+        $this->assertStringContainsString('l', $streams[1]['stream']);
+        $this->assertStringContainsString('h', $streams[1]['stream']);
+
+        $lastPoint = end($streams[1]['points']);
+        $this->assertEquals(320, $lastPoint['x5']);
+        $this->assertEquals(240, $lastPoint['y5']);
+    }
+
 }

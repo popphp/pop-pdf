@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -21,9 +21,9 @@ use Pop\Utils\ArrayObject as Data;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class TrueType extends AbstractFont
 {
@@ -105,10 +105,18 @@ class TrueType extends AbstractFont
         $this->properties['ttfHeader'] = new Data($ttfHeader);
         $this->properties['ttfTable']  = new Data($ttfTable);
 
+        // The table directory's first entry was just parsed above (bytes
+        // 12-27) - record it in tableInfo too, then loop over the
+        // *remaining* numberOfTables - 1 entries. Looping numberOfTables
+        // times from $i = 0 here would both skip this first entry (leaving
+        // it out of tableInfo entirely) and read one entry past the real
+        // end of the directory, into the start of the first table's data.
+        $this->properties['tableInfo'][trim($tableName)] = $this->properties['ttfTable'];
+
         $nameByteOffset  = 28;
         $tableByteOffset = 32;
 
-        for ($i = 0; $i < $this->properties['ttfHeader']['numberOfTables']; $i++) {
+        for ($i = 1; $i < $this->properties['ttfHeader']['numberOfTables']; $i++) {
             $ttfTableName = $this->read($nameByteOffset, 4);
             $ttfTable     = unpack(
                 'Nchecksum/' .
@@ -217,13 +225,36 @@ class TrueType extends AbstractFont
         // cmap
         if (isset($this->properties['tableInfo']['cmap'])) {
             $this->properties['tables']['cmap'] = new TrueType\Table\Cmap($this);
-            if (isset($this->properties['tables']['cmap']['subTables']) && isset($this->properties['tables']['cmap']['subTables'][0]) &&
-                isset($this->properties['tables']['cmap']['subTables'][0]['parsed'])) {
-                if (isset($this->properties['tables']['cmap']['subTables'][0]['parsed']['glyphIndexArray'])) {
-                    $this->properties['cmap']['glyphIndexArray'] = $this->properties['tables']['cmap']['subTables'][0]['parsed']['glyphIndexArray'];
+            if (isset($this->properties['tables']['cmap']['subTables'])) {
+                $subTableIndex = null;
+                $msTable       = null;
+                $uniTable      = null;
+
+                foreach ($this->properties['tables']['cmap']['subTables'] as $index => $table) {
+                    if ($table->encoding == 'Microsoft Unicode') {
+                        $msTable = $index;
+                    } else if ($table->encoding == 'Unicode') {
+                        $uniTable = $index;
+                    }
                 }
-                if (isset($this->properties['tables']['cmap']['subTables'][0]['parsed']['glyphNumbers'])) {
-                    $this->properties['cmap']['glyphNumbers'] = $this->properties['tables']['cmap']['subTables'][0]['parsed']['glyphNumbers'];
+
+                if ($msTable !== null) {
+                    $subTableIndex = $msTable;
+                } else if ($uniTable !== null) {
+                    $subTableIndex = $uniTable;
+                } else if (isset($this->properties['tables']['cmap']['subTables'][0])) {
+                    $subTableIndex = 0;
+                }
+
+                if (($subTableIndex !== null) &&
+                    isset($this->properties['tables']['cmap']['subTables'][$subTableIndex]['parsed'])) {
+                    $parsed = $this->properties['tables']['cmap']['subTables'][$subTableIndex]['parsed'];
+                    if (isset($parsed['glyphIndexArray'])) {
+                        $this->properties['cmap']['glyphIndexArray'] = $parsed['glyphIndexArray'];
+                    }
+                    if (isset($parsed['glyphNumbers'])) {
+                        $this->properties['cmap']['glyphNumbers'] = $parsed['glyphNumbers'];
+                    }
                 }
             }
         }

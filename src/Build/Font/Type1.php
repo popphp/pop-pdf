@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -21,9 +21,9 @@ use Pop\Utils\ArrayObject as Data;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class Type1 extends AbstractFont
 {
@@ -112,15 +112,22 @@ class Type1 extends AbstractFont
             throw new Exception('Error: The PFB file does not exist.');
         }
 
-        $data = file_get_contents($pfb);
+        $data     = file_get_contents($pfb);
+        $fileSize = strlen($data);
 
         // Get lengths and data
         $f = fopen($pfb, 'rb');
         $a = unpack('Cmarker/Ctype/Vsize', fread($f,6));
         $this->properties['length1'] = $a['size'];
+        if ($this->properties['length1'] > ($fileSize - ftell($f))) {
+            throw new Exception('Error: The PFB file is not in the correct format (segment 1 length is invalid).');
+        }
         $this->properties['fontData'] = fread($f, $this->properties['length1']);
         $a = unpack('Cmarker/Ctype/Vsize', fread($f,6));
         $this->properties['length2'] = $a['size'];
+        if ($this->properties['length2'] > ($fileSize - ftell($f))) {
+            throw new Exception('Error: The PFB file is not in the correct format (segment 2 length is invalid).');
+        }
         $this->properties['fontData'] .= fread($f, $this->properties['length2']);
 
         $info = [];

@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -14,6 +14,9 @@
 namespace Pop\Pdf\Document\Page\Text;
 
 use Pop\Color\Color;
+use Pop\Pdf\Build\Font\Exception as FontException;
+use Pop\Pdf\Document\Font;
+use Pop\Pdf\Document\Page\Text;
 
 /**
  * Pdf page text stream class
@@ -21,9 +24,9 @@ use Pop\Color\Color;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class Stream
 {
@@ -138,10 +141,10 @@ class Stream
     /**
      * Set edge Y boundary
      *
-     * @param  int|float $edgeY
+     * @param  int|float|null $edgeY
      * @return Stream
      */
-    public function setEdgeY(int|float $edgeY): Stream
+    public function setEdgeY(int|float|null $edgeY): Stream
     {
         $this->edgeY = $edgeY;
         return $this;
@@ -362,7 +365,14 @@ class Stream
             $centerX = ($this->currentX + $this->edgeX - $this->startX - $firstStringWidth) / 2;
             $stream  = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$centerX} {$this->currentY} Tm\n    0 Tc 0 Tw 0 Tr\n";
             $stream .= "    {$fontReference} {$fontSize} Tf\n";
-            $stream .= "    (" . $this->streams[0]['string'] . ")Tj\n";
+            if (($curFont instanceof Font) && $curFont->isCid()) {
+                $stream .= "    <" . $curFont->stringToGidHex($this->streams[0]['string']) . ">Tj\n";
+            } else if (($curFont instanceof Font) && $curFont->isStandard()) {
+                $curFont->requireGlyphCoverage($this->streams[0]['string']);
+                $stream .= "    (" . $this->encodeWinAnsi($this->streams[0]['string'], $curFont) . ")Tj\n";
+            } else {
+                $stream .= "    (" . Text::escape($this->streams[0]['string']) . ")Tj\n";
+            }
         } else {
             $stream  = "\nBT\n    {$fontReference} {$fontSize} Tf\n    1 0 0 1 {$this->currentX} {$this->currentY} Tm\n    0 Tc 0 Tw 0 Tr\n";
 
@@ -389,7 +399,7 @@ class Stream
 
                 foreach ($curString as $j => $string) {
                     $newX = $this->currentX + $curFont->getStringWidth($string, $fontSize);
-                    if (($this->edgeX !== null) && (($this->currentX >= $this->edgeX) || ($newX >= $this->edgeX))) {
+                    if ($this->overflowsEdgeX($this->currentX, $newX)) {
                         $nextY             = ($str['y'] !== null) ? $str['y'] : $fontSize;
                         $stream           .= "    0 -" . $nextY . " Td\n";
                         $this->currentX    = $this->startX;
@@ -408,7 +418,14 @@ class Stream
                         $string .= ' ';
                     }
 
-                    $stream .= "    (" . $string . ")Tj\n";
+                    if (($curFont instanceof Font) && $curFont->isCid()) {
+                        $stream .= "    <" . $curFont->stringToGidHex($string) . ">Tj\n";
+                    } else if (($curFont instanceof Font) && $curFont->isStandard()) {
+                        $curFont->requireGlyphCoverage($string);
+                        $stream .= "    (" . $this->encodeWinAnsi($string, $curFont) . ")Tj\n";
+                    } else {
+                        $stream .= "    (" . Text::escape($string) . ")Tj\n";
+                    }
                     if ($curFont !== null) {
                         $this->currentX += $curFont->getStringWidth($string, $fontSize);
                     }
@@ -426,6 +443,79 @@ class Stream
         $stream .= "ET\n";
 
         return $stream;
+    }
+
+    /**
+     * Measure the total rendered height of this stream's content
+     *
+     * Ignores edgeY/page boundaries entirely - it answers "how tall is this
+     * content" (all wrapped lines, unpaginated), not "does this fit on one
+     * page". Reuses the same word-wrap-at-edgeX decision (overflowsEdgeX())
+     * that getStream() and hasOrphans() use, so the height this reports can
+     * never disagree with where getStream() actually breaks a line. Used by
+     * the parser to advance its page cursor by the real rendered height of
+     * a text node instead of a flat, guessed amount.
+     *
+     * @param  array $fonts
+     * @return float
+     */
+    public function measureHeight(array $fonts): float
+    {
+        $currentX = $this->startX;
+        $fontName = null;
+        $fontSize = null;
+        $curFont  = null;
+
+        foreach ($this->styles as $style) {
+            if (!empty($style['font'])) {
+                $fontName = $style['font'];
+                $curFont  = $fonts[$fontName] ?? null;
+            }
+            if (($fontSize === null) && !empty($style['size'])) {
+                $fontSize = $style['size'];
+            }
+        }
+
+        $totalHeight = (float) $fontSize;
+
+        foreach ($this->streams as $i => $str) {
+            if (isset($this->styles[$i]) && !empty($this->styles[$i]['font'])) {
+                $fontName = $this->styles[$i]['font'];
+                $fontSize = (!empty($this->styles[$i]['size'])) ? $this->styles[$i]['size'] : $fontSize;
+                $curFont  = $fonts[$fontName] ?? null;
+            }
+
+            if ($str['newLine']) {
+                $totalHeight += ($str['y'] !== null) ? $str['y'] : $fontSize;
+                $currentX     = $this->startX;
+            }
+
+            $curString = explode(' ', $str['string']);
+
+            foreach ($curString as $j => $string) {
+                $newX = ($curFont !== null) ? $currentX + $curFont->getStringWidth($string, $fontSize) : $currentX;
+
+                if ($this->overflowsEdgeX($currentX, $newX)) {
+                    $totalHeight += ($str['y'] !== null) ? $str['y'] : $fontSize;
+                    $currentX     = $this->startX;
+                }
+
+                if (!isset($curString[$j + 1])) {
+                    if (isset($this->streams[$i + 1]) &&
+                        preg_match('/[a-zA-Z0-9]/', substr($this->streams[$i + 1]['string'], 0, 1))) {
+                        $string .= ' ';
+                    }
+                } else {
+                    $string .= ' ';
+                }
+
+                if ($curFont !== null) {
+                    $currentX += $curFont->getStringWidth($string, $fontSize);
+                }
+            }
+        }
+
+        return $totalHeight;
     }
 
     /**
@@ -481,7 +571,9 @@ class Stream
             $curString = explode(' ', $str['string']);
 
             foreach ($curString as $j => $string) {
-                if (($this->edgeX !== null) && ($this->currentX >= $this->edgeX)) {
+                $newX = ($curFont !== null) ? $this->currentX + $curFont->getStringWidth($string, $fontSize) : $this->currentX;
+
+                if ($this->overflowsEdgeX($this->currentX, $newX)) {
                     $nextY             = ($str['y'] !== null) ? $str['y'] : $fontSize;
                     $this->currentX    = $this->startX;
                     $this->currentY   -= $nextY;
@@ -513,6 +605,51 @@ class Stream
     }
 
     /**
+     * Determine whether placing this word would overflow the horizontal edge
+     *
+     * Shared by hasOrphans(), getStream(), and measureHeight() so all three
+     * agree on exactly where a line wraps - they previously used two
+     * different, disagreeing conditions (one checked only the position
+     * after the previous word; the other also looked ahead to the word
+     * about to be placed), which caused hasOrphans() to disagree with
+     * getStream() about where a page-spanning paragraph actually overflows,
+     * silently dropping a block of words at the page boundary.
+     *
+     * @param  float $currentX
+     * @param  float $newX
+     * @return bool
+     */
+    protected function overflowsEdgeX(float $currentX, float $newX): bool
+    {
+        return ($this->edgeX !== null) && (($currentX >= $this->edgeX) || ($newX >= $this->edgeX));
+    }
+
+    /**
+     * Transcode a raw UTF-8 string to WinAnsiEncoding (Windows-1252) bytes and escape it for a literal PDF string
+     *
+     * requireGlyphCoverage() has already confirmed the font's cmap covers
+     * every character in the string, so iconv failing here should never
+     * happen in practice - the exception is a safety net against cmap/
+     * encoding drift, not an expected runtime path.
+     *
+     * @param  string $string
+     * @param  Font   $font
+     * @throws FontException
+     * @return string
+     */
+    protected function encodeWinAnsi(string $string, Font $font): string
+    {
+        $encoded = @iconv('UTF-8', 'Windows-1252', $string);
+        if ($encoded === false) {
+            throw new FontException(
+                "Error: The font '" . $font->getName() . "' cannot represent the given text in WinAnsiEncoding."
+            );
+        }
+
+        return Text::escape($encoded);
+    }
+
+    /**
      * Get the partial color stream
      *
      * @param  Color\ColorInterface $color
@@ -540,7 +677,7 @@ class Stream
      */
     public function hasOrphanIndex(): bool
     {
-        return ($this->orphanIndex !== null);
+        return (!empty($this->orphanIndex));
     }
 
 }

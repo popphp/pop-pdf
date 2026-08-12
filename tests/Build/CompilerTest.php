@@ -3,11 +3,13 @@
 namespace Pop\Pdf\Test\Build;
 
 use Pop\Color\Color;
+use Pop\Pdf;
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Font;
 use Pop\Pdf\Document\Form;
 use Pop\Pdf\Document\Page;
 use Pop\Pdf\Build\Compiler;
+use Pop\Pdf\Build\Exception;
 use PHPUnit\Framework\TestCase;
 
 class CompilerTest extends TestCase
@@ -118,6 +120,34 @@ class CompilerTest extends TestCase
         }
     }
 
+    public function testXrefTableEntriesMatchRealObjectOffsets()
+    {
+        $doc    = Pdf\Pdf::importFromFile(__DIR__ . '/../tmp/doc.pdf');
+        $output = (string) $doc;
+
+        preg_match('/trailer\n<<\/Size (\d+)\/Root (\d+)/', $output, $trailerMatch);
+        $size = (int) $trailerMatch[1];
+        $root = (int) $trailerMatch[2];
+
+        $this->assertLessThan($size, $root);
+
+        preg_match('/xref\n0 \d+\n(.*?)trailer/s', $output, $xrefMatch);
+        $lines = array_values(array_filter(explode("\n", trim($xrefMatch[1]))));
+
+        // Row 0 is always the free-list head; rows 1..size-1 are real entries.
+        for ($objNum = 1; $objNum < $size; $objNum++) {
+            $entry = $lines[$objNum];
+            if (str_ends_with(trim($entry), 'f')) {
+                continue; // a free/gap entry - nothing to verify at this row
+            }
+            $offset = (int) substr($entry, 0, 10);
+            $this->assertEquals(
+                "{$objNum} 0 obj", substr($output, $offset, strlen("{$objNum} 0 obj")),
+                "xref row for object {$objNum} does not point at its actual \"N 0 obj\" text"
+            );
+        }
+    }
+
     public function testFinalizeOriginTopLeft()
     {
         $doc = new Document();
@@ -208,6 +238,339 @@ class CompilerTest extends TestCase
         $compiler->finalize($doc);
 
         $this->assertStringContainsString('%PDF', $compiler->getOutput());
+    }
+
+    public function testGetFontsAndFontReferencesAfterFinalize()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Hello World', 12), 'Arial', 50, 50);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        // Covers AbstractCompiler::getFonts()/getFontReferences() - exercised
+        // through the public Compiler API rather than called for their own sake.
+        $this->assertArrayHasKey('Arial', $compiler->getFonts());
+        $this->assertArrayHasKey('Arial', $compiler->getFontReferences());
+        $this->assertStringContainsString('MF', $compiler->getFontReferences()['Arial']);
+    }
+
+    public function testPrepareFontsWithPlainArrayFontReference()
+    {
+        // Document::importFonts() (used by re-editing an imported document)
+        // stores fonts as plain ['name' => ..., 'ref' => ...] arrays rather
+        // than Document\Font instances - Compiler::prepareFonts() must carry
+        // that pre-built reference straight through instead of trying to
+        // parse it as a real font.
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->importFonts([['name' => 'ImportedFont', 'ref' => '/MF9 9 0 R']]);
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Hello World', 12), 'Arial', 50, 50);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertEquals('/MF9 9 0 R', $compiler->getFontReferences()['ImportedFont']);
+    }
+
+    public function testPrepareImagesFromStream()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+
+        $page   = new Page(Page::LETTER);
+        $stream = file_get_contents(__DIR__ . '/../tmp/images/logo-rgb.jpg');
+        $page->addImage(Page\Image::createImageFromStream($stream), 50, 600);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
+    }
+
+    public function testPrepareTextAppliesMatchingStyleSizeAndFont()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->addFont(new Font(Font::TIMES_ROMAN));
+        $doc->createStyle('heading', Font::TIMES_ROMAN, 24);
+
+        $page = new Page(Page::LETTER);
+        // The 'heading' style name is passed as the font/style slot - the
+        // style's own font and size must override the text's own settings.
+        $page->addText(new Page\Text('Hello World', 10), 'heading', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
+    }
+
+    public function testPrepareTextThrowsWhenFontNotAdded()
+    {
+        $this->expectException(Exception::class);
+
+        $doc  = new Document();
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Hello World', 12), 'NotAddedFont', 50, 50);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+    }
+
+    public function testPrepareTextWithCharWrap()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+
+        $text = new Page\Text('Hello World Hello World Hello World Hello World Hello World', 12);
+        $text->setCharWrap(20);
+
+        $page = new Page(Page::LETTER);
+        $page->addText($text, 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
+    }
+
+    public function testPrepareTextWithAlignment()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+
+        $text = new Page\Text('Hello World Hello World Hello World Hello World Hello World', 12);
+        $text->setAlignment(Page\Text\Alignment::createLeft(50, 550));
+
+        $page = new Page(Page::LETTER);
+        $page->addText($text, 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
+    }
+
+    public function testPrepareTextWithWrapAndFillColor()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+
+        $text = new Page\Text('Hello World Hello World Hello World Hello World Hello World', 12);
+        $text->setFillColor(new Color\Rgb(255, 0, 0));
+        $text->setWrap(Page\Text\Wrap::createLeft(50, 550));
+
+        $page = new Page(Page::LETTER);
+        $page->addText($text, 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
+    }
+
+    public function testPrepareFieldsThrowsWhenFontNotAdded()
+    {
+        $this->expectException(Exception::class);
+
+        $doc = new Document();
+        $doc->addForm(new Form('contact_form'));
+
+        $page = new Page(Page::LETTER);
+        $page->addField(new Page\Field\Text('name', 'NotAddedFont', 10), 'contact_form', 50, 200);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+    }
+
+    public function testPrepareFieldsWithNoFontLeavesFontRefNull()
+    {
+        $doc = new Document();
+        $doc->addForm(new Form('contact_form'));
+
+        $page = new Page(Page::LETTER);
+        // No font passed to the field - prepareFields() must fall through to
+        // a null font reference instead of throwing or requiring one.
+        $page->addField(new Page\Field\Text('name'), 'contact_form', 50, 200);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertStringContainsString('%PDF', $compiler->getOutput());
+    }
+
+    public function testPrepareFontsEmitsCidStructureForEmbeddedTrueType()
+    {
+        $doc = new Document();
+        $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/DejaVuSans.ttf'));
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text("Hello \u{041F}", 12), $doc->getCurrentFont(), 50, 50);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $fontRef    = $compiler->getFontReferences()['DejaVuSans'];
+        $objectIndex = (int) explode(' ', $fontRef)[1];
+        $definition  = (string) $compiler->getObjects()[$objectIndex];
+
+        $this->assertStringContainsString('/Subtype /Type0', $definition);
+    }
+
+    public function testPrepareTextWithCidFontEmitsHexStringContent()
+    {
+        $doc = new Document();
+        $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/DejaVuSans.ttf'));
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text("\u{041F}\u{0420}\u{0418}\u{0412}\u{0406}\u{0422}", 36), $doc->getCurrentFont(), 50, 400);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertStringContainsString('>Tj', $compiler->getOutput());
+    }
+
+    /**
+     * Build a one-page document with an embedded CID font, write it out and
+     * extract the text back, so alignment/wrap output is checked for real
+     * rendered content rather than just "it didn't throw".
+     */
+    protected function roundTripEmbeddedText(Page\Text $text): string
+    {
+        $doc = new Document();
+        $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/DejaVuSans.ttf'));
+
+        $page = new Page(Page::LETTER);
+        $page->addText($text, $doc->getCurrentFont(), 50, 600);
+        $doc->addPage($page);
+
+        $file = tempnam(sys_get_temp_dir(), 'pop-pdf-') . '.pdf';
+
+        try {
+            Pdf\Pdf::writeToFile($doc, $file);
+            return Pdf\Pdf::extractTextFromFile($file);
+        } finally {
+            if (file_exists($file)) {
+                unlink($file);
+            }
+        }
+    }
+
+    public function testPrepareTextAlignmentWithCidFontRendersLatinText()
+    {
+        $text = new Page\Text('The quick brown fox jumps over the lazy dog again and again', 14);
+        $text->setAlignment(Page\Text\Alignment::createLeft(50, 300, 18));
+
+        $extracted = $this->roundTripEmbeddedText($text);
+
+        $this->assertEquals(
+            'The quick brown fox jumps over the lazy dog again and again',
+            preg_replace('/\s+/u', ' ', trim($extracted))
+        );
+    }
+
+    public function testPrepareTextAlignmentWithCidFontRendersCyrillicText()
+    {
+        $text = new Page\Text("\u{041F}\u{0440}\u{0438}\u{0432}\u{0456}\u{0442} \u{0441}\u{0432}\u{0456}\u{0442} " .
+            "\u{0446}\u{0435} \u{0442}\u{0435}\u{0441}\u{0442}", 14);
+        $text->setAlignment(Page\Text\Alignment::createLeft(50, 300, 18));
+
+        $extracted = $this->roundTripEmbeddedText($text);
+
+        $this->assertEquals(
+            "\u{041F}\u{0440}\u{0438}\u{0432}\u{0456}\u{0442} \u{0441}\u{0432}\u{0456}\u{0442} " .
+            "\u{0446}\u{0435} \u{0442}\u{0435}\u{0441}\u{0442}",
+            preg_replace('/\s+/u', ' ', trim($extracted))
+        );
+    }
+
+    public function testPrepareTextWrapWithCidFontRendersLatinText()
+    {
+        $text = new Page\Text('The quick brown fox jumps over the lazy dog again and again', 14);
+        $text->setWrap(Page\Text\Wrap::createLeft(50, 300, ['left' => 0, 'right' => 0, 'top' => 0, 'bottom' => 0], 18));
+
+        $extracted = $this->roundTripEmbeddedText($text);
+
+        $this->assertEquals(
+            'The quick brown fox jumps over the lazy dog again and again',
+            preg_replace('/\s+/u', ' ', trim($extracted))
+        );
+    }
+
+    /**
+     * Wrap::getStrings() splits on a single-byte ASCII space (explode(' ', ...)),
+     * which can never land inside a UTF-8 multi-byte sequence, so wrapping is
+     * byte-safe for any script. This asserts the wrapped Cyrillic lines come
+     * back intact (and on two separate lines) after a build/extract round trip.
+     */
+    public function testPrepareTextWrapWithCidFontRendersCyrillicTextAcrossLines()
+    {
+        $string = "\u{041F}\u{0440}\u{0438}\u{0432}\u{0456}\u{0442} \u{0441}\u{0432}\u{0456}\u{0442} " .
+            "\u{0446}\u{0435} \u{0442}\u{0435}\u{0441}\u{0442} \u{043F}\u{0435}\u{0440}\u{0435}\u{043D}\u{043E}" .
+            "\u{0441}\u{0443} \u{0440}\u{044F}\u{0434}\u{043A}\u{0456}\u{0432}";
+
+        $text = new Page\Text($string, 14);
+        $text->setWrap(Page\Text\Wrap::createLeft(50, 300, ['left' => 0, 'right' => 0, 'top' => 0, 'bottom' => 0], 18));
+
+        $extracted = trim($this->roundTripEmbeddedText($text));
+
+        $this->assertStringContainsString("\n", $extracted);
+        $this->assertEquals($string, preg_replace('/\s+/u', ' ', $extracted));
+    }
+
+    public function testPrepareTextAlignmentWithStandardFontAndCyrillicTextThrows()
+    {
+        $this->expectException(\Pop\Pdf\Build\Font\Exception::class);
+
+        $doc = new Document();
+        $doc->addFont(new Font(Font::ARIAL));
+
+        $text = new Page\Text("\u{041F}\u{0440}\u{0438}\u{0432}\u{0456}\u{0442} \u{0441}\u{0432}\u{0456}\u{0442}", 14);
+        $text->setAlignment(Page\Text\Alignment::createLeft(50, 300, 18));
+
+        $page = new Page(Page::LETTER);
+        $page->addText($text, Font::ARIAL, 50, 600);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+    }
+
+    public function testPrepareTextWrapWithStandardFontAndCyrillicTextThrows()
+    {
+        $this->expectException(\Pop\Pdf\Build\Font\Exception::class);
+
+        $doc = new Document();
+        $doc->addFont(new Font(Font::ARIAL));
+
+        $text = new Page\Text("\u{041F}\u{0440}\u{0438}\u{0432}\u{0456}\u{0442} \u{0441}\u{0432}\u{0456}\u{0442}", 14);
+        $text->setWrap(Page\Text\Wrap::createLeft(50, 300, ['left' => 0, 'right' => 0, 'top' => 0, 'bottom' => 0], 18));
+
+        $page = new Page(Page::LETTER);
+        $page->addText($text, Font::ARIAL, 50, 600);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
     }
 
 }

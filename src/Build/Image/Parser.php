@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -21,9 +21,9 @@ use Pop\Pdf\Build\PdfObject\StreamObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class Parser
 {
@@ -644,10 +644,9 @@ class Parser
         if ($this->stream !== null) {
             $this->resource = imagecreatefromstring($this->stream);
         } else if (file_exists($this->fullpath)) {
+            // GIFs are always converted to PNG (convertImage()) before
+            // $this->mime is set, so it's never 'image/gif' here.
             switch ($this->mime) {
-                case 'image/gif':
-                    $this->resource = imagecreatefromgif($this->fullpath);
-                    break;
                 case 'image/png':
                     $this->resource = imagecreatefrompng($this->fullpath);
                     break;

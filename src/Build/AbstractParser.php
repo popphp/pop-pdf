@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -21,9 +21,9 @@ use Pop\Pdf\Document\AbstractDocument;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 abstract class AbstractParser implements ParserInterface
 {
@@ -58,32 +58,6 @@ abstract class AbstractParser implements ParserInterface
     public function getData(): string
     {
         return $this->data;
-    }
-
-    /**
-     * Get the object stream type
-     *
-     * @param  string $stream
-     * @return string
-     */
-    protected function getStreamType(string $stream): string
-    {
-        if ((str_contains($stream, '/Catalog')) && (str_contains($stream, '/Pages'))) {
-            $type = 'root';
-        } else if ((str_contains($stream, '/Count')) && (str_contains($stream, '/Kids'))) {
-            $type = 'parent';
-        } else if ((str_contains($stream, '/Parent')) && (str_contains($stream, '/MediaBox'))) {
-            $type = 'page';
-        } else if ((str_contains($stream, '/Creator')) || (str_contains($stream, '/CreationDate')) ||
-            (str_contains($stream, '/ModDate')) || (str_contains($stream, '/Author')) ||
-            (str_contains($stream, '/Title')) || (str_contains($stream, '/Subject')) ||
-            (str_contains($stream, '/Producer'))) {
-            $type = 'info';
-        } else {
-            $type = 'stream';
-        }
-
-        return $type;
     }
 
     /**

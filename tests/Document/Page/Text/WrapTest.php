@@ -60,4 +60,28 @@ class WrapTest extends TestCase
         $this->assertEquals(32, count($strings));
     }
 
+    public function testGetStringsMergesLeftoverTextAcrossMultipleTextStrings()
+    {
+        // Page\Text::setStrings() lets one Text carry several separate
+        // string entries (used for streaming text with per-run styling).
+        // When an entry's words never hit the wrap width and it isn't the
+        // LAST entry, getStrings() must defer flushing it (the `$append =
+        // true` branch) and prepend it onto the NEXT entry instead of
+        // flushing it prematurely (the `$append && !empty($curString)`
+        // merge branch) - neither of which a single-string Text exercises.
+        $text = new Page\Text();
+        $text->setStrings(['Hello world', 'foo bar', 'baz'], false);
+
+        $arial = new Font('Arial');
+        // A wide box (leftX 0, rightX 1000) so none of these short words
+        // ever force a mid-entry flush - every entry's leftover text should
+        // carry forward and all three end up merged into one final string.
+        $wrap = Page\Text\Wrap::createLeft(0, 1000);
+
+        $strings = $wrap->getStrings($text, $arial, 700);
+
+        $this->assertCount(1, $strings);
+        $this->assertEquals('Hello world foo bar baz', $strings[0]['string']);
+    }
+
 }

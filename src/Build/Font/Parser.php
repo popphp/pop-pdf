@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  */
 
@@ -21,9 +21,9 @@ use Pop\Pdf\Build\PdfObject\StreamObject;
  * @category   Pop
  * @package    Pop\Pdf
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    5.2.7
+ * @version    6.0.0
  */
 class Parser
 {
@@ -57,6 +57,18 @@ class Parser
      * @var ?int
      */
     protected ?int $fontFileIndex = null;
+
+    /**
+     * CID (descendant) font object index
+     * @var ?int
+     */
+    protected ?int $cidFontObjectIndex = null;
+
+    /**
+     * ToUnicode CMap stream object index
+     * @var ?int
+     */
+    protected ?int $toUnicodeIndex = null;
 
     /**
      * Font objects
@@ -162,6 +174,30 @@ class Parser
     }
 
     /**
+     * Set the CID (descendant) font object index
+     *
+     * @param  int $index
+     * @return Parser
+     */
+    public function setCidFontObjectIndex(int $index): Parser
+    {
+        $this->cidFontObjectIndex = $index;
+        return $this;
+    }
+
+    /**
+     * Set the ToUnicode CMap stream object index
+     *
+     * @param  int $index
+     * @return Parser
+     */
+    public function setToUnicodeIndex(int $index): Parser
+    {
+        $this->toUnicodeIndex = $index;
+        return $this;
+    }
+
+    /**
      * Set the compression
      *
      * @param  bool $compression
@@ -221,6 +257,26 @@ class Parser
     public function getFontFileIndex(): ?int
     {
         return $this->fontFileIndex;
+    }
+
+    /**
+     * Get the CID (descendant) font object index
+     *
+     * @return ?int
+     */
+    public function getCidFontObjectIndex(): ?int
+    {
+        return $this->cidFontObjectIndex;
+    }
+
+    /**
+     * Get the ToUnicode CMap stream object index
+     *
+     * @return ?int
+     */
+    public function getToUnicodeIndex(): ?int
+    {
+        return $this->toUnicodeIndex;
     }
 
     /**
@@ -299,22 +355,39 @@ class Parser
             $unCompStream = $this->font->fontData;
             $length1      = $this->font->length1;
             $length2      = " /Length2 " . $this->font->length2 . " /Length3 0";
+
+            $this->objects[$this->fontObjectIndex] = StreamObject::parse(
+                "{$this->fontObjectIndex} 0 obj\n<<\n    /Type /Font\n    /Subtype /{$fontType}\n    /FontDescriptor " .
+                $this->fontDescIndex . " 0 R\n    /Name /TT{$this->fontIndex}\n    /BaseFont /" . $fontName .
+                "\n    /FirstChar 32\n    /LastChar 255\n    /Widths [" . implode(' ', $glyphWidths['widths']) .
+                "]\n    /Encoding /" . $glyphWidths['encoding'] . "\n>>\nendobj\n\n"
+            );
         } else {
-            $fontType     = 'TrueType';
+            if (($this->cidFontObjectIndex === null) || ($this->toUnicodeIndex === null)) {
+                throw new Exception('Error: The CID font indices are not set');
+            }
+
             $fontName     = $this->font->tables['name']->postscriptName;
             $fontFile     = 'FontFile2';
-            $glyphWidths  = $this->getGlyphWidthsFromCmap($this->font->tables['cmap']);
             $unCompStream = $this->font->read();
             $length1      = strlen($unCompStream);
             $length2      = null;
-        }
 
-        $this->objects[$this->fontObjectIndex] = StreamObject::parse(
-            "{$this->fontObjectIndex} 0 obj\n<<\n    /Type /Font\n    /Subtype /{$fontType}\n    /FontDescriptor " .
-            $this->fontDescIndex . " 0 R\n    /Name /TT{$this->fontIndex}\n    /BaseFont /" . $fontName .
-            "\n    /FirstChar 32\n    /LastChar 255\n    /Widths [" . implode(' ', $glyphWidths['widths']) .
-            "]\n    /Encoding /" . $glyphWidths['encoding'] . "\n>>\nendobj\n\n"
-        );
+            $this->objects[$this->fontObjectIndex] = StreamObject::parse(
+                "{$this->fontObjectIndex} 0 obj\n<<\n    /Type /Font\n    /Subtype /Type0\n    /Name /TT{$this->fontIndex}\n    /BaseFont /" .
+                $fontName . "\n    /Encoding /Identity-H\n    /DescendantFonts [" . $this->cidFontObjectIndex .
+                " 0 R]\n    /ToUnicode " . $this->toUnicodeIndex . " 0 R\n>>\nendobj\n\n"
+            );
+
+            $this->objects[$this->cidFontObjectIndex] = StreamObject::parse(
+                "{$this->cidFontObjectIndex} 0 obj\n<<\n    /Type /Font\n    /Subtype /CIDFontType2\n    /BaseFont /" .
+                $fontName . "\n    /CIDSystemInfo <</Registry (Adobe) /Ordering (Identity) /Supplement 0>>\n    /FontDescriptor " .
+                $this->fontDescIndex . " 0 R\n    /CIDToGIDMap /Identity\n    /DW " . $this->font->missingWidth .
+                "\n    /W [" . $this->buildCidWidths() . "]\n>>\nendobj\n\n"
+            );
+
+            $this->objects[$this->toUnicodeIndex] = StreamObject::parse($this->buildToUnicodeCMap());
+        }
 
         $bBox = '[' . $this->font->bBox->xMin . ' ' . $this->font->bBox->yMin . ' ' .
             $this->font->bBox->xMax . ' ' . $this->font->bBox->yMax . ']';
@@ -340,57 +413,57 @@ class Parser
     }
 
     /**
-     * Method to to get the glyph widths from the CMap
+     * Build the /W (per-CID width) array for a CID font from GID-indexed glyph widths
      *
-     * @param  TrueType\Table\Cmap $cmap
-     * @return array
+     * hmtx-derived glyph widths are already contiguous from GID 0, so this
+     * emits a single 'c [w1 w2 ... wn]' run rather than detecting ranges.
+     *
+     * @return string
      */
-    protected function getGlyphWidthsFromCmap(TrueType\Table\Cmap $cmap): array
+    protected function buildCidWidths(): string
     {
-        $gw       = ['encoding' => null, 'widths' => []];
-        $uniTable = null;
-        $msTable  = null;
-        $macTable = null;
+        return '0 [' . implode(' ', $this->font->glyphWidths) . ']';
+    }
 
-        foreach ($cmap->subTables as $index => $table) {
-            if ($table->encoding == 'Microsoft Unicode') {
-                $msTable = $index;
-            }
-            if ($table->encoding == 'Unicode') {
-                $uniTable = $index;
-            }
-            if (($table->encoding == 'Mac Roman') && ($table->format == 0)) {
-                $macTable = $index;
+    /**
+     * Build a /ToUnicode CMap stream mapping glyph IDs back to Unicode code units
+     *
+     * Inverts the font's own codepoint => GID cmap. The inversion is lossy:
+     * several codepoints can share one GID (e.g. times.ttf maps both U+0020
+     * and U+00A1 to GID 3), but a /ToUnicode CMap can only name one of them.
+     * The LOWEST codepoint wins, which keeps the ASCII/Latin-1 member of any
+     * such collision - so a space extracts as a space rather than as whatever
+     * exotic codepoint happened to be iterated last.
+     *
+     * @return string
+     */
+    protected function buildToUnicodeCMap(): string
+    {
+        $gidToCodeUnit = [];
+        foreach (($this->font->cmap['glyphNumbers'] ?? []) as $codeUnit => $gid) {
+            if (!isset($gidToCodeUnit[$gid]) || ($codeUnit < $gidToCodeUnit[$gid])) {
+                $gidToCodeUnit[$gid] = $codeUnit;
             }
         }
+        ksort($gidToCodeUnit);
 
-        if ($msTable !== null) {
-            $gw['encoding'] = 'WinAnsiEncoding';
-            foreach ($cmap->subTables[$msTable]->parsed['glyphNumbers'] as $key => $value) {
-                if (isset($this->font->glyphWidths[$value])) {
-                    $gw['widths'][$key] = $this->font->glyphWidths[$value];
-                }
+        $body = '';
+        foreach (array_chunk($gidToCodeUnit, 100, true) as $chunk) {
+            $body .= count($chunk) . " beginbfchar\n";
+            foreach ($chunk as $gid => $codeUnit) {
+                $body .= sprintf("<%04X> <%04X>\n", $gid, $codeUnit);
             }
-        } else if ($uniTable !== null) {
-            $gw['encoding'] = 'WinAnsiEncoding';
-            foreach ($cmap->subTables[$uniTable]->parsed['glyphNumbers'] as $key => $value) {
-                if (isset($this->font->glyphWidths[$value])) {
-                    $gw['widths'][$key] = $this->font->glyphWidths[$value];
-                }
-            }
-        } else if ($macTable !== null) {
-            $gw['encoding'] = 'MacRomanEncoding';
-            foreach ($cmap->subTables[$macTable]->parsed as $key => $value) {
-                if (($this->font->glyphWidths[$value->ascii] != 0) &&
-                    ($this->font->glyphWidths[$value->ascii] != $this->font->missingWidth)) {
-                    if (isset($this->font->glyphWidths[$value->ascii])) {
-                        $gw['widths'][$key] = $this->font->glyphWidths[$value->ascii];
-                    }
-                }
-            }
+            $body .= "endbfchar\n";
         }
 
-        return $gw;
+        $cmapProgram = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n" .
+            "/CIDSystemInfo <</Registry (Adobe) /Ordering (UCS) /Supplement 0>> def\n" .
+            "/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n" .
+            "1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n" . $body .
+            "endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n";
+
+        return "{$this->toUnicodeIndex} 0 obj\n<</Length " . strlen($cmapProgram) . ">>\nstream\n" .
+            $cmapProgram . "\nendstream\nendobj\n\n";
     }
 
 }
