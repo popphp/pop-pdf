@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -138,11 +139,11 @@ class Text
      *
      * Instantiate a PDF text object.
      *
-     * @param ?string $string
-     * @param ?string $size
-     * @param bool    $escape
+     * @param ?string    $string
+     * @param int|float|null $size
+     * @param bool       $escape
      */
-    public function __construct(?string $string = null, ?string $size = null, bool $escape = true)
+    public function __construct(?string $string = null, int|float|null $size = null, bool $escape = true)
     {
         if ($string !== null) {
             $this->setString($string, $escape);
@@ -666,7 +667,7 @@ class Text
         }
 
         // Check the render parameter.
-        if ((!is_int($rend)) || (($rend > 7) || ($rend < 0))) {
+        if (($rend > 7) || ($rend < 0)) {
             throw new OutOfRangeException('Error: The render parameter must be an integer between 0 and 7.');
         }
 

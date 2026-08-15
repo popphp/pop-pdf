@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -551,6 +552,7 @@ class Parser
         $TRNS      = null;
         $maskIndex = null;
         $mask      = null;
+        $palIndex  = null;
 
         // Determine the PNG colorspace.
         if ($this->colorMode == 'Gray') {
@@ -694,7 +696,7 @@ class Parser
         $resource = ($this->stream !== null) ?
             imagecreatefromstring($this->stream) : imagecreatefromgif($this->fullpath);
 
-        imageinterlace($resource, 0);
+        imageinterlace($resource, false);
         imagepng($resource, $this->convertedImage);
 
         // Change the type of the image object to the new,

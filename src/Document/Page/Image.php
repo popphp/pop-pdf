@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -106,7 +107,7 @@ class Image
         $imgSize = getimagesize($file);
 
         if (!isset($imgSize['mime']) ||
-            (isset($imgSize['mime']) && ($imgSize['mime'] != 'image/jpeg') &&
+            (($imgSize['mime'] != 'image/jpeg') &&
                 ($imgSize['mime'] != 'image/gif') && ($imgSize['mime'] != 'image/png'))) {
             throw new Exception(
                 'Error: That image type is not supported. Only GIF, JPG and PNG image types are supported.'
@@ -133,7 +134,7 @@ class Image
         $imgSize = getimagesizefromstring($stream);
 
         if (!isset($imgSize['mime']) ||
-            (isset($imgSize['mime']) && ($imgSize['mime'] != 'image/jpeg') &&
+            (($imgSize['mime'] != 'image/jpeg') &&
                 ($imgSize['mime'] != 'image/gif') && ($imgSize['mime'] != 'image/png'))) {
             throw new Exception(
                 'Error: That image type is not supported. Only GIF, JPG and PNG image types are supported.'
@@ -157,8 +158,8 @@ class Image
     public function resizeToWidth(int|float $width, bool $preserveResolution = false): Image
     {
         $this->resize = [
-            'width'  => $width,
-            'height' => round($this->height * ($width / $this->width))
+            'width'  => (int)round($width),
+            'height' => (int)round($this->height * ($width / $this->width))
         ];
 
         $this->preserveResolution = $preserveResolution;
@@ -175,8 +176,8 @@ class Image
     public function resizeToHeight(int|float $height, bool $preserveResolution = false): Image
     {
         $this->resize = [
-            'width'  => round($this->width * ($height / $this->height)),
-            'height' => $height
+            'width'  => (int)round($this->width * ($height / $this->height)),
+            'height' => (int)round($height)
         ];
 
         $this->preserveResolution = $preserveResolution;
@@ -194,8 +195,8 @@ class Image
     {
         $scale        = ($this->width > $this->height) ? ($pixel / $this->width) : ($pixel / $this->height);
         $this->resize = [
-            'width'  => round($this->width * $scale),
-            'height' => round($this->height * $scale)
+            'width'  => (int)round($this->width * $scale),
+            'height' => (int)round($this->height * $scale)
         ];
 
         $this->preserveResolution = $preserveResolution;
@@ -212,8 +213,8 @@ class Image
     public function scale(float $scale, bool $preserveResolution = false): Image
     {
         $this->resize = [
-            'width'  => round($this->width * $scale),
-            'height' => round($this->height * $scale)
+            'width'  => (int)round($this->width * $scale),
+            'height' => (int)round($this->height * $scale)
         ];
         $this->preserveResolution = $preserveResolution;
         return $this;

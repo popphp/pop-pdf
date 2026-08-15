@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -24,6 +25,22 @@ use Pop\Utils\ArrayObject as Data;
  * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  * @version    6.0.0
+ *
+ * @property mixed $info
+ * @property mixed $bBox
+ * @property int $ascent
+ * @property int $descent
+ * @property int $numberOfGlyphs
+ * @property array $glyphWidths
+ * @property int|float $missingWidth
+ * @property int $numberOfHMetrics
+ * @property int|float $italicAngle
+ * @property int|float $capHeight
+ * @property int $stemH
+ * @property int $stemV
+ * @property int $unitsPerEm
+ * @property mixed $flags
+ * @property bool $embeddable
  */
 abstract class AbstractFont implements \ArrayAccess
 {
@@ -156,7 +173,7 @@ abstract class AbstractFont implements \ArrayAccess
                 throw new Exception('Error: That font file does not have an extension.');
             }
 
-            if (($this->extension !== null) && !isset($this->allowedTypes[strtolower($this->extension)])) {
+            if (!isset($this->allowedTypes[strtolower($this->extension)])) {
                 throw new Exception('Error: That font file type is not allowed.');
             }
 
@@ -264,7 +281,7 @@ abstract class AbstractFont implements \ArrayAccess
      */
     public function toEmSpace(int $value): int
     {
-        return ($this->properties['unitsPerEm'] == 1000) ? $value : ceil(($value / $this->properties['unitsPerEm']) * 1000);
+        return ($this->properties['unitsPerEm'] == 1000) ? $value : (int)ceil(($value / $this->properties['unitsPerEm']) * 1000);
     }
 
     /**

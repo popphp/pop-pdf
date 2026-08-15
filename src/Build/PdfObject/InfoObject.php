@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -68,7 +69,7 @@ class InfoObject extends AbstractObject
     public static function parse(string $stream): InfoObject
     {
         $info = new self();
-        $info->setIndex(substr($stream, 0, strpos($stream, ' ')));
+        $info->setIndex((int)substr($stream, 0, strpos($stream, ' ')));
         $stream = str_replace($info->getIndex() . ' 0 obj', '[{info_index}] 0 obj', $stream);
 
         // Determine the Creator
@@ -209,8 +210,8 @@ class InfoObject extends AbstractObject
                 '[{creator}]', '[{producer}]', '[{mod_date}]', '[{creation_date}]'
             ],
             [
-                $this->index, $this->metadata->getTitle(), $this->metadata->getSubject(), $this->metadata->getAuthor(),
-                $this->metadata->getCreator(), $this->metadata->getProducer(), $this->metadata->getModDate(), $this->metadata->getCreationDate()
+                (string)$this->index, (string)$this->metadata->getTitle(), (string)$this->metadata->getSubject(), (string)$this->metadata->getAuthor(),
+                (string)$this->metadata->getCreator(), (string)$this->metadata->getProducer(), (string)$this->metadata->getModDate(), (string)$this->metadata->getCreationDate()
             ],
             $this->data
         );

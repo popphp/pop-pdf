@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -765,10 +766,9 @@ class Interpreter
     protected function decodePdfTextString(string $value): string
     {
         if ((strlen($value) >= 2) && (substr($value, 0, 2) === "\xFE\xFF")) {
-            $utf16     = substr($value, 2);
-            $converted = @mb_convert_encoding($utf16, 'UTF-8', 'UTF-16BE');
+            $utf16 = substr($value, 2);
 
-            return ($converted !== false) ? $converted : $value;
+            return @mb_convert_encoding($utf16, 'UTF-8', 'UTF-16BE');
         }
 
         return $value;

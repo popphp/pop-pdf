@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -32,10 +33,10 @@ class Compiler extends AbstractCompiler
     /**
      * Set the document object
      *
-     * @param  Document\AbstractDocument $document
+     * @param  Document $document
      * @return Compiler
      */
-    public function setDocument(Document\AbstractDocument $document): Compiler
+    public function setDocument(Document $document): Compiler
     {
         $this->document = $document;
 
@@ -86,11 +87,11 @@ class Compiler extends AbstractCompiler
     /**
      * Compile and finalize the PDF document
      *
-     * @param  ?Document\AbstractDocument $document
+     * @param  ?Document $document
      * @throws Exception
      * @return void
      */
-    public function finalize(?Document\AbstractDocument $document = null): void
+    public function finalize(?Document $document = null): void
     {
         if ($document !== null) {
             $this->setDocument($document);
@@ -275,12 +276,12 @@ class Compiler extends AbstractCompiler
             $i = $this->lastIndex() + 1;
             if ($image['image']->isStream()) {
                 $imageParser = Image\Parser::createImageFromStream(
-                    $image['image']->getStream(), $coordinates['x'], $coordinates['y'],
+                    $image['image']->getStream(), (int)round($coordinates['x']), (int)round($coordinates['y']),
                     $image['image']->getResizeDimensions(), $image['image']->isPreserveResolution()
                 );
             } else {
                 $imageParser = Image\Parser::createImageFromFile(
-                    $image['image']->getImage(), $coordinates['x'], $coordinates['y'],
+                    $image['image']->getImage(), (int)round($coordinates['x']), (int)round($coordinates['y']),
                     $image['image']->getResizeDimensions(), $image['image']->isPreserveResolution()
                 );
             }

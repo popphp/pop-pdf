@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -24,6 +25,16 @@ use Pop\Utils\ArrayObject as Data;
  * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  * @version    6.0.0
+ *
+ * @property mixed $dict
+ * @property mixed $data
+ * @property ?string $hex
+ * @property mixed $encoding
+ * @property ?int $length1
+ * @property ?int $length2
+ * @property ?string $fontData
+ * @property ?string $pfbPath
+ * @property ?string $afmPath
  */
 class Type1 extends AbstractFont
 {
@@ -131,13 +142,13 @@ class Type1 extends AbstractFont
         $this->properties['fontData'] .= fread($f, $this->properties['length2']);
 
         $info = [];
-        $this->properties['dict'] = substr($data, stripos($data, 'FontDirectory'));
-        $this->properties['dict'] = substr($this->properties['dict'], 0, stripos($this->properties['dict'], 'currentdict end'));
+        $this->properties['dict'] = substr($data, (int)stripos($data, 'FontDirectory'));
+        $this->properties['dict'] = substr($this->properties['dict'], 0, (int)stripos($this->properties['dict'], 'currentdict end'));
 
-        $this->properties['data'] = substr($data, (stripos($data, 'currentfile eexec') + 18));
+        $this->properties['data'] = substr($data, ((int)stripos($data, 'currentfile eexec') + 18));
         $this->properties['data'] = substr(
             $this->properties['data'], 0,
-            (stripos($this->properties['data'], '0000000000000000000000000000000000000000000000000000000000000000') - 1)
+            ((int)stripos($this->properties['data'], '0000000000000000000000000000000000000000000000000000000000000000') - 1)
         );
 
         $this->convertToHex();

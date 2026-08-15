@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -161,7 +162,7 @@ abstract class AbstractPage implements PageInterface
      */
     public function setWidth(mixed $width): AbstractPage
     {
-        $this->width = (float)$width;
+        $this->width = (int)$width;
         return $this;
     }
 
@@ -173,7 +174,7 @@ abstract class AbstractPage implements PageInterface
      */
     public function setHeight(mixed $height): AbstractPage
     {
-        $this->height = (float)$height;
+        $this->height = (int)$height;
         return $this;
     }
 

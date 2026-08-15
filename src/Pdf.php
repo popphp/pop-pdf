@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -32,11 +33,11 @@ class Pdf
     /**
      * Write document to file
      *
-     * @param  AbstractDocument $document
-     * @param  string           $filename
+     * @param  Document $document
+     * @param  string   $filename
      * @return void
      */
-    public static function writeToFile(AbstractDocument $document, string $filename = 'pop.pdf'): void
+    public static function writeToFile(Document $document, string $filename = 'pop.pdf'): void
     {
         $compiler = new Build\Compiler();
         $compiler->finalize($document);
@@ -46,14 +47,14 @@ class Pdf
     /**
      * Output to HTTP response
      *
-     * @param  AbstractDocument $document
-     * @param  string           $filename
-     * @param  bool             $forceDownload
-     * @param  array            $headers
+     * @param  Document $document
+     * @param  string   $filename
+     * @param  bool     $forceDownload
+     * @param  array    $headers
      * @return void
      */
     public static function outputToHttp(
-        AbstractDocument $document, string $filename = 'pop.pdf', bool $forceDownload = false, array $headers = []
+        Document $document, string $filename = 'pop.pdf', bool $forceDownload = false, array $headers = []
     ): void
     {
         $headers['Content-type']        = 'application/pdf';

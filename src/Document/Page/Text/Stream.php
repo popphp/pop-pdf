@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -89,12 +90,12 @@ class Stream
      *
      * Instantiate a PDF text stream object.
      *
-     * @param int  $startX
-     * @param int  $startY
-     * @param int  $edgeX
-     * @param ?int $edgeY
+     * @param int|float      $startX
+     * @param int|float      $startY
+     * @param int|float      $edgeX
+     * @param int|float|null $edgeY
      */
-    public function __construct(int $startX, int $startY, int $edgeX, ?int $edgeY = null)
+    public function __construct(int|float $startX, int|float $startY, int|float $edgeX, int|float|null $edgeY = null)
     {
         $this->setStartX($startX);
         $this->setStartY($startY);
@@ -257,12 +258,12 @@ class Stream
      * Set the current style
      *
      * @param  string                $font
-     * @param  int                   $size
+     * @param  int|float             $size
      * @param  ?Color\ColorInterface $color
      * @param  ?string               $align
      * @return Stream
      */
-    public function setCurrentStyle(string $font, int $size, ?Color\ColorInterface $color = null, ?string $align = null): Stream
+    public function setCurrentStyle(string $font, int|float $size, ?Color\ColorInterface $color = null, ?string $align = null): Stream
     {
         $key = (!empty($this->streams)) ? count($this->streams) : 0;
         $this->styles[$key] = [
@@ -431,7 +432,7 @@ class Stream
                     }
                 }
                 if (($this->edgeY !== null) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
-                    $this->orphanIndex = (isset($j)) ? [$i, $j] : [$i, 0];
+                    $this->orphanIndex = [$i, $j];
                     break;
                 }
             }
@@ -596,7 +597,7 @@ class Stream
                 }
             }
             if (($this->edgeY !== null) && ($this->currentY <= $this->edgeY) && ($this->currentX == $this->startX)) {
-                $this->orphanIndex = (isset($j)) ? [$i, $j] : [$i, 0];
+                $this->orphanIndex = [$i, $j];
                 break;
             }
         }

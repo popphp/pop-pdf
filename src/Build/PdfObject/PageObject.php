@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -124,12 +125,12 @@ class PageObject extends AbstractObject
     public static function parse(string $stream): PageObject
     {
         $page = new self();
-        $page->setIndex(substr($stream, 0, strpos($stream, ' ')));
+        $page->setIndex((int)substr($stream, 0, strpos($stream, ' ')));
 
         // Determine the page parent object index.
         $parent = substr($stream, (strpos($stream, '/Parent') + 7));
         $parent = trim(substr($parent, 0, strpos($parent, '0 R')));
-        $page->setParentIndex($parent);
+        $page->setParentIndex((int)$parent);
 
         // Determine the page width and height.
         $dims = substr($stream, (strpos($stream, '/MediaBox') + 9));
@@ -144,7 +145,7 @@ class PageObject extends AbstractObject
             $contents = substr($stream, (strpos($stream, '/Contents') + 9));
             $contents = $page->getDictionaryReferences($contents);
             foreach ($contents as $content) {
-                $page->addContentIndex($content);
+                $page->addContentIndex((int)$content);
             }
 
             // Set placeholder
@@ -165,7 +166,7 @@ class PageObject extends AbstractObject
             $annots = substr($stream, (strpos($stream, '/Annots') + 7));
             $annots = $page->getDictionaryReferences($annots);
             foreach ($annots as $annot) {
-                $page->addAnnotIndex($annot);
+                $page->addAnnotIndex((int)$annot);
             }
 
             // Set placeholder
@@ -271,7 +272,7 @@ class PageObject extends AbstractObject
      */
     public function setWidth(mixed $width): PageObject
     {
-        $this->width = $width;
+        $this->width = (int)$width;
         return $this;
     }
 
@@ -283,7 +284,7 @@ class PageObject extends AbstractObject
      */
     public function setHeight(mixed $height): PageObject
     {
-        $this->height = $height;
+        $this->height = (int)$height;
         return $this;
     }
 
@@ -567,7 +568,7 @@ class PageObject extends AbstractObject
         // Swap out the placeholders.
         $obj = str_replace(
             ['[{page_index}]', '[{parent}]', '[{width}]', '[{height}]', '[{page_extra}]', '[{other_resources}]'],
-            [$this->index, $this->parent, $this->width, $this->height, $this->pageExtra, $this->otherResources],
+            [(string)$this->index, (string)$this->parent, (string)$this->width, (string)$this->height, $this->pageExtra, $this->otherResources],
             $this->data
         );
 

@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -73,17 +74,17 @@ interface CompilerInterface
     /**
      * Set the document object
      *
-     * @param  Document\AbstractDocument $document
+     * @param  Document $document
      * @return Compiler
      */
-    public function setDocument(Document\AbstractDocument $document): Compiler;
+    public function setDocument(Document $document): Compiler;
 
     /**
      * Compile and finalize the PDF document
      *
-     * @param  Document\AbstractDocument $document
+     * @param  Document $document
      * @return void
      */
-    public function finalize(Document\AbstractDocument $document): void;
+    public function finalize(Document $document): void;
 
 }

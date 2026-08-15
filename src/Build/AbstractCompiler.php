@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -238,10 +239,10 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Calculate byte length
      *
-     * @param  ?string $string
+     * @param  \Stringable|string|null $string
      * @return int
      */
-    protected function calculateByteLength(?string $string): int
+    protected function calculateByteLength(\Stringable|string|null $string): int
     {
         return strlen((string)$string);
     }
@@ -294,18 +295,18 @@ abstract class AbstractCompiler implements CompilerInterface
     /**
      * Set the document object
      *
-     * @param  Document\AbstractDocument $document
+     * @param  Document $document
      * @return Compiler
      */
-    abstract public function setDocument(Document\AbstractDocument $document): Compiler;
+    abstract public function setDocument(Document $document): Compiler;
 
     /**
      * Compile and finalize the PDF document
      *
-     * @param  ?Document\AbstractDocument $document
+     * @param  ?Document $document
      * @return void
      */
-    abstract public function finalize(?Document\AbstractDocument $document = null): void;
+    abstract public function finalize(?Document $document = null): void;
 
     /**
      * Prepare the font objects

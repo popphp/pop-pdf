@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -314,7 +315,7 @@ class Document extends AbstractDocument
      * Add styles
      *
      * @param  array $styles
-     * @return AbstractDocument
+     * @return Document
      */
     public function addStyles(array $styles): Document
     {

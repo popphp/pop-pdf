@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -660,7 +661,7 @@ class Parser
             // one (which reads $this->y, not $currentY) advances from the
             // real position instead of an assumed-zero baseline.
             if ($this->page !== null) {
-                $this->y = $this->page->getHeight() - $this->pageMargins['top'] - $currentY;
+                $this->y = (int)round($this->page->getHeight() - $this->pageMargins['top'] - $currentY);
             }
         } else {
             $currentY = $this->getCurrentY(($i != 0) ? $styles['marginBottom'] ?? 0 : 0);
@@ -733,13 +734,13 @@ class Parser
                     $this->page->addImage($image, $currentX, $newY);
                 }
                 $currentY -= $styles['lineHeight'];
-                $this->y += $styles['lineHeight'];
+                $this->y += (int)round($styles['lineHeight']);
             } else {
                 $currentY -= ($image->getResizedHeight() !== null) ? $image->getResizedHeight() : $image->getHeight();
-                $this->y += ($image->getResizedHeight() !== null) ? $image->getResizedHeight() : $image->getHeight();
+                $this->y += (int)round(($image->getResizedHeight() !== null) ? $image->getResizedHeight() : $image->getHeight());
                 $this->page->addImage($image, $currentX, $currentY);
                 $currentY -= $styles['lineHeight'];
-                $this->y += $styles['lineHeight'];
+                $this->y += (int)round($styles['lineHeight']);
             }
         // Table node
         } else if ($child->getNodeName() == 'table') {
@@ -859,8 +860,8 @@ class Parser
                 $this->yOverride = $orphanStream->getCurrentY();
             } else {
                 $this->yOverride = null;
-                $this->y += $textStream->measureHeight($this->document->getFonts())
-                    + ((!empty($styles['marginBottom'])) ? $styles['marginBottom'] : 0);
+                $this->y += (int)round($textStream->measureHeight($this->document->getFonts())
+                    + ((!empty($styles['marginBottom'])) ? $styles['marginBottom'] : 0));
             }
         }
     }
@@ -874,10 +875,38 @@ class Parser
      */
     protected function parseCssColorToRgbArray(string $colorString): array
     {
-        $cssColor = Color::parse($colorString);
-        $rgbColor = ($cssColor instanceof Color\Rgb) ? $cssColor : $cssColor->toRgb();
+        $rgbColor = $this->toRgbColor(Color::parse($colorString));
 
         return $rgbColor->toArray(false);
+    }
+
+    /**
+     * Normalize any Color\ColorInterface value to Color\Rgb
+     *
+     * ColorInterface doesn't declare toRgb() (Color\Rgb has no such method to
+     * convert from itself), so every other concrete color type it might
+     * resolve to is matched explicitly here.
+     *
+     * @param  Color\ColorInterface $color
+     * @return Color\Rgb
+     */
+    protected function toRgbColor(Color\ColorInterface $color): Color\Rgb
+    {
+        return match (true) {
+            $color instanceof Color\Rgb      => $color,
+            $color instanceof Color\Cmyk     => $color->toRgb(),
+            $color instanceof Color\Grayscale => $color->toRgb(),
+            $color instanceof Color\Hex      => $color->toRgb(),
+            $color instanceof Color\Hsb      => $color->toRgb(),
+            $color instanceof Color\Hsl      => $color->toRgb(),
+            $color instanceof Color\Hsv      => $color->toRgb(),
+            $color instanceof Color\Hwb      => $color->toRgb(),
+            $color instanceof Color\Lab      => $color->toRgb(),
+            $color instanceof Color\Lch      => $color->toRgb(),
+            $color instanceof Color\Oklab    => $color->toRgb(),
+            $color instanceof Color\Oklch    => $color->toRgb(),
+            default => throw new Exception('Error: That CSS color type is not supported.'),
+        };
     }
 
     /**

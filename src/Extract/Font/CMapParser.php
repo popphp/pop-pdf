@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -373,8 +374,7 @@ class CMapParser
             return '';
         }
 
-        $converted = @mb_convert_encoding($bytes, 'UTF-8', 'UTF-16BE');
-        return ($converted !== false) ? $converted : '';
+        return @mb_convert_encoding($bytes, 'UTF-8', 'UTF-16BE');
     }
 
 }

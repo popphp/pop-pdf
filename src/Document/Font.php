@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -343,12 +344,12 @@ class Font
     /**
      * Attempt to get string width
      *
-     * @param  string $string
-     * @param  mixed  $size
+     * @param  string    $string
+     * @param  int|float $size
      * @throws Exception
      * @return mixed
      */
-    public function getStringWidth(string $string, string $size): mixed
+    public function getStringWidth(string $string, int|float $size): mixed
     {
         if ($this->parser !== null) {
             return $this->parser->getFont()->getStringWidth($string, $size);

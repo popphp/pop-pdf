@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -24,6 +25,14 @@ use Pop\Utils\ArrayObject as Data;
  * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
  * @version    6.0.0
+ *
+ * @property array $rawGlyphWidths
+ * @property array $cmap
+ * @property mixed $header
+ * @property mixed $ttfHeader
+ * @property mixed $ttfTable
+ * @property array $tables
+ * @property array $tableInfo
  */
 class TrueType extends AbstractFont
 {

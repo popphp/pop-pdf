@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -69,7 +70,7 @@ class ParentObject extends AbstractObject
     {
         $parent = new self();
 
-        $parent->setIndex(substr($stream, 0, strpos($stream, ' ')));
+        $parent->setIndex((int)substr($stream, 0, strpos($stream, ' ')));
         $stream = str_replace($parent->getIndex() . ' 0 obj', '[{parent_index}] 0 obj', $stream);
 
         // Determine the kids count.
@@ -181,7 +182,7 @@ class ParentObject extends AbstractObject
     public function __toString(): string
     {
         return str_replace(['[{parent_index}]', '[{count}]', '[{kids}]'],
-            [$this->index, $this->getCount(), implode(" 0 R ", $this->kids) . " 0 R"], $this->data);
+            [(string)$this->index, (string)$this->getCount(), implode(" 0 R ", $this->kids) . " 0 R"], $this->data);
     }
 
 }

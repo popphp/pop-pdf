@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -214,8 +215,7 @@ class CidDecoder
      */
     protected static function codepointToUtf8(int $codepoint): string
     {
-        $converted = @mb_convert_encoding(pack('N', $codepoint), 'UTF-8', 'UTF-32BE');
-        return ($converted !== false) ? $converted : '';
+        return @mb_convert_encoding(pack('N', $codepoint), 'UTF-8', 'UTF-32BE');
     }
 
 }

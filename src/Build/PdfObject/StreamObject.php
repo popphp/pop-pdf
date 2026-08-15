@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -84,7 +85,7 @@ class StreamObject extends AbstractObject
     public static function parse(string $stream): StreamObject
     {
         $object = new self();
-        $object->setIndex(substr($stream, 0, strpos($stream, ' ')));
+        $object->setIndex((int)substr($stream, 0, strpos($stream, ' ')));
         $stream = str_replace($object->getIndex() . ' 0 obj', '[{object_index}] 0 obj', $stream);
 
         // Determine the objects definition and stream, if applicable.
@@ -333,7 +334,7 @@ class StreamObject extends AbstractObject
 
         $data = str_replace(
             ['[{object_index}]', '[{stream}]', '[{definition}]', '[{byte_length}]'],
-            [$this->index, $stream, $this->definition, $byteLength],
+            [(string)$this->index, $stream, (string)$this->definition, (string)$byteLength],
             $this->data
         );
 

@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -107,7 +108,11 @@ class Ascii85 implements FilterInterface
     {
         $value = 0;
         for ($i = 0; $i < 5; $i++) {
-            $value = ($value * 85) + (ord($group[$i]) - 33);
+            $digit = ord($group[$i]) - 33;
+            if (($digit < 0) || ($digit > 84)) {
+                throw new Exception('Error: Invalid ASCII85 data.');
+            }
+            $value = ($value * 85) + $digit;
         }
 
         if ($value > 4294967295) {

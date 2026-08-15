@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -68,7 +69,7 @@ class RootObject extends AbstractObject
         $root = new self();
 
         // Else, parse out any metadata and determine the root and parent object indices.
-        $root->setIndex(substr($stream, 0, strpos($stream, ' ')));
+        $root->setIndex((int)substr($stream, 0, strpos($stream, ' ')));
         $stream = str_replace($root->getIndex() . ' 0 obj', '[{root_index}] 0 obj', $stream);
 
         // Strip away any metadata
@@ -81,7 +82,7 @@ class RootObject extends AbstractObject
         // Determine the parent index.
         $parent = substr($stream, (strpos($stream, '/Pages') + 6));
         $parent = trim(substr($parent, 0, strpos($parent, '0 R')));
-        $root->setParentIndex($parent);
+        $root->setParentIndex((int)$parent);
         $stream = str_replace('Pages ' . $root->getParentIndex() . ' 0 R', 'Pages [{parent_index}] 0 R', $stream);
 
         // Set the root object parent index and the data.
@@ -155,7 +156,7 @@ class RootObject extends AbstractObject
     public function __toString(): string
     {
         return '%PDF-' . $this->version . "\n" .
-            str_replace(['[{root_index}]', '[{parent_index}]', '[{form_index}]'], [$this->index, $this->parent, ''], $this->data);
+            str_replace(['[{root_index}]', '[{parent_index}]', '[{form_index}]'], [(string)$this->index, (string)$this->parent, ''], $this->data);
     }
 
 }

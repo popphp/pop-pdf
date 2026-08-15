@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -30,9 +31,9 @@ class Parser
 
     /**
      * Font object
-     * @var ?AbstractFont
+     * @var Type1|TrueType|null
      */
-    protected ?AbstractFont $font = null;
+    protected Type1|TrueType|null $font = null;
 
     /**
      * Font reference index
@@ -309,9 +310,13 @@ class Parser
      */
     public function getFontName(): string
     {
-        $fontName = ($this->font instanceof Type1) ? $this->font->info->postscriptName :
-            $this->font->tables['name']->postscriptName;
-        return $fontName;
+        if ($this->font instanceof Type1) {
+            return $this->font->info->postscriptName;
+        } elseif ($this->font instanceof TrueType) {
+            return $this->font->tables['name']->postscriptName;
+        }
+
+        throw new Exception('Error: The font type is not supported.');
     }
 
     /**
@@ -362,7 +367,7 @@ class Parser
                 "\n    /FirstChar 32\n    /LastChar 255\n    /Widths [" . implode(' ', $glyphWidths['widths']) .
                 "]\n    /Encoding /" . $glyphWidths['encoding'] . "\n>>\nendobj\n\n"
             );
-        } else {
+        } elseif ($this->font instanceof TrueType) {
             if (($this->cidFontObjectIndex === null) || ($this->toUnicodeIndex === null)) {
                 throw new Exception('Error: The CID font indices are not set');
             }
@@ -383,10 +388,12 @@ class Parser
                 "{$this->cidFontObjectIndex} 0 obj\n<<\n    /Type /Font\n    /Subtype /CIDFontType2\n    /BaseFont /" .
                 $fontName . "\n    /CIDSystemInfo <</Registry (Adobe) /Ordering (Identity) /Supplement 0>>\n    /FontDescriptor " .
                 $this->fontDescIndex . " 0 R\n    /CIDToGIDMap /Identity\n    /DW " . $this->font->missingWidth .
-                "\n    /W [" . $this->buildCidWidths() . "]\n>>\nendobj\n\n"
+                "\n    /W [" . $this->buildCidWidths($this->font) . "]\n>>\nendobj\n\n"
             );
 
-            $this->objects[$this->toUnicodeIndex] = StreamObject::parse($this->buildToUnicodeCMap());
+            $this->objects[$this->toUnicodeIndex] = StreamObject::parse($this->buildToUnicodeCMap($this->font));
+        } else {
+            throw new Exception('Error: The font type is not supported.');
         }
 
         $bBox = '[' . $this->font->bBox->xMin . ' ' . $this->font->bBox->yMin . ' ' .
@@ -418,11 +425,12 @@ class Parser
      * hmtx-derived glyph widths are already contiguous from GID 0, so this
      * emits a single 'c [w1 w2 ... wn]' run rather than detecting ranges.
      *
+     * @param  TrueType $font
      * @return string
      */
-    protected function buildCidWidths(): string
+    protected function buildCidWidths(TrueType $font): string
     {
-        return '0 [' . implode(' ', $this->font->glyphWidths) . ']';
+        return '0 [' . implode(' ', $font->glyphWidths) . ']';
     }
 
     /**
@@ -435,12 +443,13 @@ class Parser
      * such collision - so a space extracts as a space rather than as whatever
      * exotic codepoint happened to be iterated last.
      *
+     * @param  TrueType $font
      * @return string
      */
-    protected function buildToUnicodeCMap(): string
+    protected function buildToUnicodeCMap(TrueType $font): string
     {
         $gidToCodeUnit = [];
-        foreach (($this->font->cmap['glyphNumbers'] ?? []) as $codeUnit => $gid) {
+        foreach (($font->cmap['glyphNumbers'] ?? []) as $codeUnit => $gid) {
             if (!isset($gidToCodeUnit[$gid]) || ($codeUnit < $gidToCodeUnit[$gid])) {
                 $gidToCodeUnit[$gid] = $codeUnit;
             }
