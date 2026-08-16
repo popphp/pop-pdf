@@ -98,18 +98,27 @@ class Merger
         }
 
         try {
-            $allObjects = [];
-            $allPages   = [];
-            $graphs     = [];
-            $offset     = 0;
+            $graphs           = [];
+            $objectLists      = [];
+            $pageObjectLists  = [];
+            $offset           = 0;
 
             foreach ($sources as $source) {
-                $graph        = Import\ObjectGraphReader::read($source, $offset);
-                $graphs[]     = $graph;
-                $allObjects  += $graph['objects'];
-                $allPages     = array_merge($allPages, $graph['pageObjects']);
-                $offset       = $graph['nextOffset'];
+                $graph              = Import\ObjectGraphReader::read($source, $offset);
+                $graphs[]           = $graph;
+                $objectLists[]      = $graph['objects'];
+                $pageObjectLists[]  = $graph['pageObjects'];
+                $offset             = $graph['nextOffset'];
             }
+
+            // Object arrays are keyed by object number, and array_merge()
+            // would renumber integer keys, so a union preserving those keys
+            // is required. array_replace() lets a later argument overwrite
+            // an earlier one on key collision, which is the opposite of the
+            // '+=' union semantics being replicated here (first source
+            // wins), so the collected lists are combined in reverse order.
+            $allObjects = array_replace(...array_reverse($objectLists));
+            $allPages   = array_merge(...$pageObjectLists);
         } catch (\Pop\Pdf\Extract\Exception $e) {
             throw new Exception($e->getMessage(), $e->getCode(), $e);
         }

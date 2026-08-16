@@ -66,6 +66,14 @@ abstract class AbstractCompiler implements CompilerInterface
     protected array $objects = [];
 
     /**
+     * Highest object index currently stored in $objects. Maintained
+     * incrementally (via addObject()) so that lastIndex() is O(1) instead
+     * of re-scanning/sorting the entire, ever-growing $objects array.
+     * @var int
+     */
+    protected int $lastIndex = 0;
+
+    /**
      * Fonts array
      * @var array
      */
@@ -178,13 +186,27 @@ abstract class AbstractCompiler implements CompilerInterface
      */
     public function lastIndex(): int
     {
-        if (count($this->objects) == 0) {
-            return 0;
-        } else {
-            $indices = array_keys($this->objects);
-            sort($indices);
-            return $indices[count($indices) - 1];
+        return $this->lastIndex;
+    }
+
+    /**
+     * Add an object to the objects array, keeping the cached last index
+     * (returned by lastIndex()) in sync. Objects are not guaranteed to be
+     * added in strictly ascending index order (e.g. imported/merged
+     * objects), so the cached index is updated via a running max rather
+     * than a blind increment.
+     *
+     * @param  int|string|null           $index
+     * @param  PdfObject\ObjectInterface $object
+     * @return AbstractCompiler
+     */
+    protected function addObject(int|string|null $index, PdfObject\ObjectInterface $object): AbstractCompiler
+    {
+        $this->objects[$index] = $object;
+        if (is_int($index) && $index > $this->lastIndex) {
+            $this->lastIndex = $index;
         }
+        return $this;
     }
 
     /**
@@ -206,7 +228,7 @@ abstract class AbstractCompiler implements CompilerInterface
     protected function setRoot(PdfObject\RootObject $root): AbstractCompiler
     {
         $this->root = $root;
-        $this->objects[$this->root->getIndex()] = $this->root;
+        $this->addObject($this->root->getIndex(), $this->root);
         return $this;
     }
 
@@ -219,7 +241,7 @@ abstract class AbstractCompiler implements CompilerInterface
     protected function setParent(PdfObject\ParentObject $parent): AbstractCompiler
     {
         $this->parent = $parent;
-        $this->objects[$this->parent->getIndex()] = $this->parent;
+        $this->addObject($this->parent->getIndex(), $this->parent);
         return $this;
     }
 
@@ -232,7 +254,7 @@ abstract class AbstractCompiler implements CompilerInterface
     protected function setInfo(PdfObject\InfoObject $info): AbstractCompiler
     {
         $this->info = $info;
-        $this->objects[$this->info->getIndex()] = $this->info;
+        $this->addObject($this->info->getIndex(), $this->info);
         return $this;
     }
 

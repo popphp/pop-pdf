@@ -49,10 +49,12 @@ class Loca extends AbstractTable
         $byteLength = ($font->header->indexToLocFormat == 1) ? 4 : 2;
         $multiplier = ($font->header->indexToLocFormat == 1) ? 1 : 2;
 
-        for ($i = 0; $i < ($font->numberOfGlyphs + 1); $i++) {
-            $ary = unpack($format . 'offset', $font->read($bytePos, $byteLength));
-            $this->properties['offsets'][$i] = $ary['offset'] * $multiplier;
-            $bytePos += $byteLength;
+        $count      = $font->numberOfGlyphs + 1;
+        $totalBytes = $count * $byteLength;
+        $values     = array_values(unpack($format . '*', $font->read($bytePos, $totalBytes)));
+
+        for ($i = 0; $i < $count; $i++) {
+            $this->properties['offsets'][$i] = $values[$i] * $multiplier;
         }
     }
 

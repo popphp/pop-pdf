@@ -151,9 +151,11 @@ class Wrap extends AbstractAlignment
      */
     public function getStrings(Page\Text $text, Font $font, int $startY): array
     {
-        $stringAry = ($text->hasStrings()) ? $text->getStrings() : [$text->getString()];
-        $strings   = [];
-        $append    = false;
+        $stringAry  = ($text->hasStrings()) ? $text->getStrings() : [$text->getString()];
+        $strings    = [];
+        $append     = false;
+        $size       = $text->getSize();
+        $spaceWidth = $font->getStringWidth(' ', $size);
 
         foreach ($stringAry as $key => $string) {
             $stringValue = ($string instanceof Page\Text) ? $string->getString() : $string;
@@ -162,11 +164,12 @@ class Wrap extends AbstractAlignment
                 $append      = false;
             }
             $curString  = '';
+            $curWidth   = 0;
             $words      = explode(' ', $stringValue);
             $startX     = $this->leftX;
 
             if ($this->leading == 0) {
-                $this->leading = $text->getSize();
+                $this->leading = $size;
             }
 
             foreach ($words as $word) {
@@ -185,8 +188,12 @@ class Wrap extends AbstractAlignment
                 }
 
                 $newString = ($curString != '') ? $curString . ' ' . $word : $word;
-                if ($font->getStringWidth($newString, $text->getSize()) <= $wrapLength) {
+                $wordWidth = $font->getStringWidth($word, $size);
+                $newWidth  = ($curString != '') ? ($curWidth + $spaceWidth + $wordWidth) : $wordWidth;
+
+                if ($newWidth <= $wrapLength) {
                     $curString = $newString;
+                    $curWidth  = $newWidth;
                 } else {
                     $strings[] = [
                         'string' => $curString,
@@ -194,6 +201,7 @@ class Wrap extends AbstractAlignment
                         'y'      => $startY
                     ];
                     $curString = $word;
+                    $curWidth  = $wordWidth;
                     $startY   -= $this->leading;
                 }
             }

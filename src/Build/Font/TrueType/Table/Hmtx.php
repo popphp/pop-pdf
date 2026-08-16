@@ -46,10 +46,12 @@ class Hmtx extends AbstractTable
     {
         $bytePos = $font->tableInfo['hmtx']->offset;
 
-        for ($i = 0; $i < $font->numberOfHMetrics; $i++) {
-            $ary = unpack('nglyphWidth/', $font->read($bytePos, 2));
-            $this->properties['glyphWidths'][$i] = $font->shiftToSigned($ary['glyphWidth']);
-            $bytePos += 4;
+        $count      = $font->numberOfHMetrics;
+        $totalBytes = $count * 4;
+        $values     = array_values(unpack('n*', $font->read($bytePos, $totalBytes)));
+
+        for ($i = 0; $i < $count; $i++) {
+            $this->properties['glyphWidths'][$i] = $font->shiftToSigned($values[$i * 2]);
         }
 
         while (count($this->properties['glyphWidths']) < $font->numberOfGlyphs) {

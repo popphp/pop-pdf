@@ -74,25 +74,28 @@ class Glyf extends AbstractTable
             // The simple and composite glyph descriptions may not be necessary.
             // If simple glyph.
             if ($ary['numberOfContours'] > 0) {
+                $endPtsLength = $ary['numberOfContours'] * 2;
+                $endPts       = array_values(unpack('n*', $font->read($bytePos, $endPtsLength)));
                 for ($i = 0; $i < $ary['numberOfContours']; $i++) {
-                    $ar = unpack('nendPt', $font->read($bytePos, 2));
-                    $ary['endPtsOfContours'][$i] = $ar['endPt'];
-                    $bytePos += 2;
+                    $ary['endPtsOfContours'][$i] = $endPts[$i];
                 }
+                $bytePos += $endPtsLength;
+
                 $ar = unpack('ninstructionLength', $font->read($bytePos, 2));
                 $ary['instructionLength'] = $ar['instructionLength'];
                 $bytePos += 2;
                 if ($ary['instructionLength'] > 0) {
+                    $instructionData = $font->read($bytePos, $ary['instructionLength']);
+                    $readLength      = ($instructionData !== null) ? strlen($instructionData) : 0;
+                    $instructionBytes = ($readLength > 0) ? array_values(unpack('C*', $instructionData)) : [];
                     for ($i = 0; $i < $ary['instructionLength']; $i++) {
-                        $byte = $font->read($bytePos, 1);
-                        if (strlen($byte) != 0) {
-                            $ar = unpack('Cinstruction', $byte);
-                            $ary['instructions'][$i] = $ar['instruction'];
-                            $bytePos++;
+                        if ($i < $readLength) {
+                            $ary['instructions'][$i] = $instructionBytes[$i];
                         } else {
                             $ary['instructions'][$i] = null;
                         }
                     }
+                    $bytePos += $readLength;
                 }
                 $bytePos++;
                 $byte = $font->read($bytePos, 1);

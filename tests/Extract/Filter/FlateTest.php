@@ -52,12 +52,30 @@ class FlateTest extends TestCase
 
     public function testDecodeAdversarialBombThrows()
     {
-        // A small, highly-compressed payload that decompresses to far more
-        // than MAX_DECODED_LENGTH - the exact adversarial case found during
-        // design (measured ~1000:1 amplification via FlateDecode).
+        // A small, highly-compressed payload that decompresses to more than
+        // MAX_DECODED_LENGTH (67108864 bytes / 64MB) - proves the cap is
+        // enforced. Built via zlib's incremental deflate_init()/deflate_add()
+        // API instead of gzcompress(str_repeat('A', 100MB)) so the test never
+        // materializes the full 80MB decompressed payload in memory - only a
+        // 1MB working chunk plus the tiny compressed output. The previous
+        // approach's own ~217MB memory footprint ran close enough to
+        // PHPUnit's coverage-run memory ceiling to intermittently crash the
+        // process (see "Fatal error: Premature end of PHP process").
         $this->expectException(Exception::class);
 
-        $bomb   = gzcompress(str_repeat('A', 100 * 1024 * 1024), 9);
+        $target = 80 * 1024 * 1024;
+        $chunk  = str_repeat('A', 1024 * 1024);
+        $ctx    = deflate_init(ZLIB_ENCODING_DEFLATE, ['level' => 9]);
+        $bomb   = '';
+        $written = 0;
+
+        while ($written < $target) {
+            $piece    = (($target - $written) >= strlen($chunk)) ? $chunk : substr($chunk, 0, $target - $written);
+            $bomb    .= deflate_add($ctx, $piece, ZLIB_NO_FLUSH);
+            $written += strlen($piece);
+        }
+        $bomb .= deflate_add($ctx, '', ZLIB_FINISH);
+
         $filter = new Flate();
 
         $filter->decode($bomb);

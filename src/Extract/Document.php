@@ -79,6 +79,14 @@ class Document
     protected array $objectStreamCache = [];
 
     /**
+     * Positional view of each expanded object stream (index within the stream
+     * to object value), keyed by stream object number. Built once alongside
+     * objectStreamCache so index lookups don't re-run array_values() on every call.
+     * @var array
+     */
+    protected array $objectStreamIndexCache = [];
+
+    /**
      * Object numbers currently being resolved, used to detect circular references
      * @var array
      */
@@ -360,15 +368,14 @@ class Document
                     throw new Exception("Error: Object {$streamObjNum} is not a valid object stream.");
                 }
 
-                $this->objectStreamCache[$streamObjNum] = ObjectStream::expand($streamObj, $this->decodeBudget);
+                $this->objectStreamCache[$streamObjNum]      = ObjectStream::expand($streamObj, $this->decodeBudget);
+                $this->objectStreamIndexCache[$streamObjNum] = array_values($this->objectStreamCache[$streamObjNum]);
             } finally {
                 unset($this->expandingStreams[$streamObjNum]);
             }
         }
 
-        $objects = array_values($this->objectStreamCache[$streamObjNum]);
-
-        return $objects[$index] ?? null;
+        return $this->objectStreamIndexCache[$streamObjNum][$index] ?? null;
     }
 
     /**

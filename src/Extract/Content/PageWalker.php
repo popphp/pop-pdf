@@ -61,7 +61,13 @@ class PageWalker
         $visited   = [];
         $pageCount = 0;
 
-        self::walkNode($doc, $pages, $inherited, $result, $visited, 0, $pageNumbers, $pageLimit, $pageCount);
+        // Precompute a flipped lookup set once (O(n)) instead of letting
+        // walkNode() do an in_array() scan of $pageNumbers (O(n)) for every
+        // single page visited - that turned page-subset extraction into
+        // O(pages * count($pageNumbers)) instead of O(pages).
+        $pageNumberSet = ($pageNumbers !== null) ? array_flip($pageNumbers) : null;
+
+        self::walkNode($doc, $pages, $inherited, $result, $visited, 0, $pageNumberSet, $pageLimit, $pageCount);
 
         return $result;
     }
@@ -75,14 +81,14 @@ class PageWalker
      * @param  array    $result
      * @param  array    $visited
      * @param  int      $depth
-     * @param  ?array   $pageNumbers
+     * @param  ?array   $pageNumberSet flipped [pageNumber => key] lookup set, or null for "all pages"
      * @param  ?int     $pageLimit
      * @param  int      $pageCount
      * @return void
      */
     protected static function walkNode(
         Document $doc, array $node, array $inherited, array &$result, array &$visited, int $depth,
-        ?array $pageNumbers, ?int $pageLimit, int &$pageCount
+        ?array $pageNumberSet, ?int $pageLimit, int &$pageCount
     ): void
     {
         if ($depth > self::MAX_TREE_DEPTH) {
@@ -102,8 +108,8 @@ class PageWalker
             $pageCount++;
 
             $needed = true;
-            if ($pageNumbers !== null) {
-                $needed = in_array($pageCount, $pageNumbers);
+            if ($pageNumberSet !== null) {
+                $needed = isset($pageNumberSet[$pageCount]);
             } elseif (is_int($pageLimit) && ($pageLimit > 0)) {
                 $needed = ($pageCount <= $pageLimit);
             }
@@ -170,7 +176,7 @@ class PageWalker
             $kid = $doc->resolve($kidRef);
 
             if (is_array($kid)) {
-                self::walkNode($doc, $kid, $inherited, $result, $visited, $depth + 1, $pageNumbers, $pageLimit, $pageCount);
+                self::walkNode($doc, $kid, $inherited, $result, $visited, $depth + 1, $pageNumberSet, $pageLimit, $pageCount);
             }
         }
     }

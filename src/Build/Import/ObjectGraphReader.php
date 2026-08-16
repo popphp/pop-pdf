@@ -99,6 +99,8 @@ class ObjectGraphReader
 
         self::walkPagesTree($doc, $pagesRef->objNum, $inherited, $leafPageObjNums, $inheritedByPage, $visited, 0);
 
+        $leafPageObjNumSet = array_flip($leafPageObjNums);
+
         $infoRef        = $trailer['Info'] ?? null;
         $infoObjNum     = ($infoRef instanceof Value\Reference) ? $infoRef->objNum : null;
         $topPagesObjNum = $pagesRef->objNum;
@@ -114,7 +116,7 @@ class ObjectGraphReader
 
             $newObjNum = $map[$objNum];
 
-            if (in_array($objNum, $leafPageObjNums, true)) {
+            if (isset($leafPageObjNumSet[$objNum])) {
                 $node = $doc->getObject($objNum);
                 $pageObjects[$newObjNum] = self::translatePage(
                     $doc, $newObjNum, is_array($node) ? $node : [], $inheritedByPage[$objNum], $map

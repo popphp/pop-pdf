@@ -63,7 +63,7 @@ class Compiler extends AbstractCompiler
                 } else if ($object instanceof PdfObject\InfoObject) {
                     $this->setInfo($object);
                 } else {
-                    $this->objects[$i] = $object;
+                    $this->addObject($i, $object);
                 }
             }
         }
@@ -104,12 +104,12 @@ class Compiler extends AbstractCompiler
             if ($page->hasImportedPageObject()) {
                 $pageObject = $page->getImportedPageObject();
                 $pageObject->setCurrentContentIndex(null);
-                $this->objects[$pageObject->getIndex()] = $pageObject;
+                $this->addObject($pageObject->getIndex(), $pageObject);
             } else {
                 $page->setIndex($this->lastIndex() + 1);
                 $pageObject = new PdfObject\PageObject($page->getWidth(), $page->getHeight(), $page->getIndex());
                 $pageObject->setParentIndex($this->parent->getIndex());
-                $this->objects[$pageObject->getIndex()] = $pageObject;
+                $this->addObject($pageObject->getIndex(), $pageObject);
                 $this->parent->addKid($pageObject->getIndex());
             }
 
@@ -168,9 +168,10 @@ class Compiler extends AbstractCompiler
         $offsets[$this->root->getIndex()] = $this->byteLength;
 
         // New Length is the distance to the second object
-        $this->byteLength = $this->calculateByteLength($this->root);
+        $rootString        = (string)$this->root;
+        $this->byteLength  = $this->calculateByteLength($rootString);
 
-        $this->output .= $this->root;
+        $this->output .= $rootString;
 
         // Loop through the rest of the objects, calculate their size and length
         // for the xref table and add their data to the output.
@@ -180,9 +181,10 @@ class Compiler extends AbstractCompiler
                     (!$object->isEncoded() && !$object->isImported() && (stripos((string)$object->getDefinition(), '/length') === false))) {
                     $object->encode();
                 }
+                $objectString  = (string)$object;
                 $offsets[$object->getIndex()] = $this->byteLength;
-                $this->output     .= $object;
-                $this->byteLength += $this->calculateByteLength($object);
+                $this->output     .= $objectString;
+                $this->byteLength += $this->calculateByteLength($objectString);
             }
         }
 
@@ -219,10 +221,10 @@ class Compiler extends AbstractCompiler
 
                 if ($font->isStandard()) {
                     $this->fontReferences[$font->getName()] = '/MF' . $f . ' ' . $i . ' 0 R';
-                    $this->objects[$i] = PdfObject\StreamObject::parse(
+                    $this->addObject($i, PdfObject\StreamObject::parse(
                         "{$i} 0 obj\n<<\n    /Type /Font\n    /Subtype /Type1\n    /Name /MF{$f}\n    /BaseFont /" .
                         $font->getName() . "\n    /Encoding /WinAnsiEncoding\n>>\nendobj\n\n"
-                    );
+                    ));
                 } else {
                     $parser = $font->parser()
                         ->setCompression($this->compression)
@@ -243,7 +245,7 @@ class Compiler extends AbstractCompiler
 
                     $this->fontReferences[$parser->getFontName()] = $parser->getFontReference();
                     foreach ($parser->getObjects() as $fontObject) {
-                        $this->objects[$fontObject->getIndex()] = $fontObject;
+                        $this->addObject($fontObject->getIndex(), $fontObject);
                     }
                 }
             } else if (is_array($font)) {
@@ -264,7 +266,7 @@ class Compiler extends AbstractCompiler
         $imgs = [];
 
         $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
-        $this->objects[$contentObject->getIndex()] = $contentObject;
+        $this->addObject($contentObject->getIndex(), $contentObject);
         $pageObject->addContentIndex($contentObject->getIndex());
 
         // Page::addImage() always appends to $images with a fresh
@@ -290,7 +292,7 @@ class Compiler extends AbstractCompiler
             $contentObject->appendStream($imageParser->getStream());
             $pageObject->addXObjectReference($imageParser->getXObject());
             foreach ($imageParser->getObjects() as $oi => $imageObject) {
-                $this->objects[$oi] = $imageObject;
+                $this->addObject($oi, $imageObject);
             }
             $imgs[$key] = $imageParser;
         }
@@ -306,7 +308,7 @@ class Compiler extends AbstractCompiler
     protected function preparePaths(array $paths, PdfObject\PageObject $pageObject): void
     {
         $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
-        $this->objects[$contentObject->getIndex()] = $contentObject;
+        $this->addObject($contentObject->getIndex(), $contentObject);
         $pageObject->addContentIndex($contentObject->getIndex());
 
         foreach ($paths as $path) {
@@ -341,7 +343,7 @@ class Compiler extends AbstractCompiler
     protected function prepareText(array $text, PdfObject\PageObject $pageObject): void
     {
         $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
-        $this->objects[$contentObject->getIndex()] = $contentObject;
+        $this->addObject($contentObject->getIndex(), $contentObject);
         $pageObject->addContentIndex($contentObject->getIndex());
 
         foreach ($text as $txt) {
@@ -420,7 +422,7 @@ class Compiler extends AbstractCompiler
     protected function prepareTextStreams(array $textStreams, PdfObject\PageObject $pageObject): void
     {
         $contentObject = new PdfObject\StreamObject($this->lastIndex() + 1);
-        $this->objects[$contentObject->getIndex()] = $contentObject;
+        $this->addObject($contentObject->getIndex(), $contentObject);
         $pageObject->addContentIndex($contentObject->getIndex());
 
         foreach ($textStreams as $txt) {
@@ -456,7 +458,7 @@ class Compiler extends AbstractCompiler
                     $i, $coordinates['x'], $coordinates['y'], $pageObject->getIndex(), $this->parent->getKids()
                 );
             }
-            $this->objects[$i] = PdfObject\StreamObject::parse($stream);
+            $this->addObject($i, PdfObject\StreamObject::parse($stream));
         }
     }
 
@@ -483,9 +485,9 @@ class Compiler extends AbstractCompiler
                 $pageObject->addAnnotIndex($i);
                 $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
                 $this->document->getForm($field['form'])->addFieldIndex($i);
-                $this->objects[$i] = PdfObject\StreamObject::parse(
+                $this->addObject($i, PdfObject\StreamObject::parse(
                     $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'])
-                );
+                ));
             }
         }
     }
@@ -500,7 +502,7 @@ class Compiler extends AbstractCompiler
         $formRefs = '';
         foreach ($this->document->getForms() as $form) {
             $i = $this->lastIndex() + 1;
-            $this->objects[$i] = PdfObject\StreamObject::parse($form->getStream($i));
+            $this->addObject($i, PdfObject\StreamObject::parse($form->getStream($i)));
             $formRefs .= $i . ' 0 R ';
         }
         $formRefs = substr($formRefs, 0, -1);

@@ -106,6 +106,17 @@ class Font
     protected ?Parser $parser = null;
 
     /**
+     * Cached standard-font instance (shared by getStringWidth() and hasGlyph())
+     *
+     * Lazily built by standardFontInstance() and invalidated automatically
+     * whenever the selected standard font changes (it's only reused when it's
+     * already an instance of the currently-selected font's class).
+     *
+     * @var ?\Pop\Pdf\Build\Font\Standard\AbstractStandard
+     */
+    protected ?\Pop\Pdf\Build\Font\Standard\AbstractStandard $standardFontInstance = null;
+
+    /**
      * Constructor
      *
      * Instantiate a PDF font.
@@ -318,7 +329,10 @@ class Font
         if (!class_exists($fontClass)) {
             throw new Exception('Error: That standard font class was not found.');
         }
-        return new $fontClass();
+        if (!($this->standardFontInstance instanceof $fontClass)) {
+            $this->standardFontInstance = new $fontClass();
+        }
+        return $this->standardFontInstance;
     }
 
     /**

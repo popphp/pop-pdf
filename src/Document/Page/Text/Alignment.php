@@ -88,23 +88,30 @@ class Alignment extends AbstractAlignment
     {
         $strings    = [];
         $curString  = '';
+        $curWidth   = 0;
         $words      = explode(' ', $text->getString());
         $wrapLength = abs($this->rightX - $this->leftX);
         $startX     = $this->leftX;
+        $size       = $text->getSize();
+        $spaceWidth = $font->getStringWidth(' ', $size);
 
         if ((int)$this->leading == 0) {
-            $this->leading = $text->getSize();
+            $this->leading = $size;
         }
 
         foreach ($words as $word) {
             $newString = ($curString != '') ? $curString . ' ' . $word : $word;
-            if ($font->getStringWidth($newString, $text->getSize()) <= $wrapLength) {
+            $wordWidth = $font->getStringWidth($word, $size);
+            $newWidth  = ($curString != '') ? ($curWidth + $spaceWidth + $wordWidth) : $wordWidth;
+
+            if ($newWidth <= $wrapLength) {
                 $curString = $newString;
+                $curWidth  = $newWidth;
             } else {
                 if ($this->isRight()) {
-                    $x = $this->leftX + ($wrapLength - $font->getStringWidth($curString, $text->getSize()));
+                    $x = $this->leftX + ($wrapLength - $curWidth);
                 } else if ($this->isCenter()) {
-                    $x = $this->leftX + (($wrapLength - $font->getStringWidth($curString, $text->getSize())) / 2);
+                    $x = $this->leftX + (($wrapLength - $curWidth) / 2);
                 } else {
                     $x = $startX;
                 }
@@ -115,15 +122,16 @@ class Alignment extends AbstractAlignment
                     'y'      => $startY
                 ];
                 $curString = $word;
+                $curWidth  = $wordWidth;
                 $startY   -= $this->leading;
             }
         }
 
         if (!empty($curString)) {
             if ($this->isRight()) {
-                $x = $this->leftX + ($wrapLength - $font->getStringWidth($curString, $text->getSize()));
+                $x = $this->leftX + ($wrapLength - $curWidth);
             } else if ($this->isCenter()) {
-                $x = $this->leftX + (($wrapLength - $font->getStringWidth($curString, $text->getSize())) / 2);
+                $x = $this->leftX + (($wrapLength - $curWidth) / 2);
             } else {
                 $x = $startX;
             }
