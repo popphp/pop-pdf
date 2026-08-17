@@ -84,7 +84,41 @@ class ParserTest extends TestCase
 
     public function testImportPreservesFullPageCountForMultiLevelPageTree()
     {
-        $doc = Pdf\Pdf::importFromFile(__DIR__ . '/../../docs/pdf-samples/pabs-client-api-v1.3.1.pdf');
+        // Regression test for ObjectGraphReader::walkPagesTree() recursing
+        // through a nested /Pages tree (root /Pages -> two intermediate
+        // /Pages nodes -> two leaf /Page nodes each) rather than a single
+        // flat /Kids list. MediaBox is set only on the root /Pages node to
+        // also exercise inherited-attribute propagation down through the
+        // intermediate nodes to each leaf.
+        $catalog  = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+        $rootKids = "2 0 obj\n<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 4 /MediaBox [0 0 612 792] >>\nendobj\n";
+        $branchA  = "3 0 obj\n<< /Type /Pages /Parent 2 0 R /Kids [5 0 R 6 0 R] /Count 2 >>\nendobj\n";
+        $branchB  = "4 0 obj\n<< /Type /Pages /Parent 2 0 R /Kids [7 0 R 8 0 R] /Count 2 >>\nendobj\n";
+        $pageA1   = "5 0 obj\n<< /Type /Page /Parent 3 0 R >>\nendobj\n";
+        $pageA2   = "6 0 obj\n<< /Type /Page /Parent 3 0 R >>\nendobj\n";
+        $pageB1   = "7 0 obj\n<< /Type /Page /Parent 4 0 R >>\nendobj\n";
+        $pageB2   = "8 0 obj\n<< /Type /Page /Parent 4 0 R >>\nendobj\n";
+
+        $header  = "%PDF-1.4\n";
+        $objects = [$catalog, $rootKids, $branchA, $branchB, $pageA1, $pageA2, $pageB1, $pageB2];
+
+        $offsets = [];
+        $running = $header;
+        foreach ($objects as $i => $object) {
+            $offsets[$i + 1] = strlen($running);
+            $running        .= $object;
+        }
+
+        $xrefPos = strlen($running);
+        $xref    = "xref\n0 9\n0000000000 65535 f \n";
+        foreach ($offsets as $offset) {
+            $xref .= sprintf("%010d 00000 n \n", $offset);
+        }
+        $xref .= "trailer\n<< /Size 9 /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
+
+        $data = $running . $xref;
+
+        $doc        = Pdf\Pdf::importRawData($data);
         $totalPages = $doc->getNumberOfPages();
 
         $output   = (string) $doc;
@@ -92,6 +126,7 @@ class ParserTest extends TestCase
         $root     = $reparsed->getRoot();
         $pages    = $reparsed->resolve($root['Pages'] ?? null);
 
+        $this->assertEquals(4, $totalPages);
         $this->assertEquals($totalPages, $pages['Count']);
     }
 

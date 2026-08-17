@@ -511,12 +511,15 @@ class ParserTest extends TestCase
         $outputFile = __DIR__ . '/../../tmp/escape-output.pdf';
         \Pop\Pdf\Pdf::writeToFile($doc, $outputFile);
 
-        if (trim((string) shell_exec('which pdftotext')) !== '') {
-            $text = shell_exec('pdftotext ' . escapeshellarg($outputFile) . ' - 2>&1');
-            $this->assertStringNotContainsString('Syntax Error', $text);
-            $this->assertStringContainsString(':)', $text);
-            $this->assertStringContainsString('and more text after it that should appear.', $text);
+        if (trim((string) shell_exec('which pdftotext')) === '') {
+            unlink($outputFile);
+            $this->markTestSkipped('pdftotext is not available.');
         }
+
+        $text = shell_exec('pdftotext ' . escapeshellarg($outputFile) . ' - 2>&1');
+        $this->assertStringNotContainsString('Syntax Error', $text);
+        $this->assertStringContainsString(':)', $text);
+        $this->assertStringContainsString('and more text after it that should appear.', $text);
 
         unlink($outputFile);
     }
@@ -531,11 +534,14 @@ class ParserTest extends TestCase
         $outputFile = __DIR__ . '/../../tmp/backslash-output.pdf';
         \Pop\Pdf\Pdf::writeToFile($doc, $outputFile);
 
-        if (trim((string) shell_exec('which pdftotext')) !== '') {
-            $text = shell_exec('pdftotext ' . escapeshellarg($outputFile) . ' - 2>/dev/null');
-            $this->assertStringContainsString('C:\Users\name', $text);
-            $this->assertStringContainsString('Ratio 3\4 done', $text);
+        if (trim((string) shell_exec('which pdftotext')) === '') {
+            unlink($outputFile);
+            $this->markTestSkipped('pdftotext is not available.');
         }
+
+        $text = shell_exec('pdftotext ' . escapeshellarg($outputFile) . ' - 2>/dev/null');
+        $this->assertStringContainsString('C:\Users\name', $text);
+        $this->assertStringContainsString('Ratio 3\4 done', $text);
 
         unlink($outputFile);
     }

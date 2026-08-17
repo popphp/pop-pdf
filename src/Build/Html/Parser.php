@@ -951,7 +951,7 @@ class Parser
         $p['font-size']     = '12px';
 
         $a = new Css\Selector('a');
-        $a['color'] = [0, 0, 255];
+        $a['color'] = new Color\Rgb(0, 0, 255);
 
         $strong = new Css\Selector('strong');
         $strong['font-size']   = '10px';
