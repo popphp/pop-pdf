@@ -193,7 +193,6 @@ class DocumentTest extends TestCase
 
         $ref = new \ReflectionClass($doc);
         $offsetsProp = $ref->getProperty('offsets');
-        $offsetsProp->setAccessible(true);
         $offsets = $offsetsProp->getValue($doc);
         $offsets[1] = ['inStream' => 1, 'index' => 0];
         $offsetsProp->setValue($doc, $offsets);
@@ -303,7 +302,6 @@ class DocumentTest extends TestCase
         }
 
         $cacheProp = new \ReflectionProperty($doc, 'fontInfoCache');
-        $cacheProp->setAccessible(true);
         $cached = $cacheProp->getValue($doc);
 
         // 20 x 10MB = 200MB requested, but the cache is bounded to 64MB -
@@ -396,7 +394,6 @@ class DocumentTest extends TestCase
 
         $ref = new \ReflectionClass($doc);
         $offsetsProp = $ref->getProperty('offsets');
-        $offsetsProp->setAccessible(true);
         $offsets = $offsetsProp->getValue($doc);
         $offsets[99] = ['offset' => $offset];
         $offsetsProp->setValue($doc, $offsets);
@@ -414,7 +411,6 @@ class DocumentTest extends TestCase
 
         $ref = new \ReflectionClass($doc);
         $offsetsProp = $ref->getProperty('offsets');
-        $offsetsProp->setAccessible(true);
         $offsets = $offsetsProp->getValue($doc);
         $offsets[99] = ['inStream' => 1, 'index' => 0];
         $offsetsProp->setValue($doc, $offsets);
@@ -524,7 +520,6 @@ class DocumentTest extends TestCase
         $doc = new Document("%PDF-1.4\n%%EOF");
 
         $method = new \ReflectionMethod(Document::class, 'expandObjectStreamsFromRepair');
-        $method->setAccessible(true);
 
         $result = $method->invoke($doc, [1 => ['inStream' => 5, 'index' => 0]]);
 
@@ -536,7 +531,6 @@ class DocumentTest extends TestCase
         $doc = new Document("%PDF-1.4\n%%EOF");
 
         $method = new \ReflectionMethod(Document::class, 'findCatalogReference');
-        $method->setAccessible(true);
 
         $result = $method->invoke($doc, [1 => ['inStream' => 5, 'index' => 0]]);
 

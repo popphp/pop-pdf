@@ -78,7 +78,6 @@ class ResolverTest extends TestCase
         Resolver::decodeRun($run2, $doc);
 
         $cacheProp = new \ReflectionProperty($doc, 'fontInfoCache');
-        $cacheProp->setAccessible(true);
         $cached = $cacheProp->getValue($doc);
 
         // $font1 and $font2 are structurally-identical (but not ===-identical) font

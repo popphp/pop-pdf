@@ -87,7 +87,6 @@ class FontTest extends TestCase
         $font = new Font('Arial');
 
         $name = new \ReflectionProperty(Font::class, 'name');
-        $name->setAccessible(true);
         $name->setValue($font, 'NotARealStandardFont');
 
         $this->expectException('Pop\Pdf\Document\Exception');

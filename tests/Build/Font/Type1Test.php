@@ -134,7 +134,6 @@ class Type1Test extends TestCase
     {
         $font   = new Type1(__DIR__ . '/../../tmp/fonts/s050000l.pfb');
         $method = new \ReflectionMethod($font, 'parsePfb');
-        $method->setAccessible(true);
 
         $this->expectException('Pop\Pdf\Build\Font\Exception');
         $this->expectExceptionMessage('Error: The PFB file does not exist.');
@@ -151,7 +150,6 @@ class Type1Test extends TestCase
     {
         $font   = new Type1(__DIR__ . '/../../tmp/fonts/s050000l.pfb');
         $method = new \ReflectionMethod($font, 'parsePfb');
-        $method->setAccessible(true);
 
         $path = $this->scratchDir . '/corrupt-segment1.pfb';
         file_put_contents($path, pack('CCV', 128, 1, 999999999) . 'not nearly that many bytes');
@@ -165,7 +163,6 @@ class Type1Test extends TestCase
     {
         $font   = new Type1(__DIR__ . '/../../tmp/fonts/s050000l.pfb');
         $method = new \ReflectionMethod($font, 'parsePfb');
-        $method->setAccessible(true);
 
         $segment1 = 'FontDirectory currentdict end';
         $content  = pack('CCV', 128, 1, strlen($segment1)) . $segment1
@@ -183,7 +180,6 @@ class Type1Test extends TestCase
     {
         $font   = new Type1(__DIR__ . '/../../tmp/fonts/s050000l.pfb');
         $method = new \ReflectionMethod($font, 'parseAfm');
-        $method->setAccessible(true);
 
         $this->expectException('Pop\Pdf\Build\Font\Exception');
         $this->expectExceptionMessage('Error: The AFM file does not exist.');

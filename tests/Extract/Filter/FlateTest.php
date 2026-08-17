@@ -210,7 +210,6 @@ class FlateTest extends TestCase
         // a=0, b=100, c=100: pa=0, pb=100, pc=100 -> pa<=pb && pa<=pc -> a.
         $filter = new Flate();
         $method = new \ReflectionMethod(Flate::class, 'paeth');
-        $method->setAccessible(true);
 
         $this->assertEquals(0, $method->invoke($filter, 0, 100, 100));
     }
@@ -221,7 +220,6 @@ class FlateTest extends TestCase
         // pb<=pc -> b.
         $filter = new Flate();
         $method = new \ReflectionMethod(Flate::class, 'paeth');
-        $method->setAccessible(true);
 
         $this->assertEquals(50, $method->invoke($filter, 0, 50, 0));
     }
@@ -232,7 +230,6 @@ class FlateTest extends TestCase
         // -> falls through to c.
         $filter = new Flate();
         $method = new \ReflectionMethod(Flate::class, 'paeth');
-        $method->setAccessible(true);
 
         $this->assertEquals(6, $method->invoke($filter, 0, 10, 6));
     }

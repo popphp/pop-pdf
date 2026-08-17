@@ -109,14 +109,12 @@ class CMapParserTest extends TestCase
     public function testOddLengthDestinationReturnsEmptyNotQuestionMark()
     {
         $method = new \ReflectionMethod(CMapParser::class, 'dstToUnicodeString');
-        $method->setAccessible(true);
         $this->assertEquals('', $method->invoke(null, "\x41"));
     }
 
     public function testAllNulDestinationReturnsEmptyNotRawNul()
     {
         $method = new \ReflectionMethod(CMapParser::class, 'dstToUnicodeString');
-        $method->setAccessible(true);
         $this->assertEquals('', $method->invoke(null, "\x00\x00"));
     }
 

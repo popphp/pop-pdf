@@ -51,7 +51,6 @@ class CidDecoderTest extends TestCase
     public function testCidToGidTreatsIdentityMarkerAsIdentityMapping()
     {
         $method = new \ReflectionMethod(CidDecoder::class, 'cidToGid');
-        $method->setAccessible(true);
 
         for ($cid = 0; $cid <= 4; $cid++) {
             $this->assertEquals($cid, $method->invoke(null, $cid, 'Identity'));
@@ -61,7 +60,6 @@ class CidDecoderTest extends TestCase
     public function testCidToGidStillAppliesRealCidToGidMapBytes()
     {
         $method = new \ReflectionMethod(CidDecoder::class, 'cidToGid');
-        $method->setAccessible(true);
 
         // cid0->gid0, cid1->gid5, cid2->gid10
         $map = "\x00\x00\x00\x05\x00\x0a";
@@ -82,7 +80,6 @@ class CidDecoderTest extends TestCase
         $this->assertEquals($first, $second);
 
         $cacheProp = new \ReflectionProperty(CidDecoder::class, 'reverseCmapCache');
-        $cacheProp->setAccessible(true);
         $weakMap = $cacheProp->getValue();
 
         $this->assertTrue(isset($weakMap[$info]));
@@ -91,7 +88,6 @@ class CidDecoderTest extends TestCase
     public function testSplitCodesFallsBackToTwoByteWidthWhenCodespaceLengthInvalid()
     {
         $method = new \ReflectionMethod(CidDecoder::class, 'splitCodes');
-        $method->setAccessible(true);
 
         // A codespace range with a zero (invalid) length must not be taken
         // literally - splitCodes falls back to the standard 2-byte width.
@@ -104,7 +100,6 @@ class CidDecoderTest extends TestCase
     public function testCodeToCidUsesEncodingCidMappingWhenPresentElseIdentity()
     {
         $method   = new \ReflectionMethod(CidDecoder::class, 'codeToCid');
-        $method->setAccessible(true);
         $encoding = ['cidMappings' => [0x0100 => 42], 'bfMappings' => [], 'codespaceRanges' => []];
 
         $this->assertEquals(42, $method->invoke(null, 0x0100, $encoding));
@@ -115,7 +110,6 @@ class CidDecoderTest extends TestCase
     public function testCidToGidReturnsIdentityWhenCidFallsOutsideMapBytes()
     {
         $method = new \ReflectionMethod(CidDecoder::class, 'cidToGid');
-        $method->setAccessible(true);
 
         // Map only defines cid 0 and cid 1 (4 bytes); cid 5 (offset 10) falls
         // past the end of the map, so it must fall back to identity.
@@ -131,7 +125,6 @@ class CidDecoderTest extends TestCase
         $header = pack('n*', 1, 0, 0, 0, 0, 0) . str_repeat("\x00", 4) . pack('N*', 0, 0, 0);
 
         $method = new \ReflectionMethod(CidDecoder::class, 'buildReverseCmap');
-        $method->setAccessible(true);
 
         $this->assertEquals([], $method->invoke(null, $header));
     }
@@ -148,7 +141,6 @@ class CidDecoderTest extends TestCase
         $font       = $header . $tableEntry . $headBody;
 
         $method = new \ReflectionMethod(CidDecoder::class, 'buildReverseCmap');
-        $method->setAccessible(true);
 
         $this->assertEquals([], $method->invoke(null, $font));
     }

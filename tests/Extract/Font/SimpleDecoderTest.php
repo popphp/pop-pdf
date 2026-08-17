@@ -71,7 +71,6 @@ class SimpleDecoderTest extends TestCase
         $this->assertEquals('Hello', $first);
 
         $cacheProp = new \ReflectionProperty(SimpleDecoder::class, 'tableCache');
-        $cacheProp->setAccessible(true);
         $weakMap = $cacheProp->getValue();
 
         $this->assertTrue(isset($weakMap[$info]));
@@ -87,7 +86,6 @@ class SimpleDecoderTest extends TestCase
         SimpleDecoder::decode('Hello', $infoB);
 
         $cacheProp = new \ReflectionProperty(SimpleDecoder::class, 'tableCache');
-        $cacheProp->setAccessible(true);
         $weakMap = $cacheProp->getValue();
 
         $this->assertTrue(isset($weakMap[$infoA]));
@@ -117,7 +115,6 @@ class SimpleDecoderTest extends TestCase
         $fontBytes  = $header . $tableEntry . $headBody;
 
         $method = new \ReflectionMethod(SimpleDecoder::class, 'detectFallbackEncoding');
-        $method->setAccessible(true);
 
         $this->assertEquals('WinAnsiEncoding', $method->invoke(null, $fontBytes));
     }
@@ -133,7 +130,6 @@ class SimpleDecoderTest extends TestCase
         $fontBytes  = $header . $tableEntry . $cmapBody;
 
         $method = new \ReflectionMethod(SimpleDecoder::class, 'detectFallbackEncoding');
-        $method->setAccessible(true);
 
         $this->assertEquals('WinAnsiEncoding', $method->invoke(null, $fontBytes));
     }

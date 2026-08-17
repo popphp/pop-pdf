@@ -425,7 +425,6 @@ class ParserTest extends TestCase
         $imagePath = sys_get_temp_dir() . '/parser-float-test-' . uniqid() . '.jpg';
         $image = imagecreatetruecolor(100, 100);
         imagejpeg($image, $imagePath);
-        imagedestroy($image);
 
         $html = '<img src="' . basename($imagePath) . '" align="left" width="100" />';
         for ($i = 1; $i <= 5; $i++) {
@@ -551,7 +550,6 @@ class ParserTest extends TestCase
         $imagePath = sys_get_temp_dir() . '/parser-float-orphan-test-' . uniqid() . '.jpg';
         $image = imagecreatetruecolor(900, 40);
         imagejpeg($image, $imagePath);
-        imagedestroy($image);
 
         // 60 divs (not the more modest count that might first come to mind) -
         // this needs to push $this->y down far enough that the paragraph
@@ -629,7 +627,6 @@ class ParserTest extends TestCase
         $image = imagecreatetruecolor(200, 100);
         imagefill($image, 0, 0, imagecolorallocate($image, 100, 150, 200));
         imagejpeg($image, $imagePath, 85);
-        imagedestroy($image);
         return $imagePath;
     }
 

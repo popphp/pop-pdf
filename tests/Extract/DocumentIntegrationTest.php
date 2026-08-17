@@ -46,7 +46,6 @@ class DocumentIntegrationTest extends TestCase
         // "inStream"-based and asserting it resolves to a sensible value.
         $ref         = new \ReflectionClass($doc);
         $offsetsProp = $ref->getProperty('offsets');
-        $offsetsProp->setAccessible(true);
         $offsets = $offsetsProp->getValue($doc);
 
         $inStreamObjNums = [];

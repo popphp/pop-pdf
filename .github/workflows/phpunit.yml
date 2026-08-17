@@ -26,6 +26,9 @@ jobs:
         php-version: ${{ matrix.php-versions }}
         extensions: gd, iconv, mbstring, zlib
 
+    - name: Install poppler-utils
+      run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
     #- name: Validate composer.json and composer.lock
     #  run: composer validate
 

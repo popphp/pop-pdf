@@ -46,7 +46,6 @@ class LayoutTest extends TestCase
     protected function callLayoutStatic(string $method, array $args): mixed
     {
         $ref = new \ReflectionMethod(Layout::class, $method);
-        $ref->setAccessible(true);
         return $ref->invokeArgs(null, $args);
     }
 

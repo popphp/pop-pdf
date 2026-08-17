@@ -504,7 +504,6 @@ class InterpreterTest extends TestCase
         $interpreter->run($doc, '50 Tz (Hi) Tj', []);
 
         $prop = new \ReflectionProperty(Interpreter::class, 'horizScale');
-        $prop->setAccessible(true);
 
         $this->assertEquals(50.0, $prop->getValue($interpreter));
     }
@@ -534,9 +533,7 @@ class InterpreterTest extends TestCase
         $this->assertEquals('Second', $runs[1]->rawBytes);
 
         $wsProp = new \ReflectionProperty(Interpreter::class, 'wordSpace');
-        $wsProp->setAccessible(true);
         $csProp = new \ReflectionProperty(Interpreter::class, 'charSpace');
-        $csProp->setAccessible(true);
 
         $this->assertEquals(2.0, $wsProp->getValue($interpreter));
         $this->assertEquals(1.0, $csProp->getValue($interpreter));
