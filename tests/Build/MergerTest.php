@@ -4,6 +4,10 @@ namespace Pop\Pdf\Test\Build;
 
 use Pop\Pdf\Build\Merger;
 use Pop\Pdf\Build\Exception;
+use Pop\Pdf\Document;
+use Pop\Pdf\Document\Page;
+use Pop\Pdf\Document\Font;
+use Pop\Pdf\Document\Form;
 use PHPUnit\Framework\TestCase;
 
 class MergerTest extends TestCase
@@ -91,6 +95,37 @@ class MergerTest extends TestCase
         // exactly the distinction the bug conflated.
         $this->assertCount(2, $pages['Kids']);
         $this->assertNotEquals($pages['Count'], count($pages['Kids']));
+    }
+
+    public function testMergeDoesNotLeaveOrphanedFormObjectsInOutput()
+    {
+        // Merging doesn't reconstruct a combined /AcroForm across sources
+        // (documented scope limitation - widgets are dropped from the
+        // page's /Annots in ObjectGraphReader::translatePage()), but the
+        // source's own AcroForm dictionary and Widget annotation objects
+        // must be omitted entirely rather than carried over as dead,
+        // unreferenced objects in the merged file.
+        $formDoc = new Document();
+        $formDoc->addForm(new Form('contact_form'));
+        $formPage = new Page(Page::LETTER);
+        $formPage->addField(new Page\Field\Text('name', 'Arial', 10), 'contact_form', 50, 200);
+        $formDoc->addFont(new Font('Arial'));
+        $formDoc->addPage($formPage);
+
+        $formFile = __DIR__ . '/../tmp/merger-form-source.pdf';
+        \Pop\Pdf\Pdf::writeToFile($formDoc, $formFile);
+
+        try {
+            $merger = new Merger();
+            $doc    = $merger->mergeFiles([$formFile, __DIR__ . '/../tmp/test.pdf']);
+            $output = (string) $doc;
+
+            $this->assertStringNotContainsString('/AcroForm', $output);
+            $this->assertStringNotContainsString('/Widget', $output);
+            $this->assertDoesNotMatchRegularExpression('/<<\s*\/Fields\s*\[/', $output);
+        } finally {
+            unlink($formFile);
+        }
     }
 
     public function testMergeWrapsExtractExceptionAsBuildException()

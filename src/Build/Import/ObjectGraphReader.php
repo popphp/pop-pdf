@@ -105,12 +105,22 @@ class ObjectGraphReader
         $infoObjNum     = ($infoRef instanceof Value\Reference) ? $infoRef->objNum : null;
         $topPagesObjNum = $pagesRef->objNum;
 
+        // Widget annotations are excluded from a page's /Annots below (no
+        // /AcroForm is carried over for them to register against), but that
+        // by itself only stops the page from *pointing at* them - the
+        // widget objects (and the source's own /AcroForm dictionary) are
+        // still other object numbers in $objectNumbers, so without this
+        // exclusion they fall through to translateGeneric() and get written
+        // into the merged output as dead, unreferenced objects.
+        $excludedFormObjNums = self::collectFormObjNums($doc, $root['AcroForm'] ?? null);
+
         $objects     = [];
         $pageObjects = [];
         $infoDict    = null;
 
         foreach ($objectNumbers as $objNum) {
-            if (($objNum === $rootRef->objNum) || ($objNum === $topPagesObjNum) || ($objNum === $infoObjNum)) {
+            if (($objNum === $rootRef->objNum) || ($objNum === $topPagesObjNum) || ($objNum === $infoObjNum)
+                || isset($excludedFormObjNums[$objNum])) {
                 continue;
             }
 
@@ -202,6 +212,73 @@ class ObjectGraphReader
         foreach ($kids as $kidRef) {
             if ($kidRef instanceof Value\Reference) {
                 self::walkPagesTree($doc, $kidRef->objNum, $inherited, $leafPageObjNums, $inheritedByPage, $visited, $depth + 1);
+            }
+        }
+    }
+
+    /**
+     * Collect the object numbers of a source PDF's /AcroForm dictionary and
+     * every field/widget object reachable from its /Fields tree, so the
+     * caller can omit them entirely rather than leaving them as orphaned
+     * objects (see the exclusion built in read()).
+     *
+     * @param  Document $doc
+     * @param  mixed    $acroFormRef
+     * @return array
+     */
+    protected static function collectFormObjNums(Document $doc, mixed $acroFormRef): array
+    {
+        if (!($acroFormRef instanceof Value\Reference)) {
+            return [];
+        }
+
+        $excluded = [$acroFormRef->objNum => true];
+
+        $acroForm = $doc->resolve($acroFormRef);
+        $fields   = is_array($acroForm) ? $doc->resolve($acroForm['Fields'] ?? null) : null;
+
+        if (is_array($fields)) {
+            $visited = [];
+            foreach ($fields as $fieldRef) {
+                if ($fieldRef instanceof Value\Reference) {
+                    self::walkFieldTree($doc, $fieldRef->objNum, $excluded, $visited, 0);
+                }
+            }
+        }
+
+        return $excluded;
+    }
+
+    /**
+     * Recursively walk one form field node, excluding it and every
+     * descendant reachable via /Kids (a field hierarchy is a valid,
+     * real-world PDF structure - a parent field with child widgets/fields)
+     *
+     * @param  Document $doc
+     * @param  int      $objNum
+     * @param  array    $excluded
+     * @param  array    $visited
+     * @param  int      $depth
+     * @return void
+     */
+    protected static function walkFieldTree(Document $doc, int $objNum, array &$excluded, array &$visited, int $depth): void
+    {
+        if (($depth > self::MAX_TREE_DEPTH) || isset($visited[$objNum])) {
+            return;
+        }
+        $visited[$objNum]  = true;
+        $excluded[$objNum] = true;
+
+        $node = $doc->getObject($objNum);
+        $kids = is_array($node) ? $doc->resolve($node['Kids'] ?? null) : null;
+
+        if (!is_array($kids)) {
+            return;
+        }
+
+        foreach ($kids as $kidRef) {
+            if ($kidRef instanceof Value\Reference) {
+                self::walkFieldTree($doc, $kidRef->objNum, $excluded, $visited, $depth + 1);
             }
         }
     }
