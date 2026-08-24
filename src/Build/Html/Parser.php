@@ -199,8 +199,27 @@ class Parser
         if ($basePath !== null) {
             $this->fileDir = $basePath;
         }
-        $this->html = Child::parseString($htmlString);
+        $this->html = Child::parseString($this->normalizeHtmlEncoding($htmlString));
         return $this;
+    }
+
+    /**
+     * Normalize HTML string encoding
+     *
+     * Pop\Dom\Child::parseString() loads the string into a DOMDocument with
+     * no charset hint, and DOMDocument::loadHTML() assumes ISO-8859-1 for
+     * any markup that doesn't declare its own charset - misinterpreting
+     * multi-byte UTF-8 (e.g. non-Latin scripts) and corrupting it into
+     * mojibake. Converting non-ASCII characters to numeric HTML entities
+     * beforehand sidesteps that assumption, since entities are plain ASCII
+     * and decode correctly regardless of which encoding libxml assumes.
+     *
+     * @param  string $htmlString
+     * @return string
+     */
+    protected function normalizeHtmlEncoding(string $htmlString): string
+    {
+        return mb_encode_numericentity($htmlString, [0x80, 0x10FFFF, 0, 0x10FFFF], 'UTF-8');
     }
 
     /**

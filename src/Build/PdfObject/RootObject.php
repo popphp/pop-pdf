@@ -116,14 +116,17 @@ class RootObject extends AbstractObject
     }
 
     /**
-     * Set the root object form index
+     * Set the root object's AcroForm reference
      *
-     * @param  string $forms
+     * Per spec, /AcroForm must be a single indirect reference to the
+     * document's one form dictionary, not an array of references.
+     *
+     * @param  string $form
      * @return RootObject
      */
-    public function setFormReferences(string $forms): RootObject
+    public function setFormReferences(string $form): RootObject
     {
-        $data = str_replace('[{form_index}]', '/AcroForm [' . $forms . ']', $this->data);
+        $data = str_replace('[{form_index}]', '/AcroForm ' . $form, $this->data);
         $this->setData($data);
         return $this;
     }

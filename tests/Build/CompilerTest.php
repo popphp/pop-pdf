@@ -383,6 +383,36 @@ class CompilerTest extends TestCase
         $this->assertStringContainsString('%PDF', $compiler->getOutput());
     }
 
+    public function testPrepareFormsWritesSingleAcroFormDictionaryReference()
+    {
+        // Regression test: /AcroForm must be a single indirect reference to
+        // one form dictionary (per spec), not an array of references - even
+        // when multiple named Document\Form groups are added, their fields
+        // must be combined into one dictionary object.
+        $doc = new Document();
+        $doc->addForm(new Form('contact_form'));
+        $doc->addForm(new Form('newsletter_form'));
+
+        $page = new Page(Page::LETTER);
+        $page->addField(new Page\Field\Text('name', 'Arial', 10), 'contact_form', 50, 200);
+        $page->addField(new Page\Field\Text('email', 'Arial', 10), 'newsletter_form', 50, 175);
+        $doc->addFont(new Font('Arial'));
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $this->assertMatchesRegularExpression('/\/AcroForm \d+ 0 R/', $output);
+        $this->assertDoesNotMatchRegularExpression('/\/AcroForm \[/', $output);
+
+        preg_match('/\/AcroForm (\d+) 0 R/', $output, $matches);
+        $formObjNum = $matches[1];
+
+        preg_match('/' . $formObjNum . ' 0 obj\s*<<\/Fields\[(.*?)\]>>/', $output, $fieldsMatch);
+        $this->assertEquals(2, substr_count($fieldsMatch[1], ' 0 R'));
+    }
+
     public function testPrepareFieldsThrowsWhenFontNotAdded()
     {
         $this->expectException(Exception::class);

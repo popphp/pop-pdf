@@ -499,14 +499,21 @@ class Compiler extends AbstractCompiler
      */
     protected function prepareForms(): void
     {
-        $formRefs = '';
+        // Per spec, a document's Catalog may only have a single /AcroForm
+        // entry, and its value must be a single form dictionary (not an
+        // array of them) - so every named Document\Form's field indices are
+        // combined into one dictionary object here, rather than compiling
+        // each Form into its own object and referencing them all as a list.
+        $fieldIndices = [];
         foreach ($this->document->getForms() as $form) {
-            $i = $this->lastIndex() + 1;
-            $this->addObject($i, PdfObject\StreamObject::parse($form->getStream($i)));
-            $formRefs .= $i . ' 0 R ';
+            $fieldIndices = array_merge($fieldIndices, $form->getFieldIndices());
         }
-        $formRefs = substr($formRefs, 0, -1);
-        $this->root->setFormReferences($formRefs);
+
+        $fields = implode(' ', array_map(fn($index) => $index . ' 0 R', $fieldIndices));
+
+        $i = $this->lastIndex() + 1;
+        $this->addObject($i, PdfObject\StreamObject::parse("{$i} 0 obj\n<</Fields[{$fields}]>>\nendobj\n\n"));
+        $this->root->setFormReferences($i . ' 0 R');
     }
 
 }

@@ -545,6 +545,34 @@ class ParserTest extends TestCase
         unlink($outputFile);
     }
 
+    public function testNonLatinHtmlTextDoesNotDoubleEncode()
+    {
+        // Regression test: DOMDocument::loadHTML() (used internally by
+        // Pop\Dom\Child::parseString()) assumes ISO-8859-1 for markup with
+        // no declared charset, corrupting multi-byte UTF-8 (e.g. Cyrillic)
+        // into mojibake before it ever reaches the PDF content stream.
+        $doc = new Document();
+        $doc->embedFont(new Document\Font(__DIR__ . '/../../tmp/fonts/DejaVuSans.ttf'));
+
+        $cyrillic = "\u{041F}\u{0440}\u{0438}\u{0432}\u{0456}\u{0442}"; // "Привіт"
+        $html = Parser::parseString('<p>' . $cyrillic . '</p>', $doc);
+        $html->setDefaultStyle('font-family', 'DejaVuSans');
+        $html->process();
+
+        $outputFile = __DIR__ . '/../../tmp/non-latin-output.pdf';
+        \Pop\Pdf\Pdf::writeToFile($doc, $outputFile);
+
+        if (trim((string) shell_exec('which pdftotext')) === '') {
+            unlink($outputFile);
+            $this->markTestSkipped('pdftotext is not available.');
+        }
+
+        $text = shell_exec('pdftotext -enc UTF-8 ' . escapeshellarg($outputFile) . ' - 2>&1');
+        $this->assertStringContainsString($cyrillic, $text);
+
+        unlink($outputFile);
+    }
+
     public function testFloatedImageWithFollowingContentDoesNotHangOrLoseContent()
     {
         $imagePath = sys_get_temp_dir() . '/parser-float-orphan-test-' . uniqid() . '.jpg';
