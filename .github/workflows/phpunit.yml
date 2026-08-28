@@ -26,8 +26,19 @@ jobs:
         php-version: ${{ matrix.php-versions }}
         extensions: gd, iconv, imagick, mbstring, zlib
 
-    - name: Install poppler-utils
-      run: sudo apt-get update && sudo apt-get install -y poppler-utils
+    - name: Install poppler-utils and ghostscript
+      run: sudo apt-get update && sudo apt-get install -y poppler-utils ghostscript
+
+    - name: Allow ImageMagick to read PDFs
+      # Ubuntu's ImageMagick ships a security policy that blocks the PDF
+      # coder by default (the "ImageTragick" CVE-2016-3714 mitigation) -
+      # without this, Imagick::readImage()/pingImage() fail on any PDF.
+      run: |
+        for policy in /etc/ImageMagick-6/policy.xml /etc/ImageMagick-7/policy.xml; do
+          if [ -f "$policy" ]; then
+            sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' "$policy"
+          fi
+        done
 
     #- name: Validate composer.json and composer.lock
     #  run: composer validate
