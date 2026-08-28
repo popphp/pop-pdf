@@ -111,6 +111,14 @@ class Extractor
             $page->readImage($file . '[' . ($pageNum - 1) . ']');
             $page->setImageFormat($format);
 
+            // The primary use case for extracted pages is OCR, so JPEG/WebP -
+            // both lossy by default - are forced to a high quality to avoid
+            // compression artifacts that degrade text edges. PNG and TIFF
+            // are already lossless and left alone.
+            if (in_array($format, ['jpg', 'jpeg', 'webp'])) {
+                $page->setImageCompressionQuality(90);
+            }
+
             $path = $location . DIRECTORY_SEPARATOR . $basename . '-' . sprintf('%02d', $pageNum) . '.' . $format;
             $page->writeImage($path);
             $page->clear();

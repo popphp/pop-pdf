@@ -114,6 +114,45 @@ class ExtractorTest extends TestCase
         $this->assertTrue(str_starts_with($bytes, "II") || str_starts_with($bytes, "MM"));
     }
 
+    public function testExtractSetsHighCompressionQualityForJpg()
+    {
+        $extractor = new Extractor();
+        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'jpg', 72, [1]);
+
+        $this->assertFileEquals($this->buildReferenceImage('jpg', 90), $result[1]);
+    }
+
+    public function testExtractSetsHighCompressionQualityForWebp()
+    {
+        $extractor = new Extractor();
+        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'webp', 72, [1]);
+
+        $this->assertFileEquals($this->buildReferenceImage('webp', 90), $result[1]);
+    }
+
+    /**
+     * Independently rasterize page 1 at a known compression quality, so the
+     * extractor's output can be compared byte-for-byte against it. Imagick's
+     * quality setting isn't reliably recoverable from a written file's
+     * metadata (JPEG estimates it from quantization tables; WebP doesn't
+     * store it at all), so a deterministic-encoder comparison is used
+     * instead of a read-back assertion.
+     */
+    protected function buildReferenceImage(string $format, int $quality): string
+    {
+        $reference = new \Imagick();
+        $reference->setResolution(72, 72);
+        $reference->readImage(__DIR__ . '/../../tmp/image-only-3page.pdf[0]');
+        $reference->setImageFormat($format);
+        $reference->setImageCompressionQuality($quality);
+
+        $path = $this->location . '/reference.' . $format;
+        $reference->writeImage($path);
+        $reference->clear();
+
+        return $path;
+    }
+
     public function testExtractHigherResolutionProducesLargerPixelDimensions()
     {
         $extractor = new Extractor();

@@ -190,7 +190,7 @@ class Pdf
      * @return array
      */
     public static function extractAsImages(
-        string $file, string $location, string $format = 'jpg', int $resolution = 72, mixed $pages = null, ?int $pageLimit = null
+        string $file, string $location, string $format = 'jpg', int $resolution = 300, mixed $pages = null, ?int $pageLimit = null
     ): array
     {
         $extractor  = new Build\Image\Extractor();
