@@ -178,6 +178,32 @@ class Pdf
     }
 
     /**
+     * Extract as images
+     *
+     * @param  string $file
+     * @param  string $location
+     * @param  string $format
+     * @param  int    $resolution
+     * @param  mixed  $pages
+     * @param  ?int   $pageLimit
+     * @throws Build\Exception
+     * @return array
+     */
+    public static function extractAsImages(
+        string $file, string $location, string $format = 'jpg', int $resolution = 72, mixed $pages = null, ?int $pageLimit = null
+    ): array
+    {
+        $extractor  = new Build\Image\Extractor();
+        $totalPages = $extractor->countPages($file);
+        $allPages   = ($totalPages > 0) ? range(1, $totalPages) : [];
+
+        $pages       = self::normalizePages($pages);
+        $pageNumbers = self::selectByPageFilter($allPages, $pages, $pageLimit);
+
+        return $extractor->extract($file, $location, $format, $resolution, $pageNumbers);
+    }
+
+    /**
      * Extract text from file
      *
      * @param  string $file
@@ -215,20 +241,9 @@ class Pdf
      */
     protected static function extractTextFromDocument(Extract\Document $doc, mixed $pages, ?int $pageLimit): string
     {
-        $pages    = ($pages !== null) ? ((!is_array($pages)) ? [$pages] : $pages) : null;
+        $pages    = self::normalizePages($pages);
         $docPages = Extract\Content\PageWalker::walk($doc, $pages, $pageLimit);
-
-        if ($pages !== null) {
-            $selected = [];
-            foreach ($docPages as $i => $docPage) {
-                if (in_array(($i + 1), $pages)) {
-                    $selected[] = $docPage;
-                }
-            }
-            $docPages = $selected;
-        } elseif (is_int($pageLimit) && ($pageLimit > 0)) {
-            $docPages = array_slice($docPages, 0, $pageLimit);
-        }
+        $docPages = self::selectByPageFilter($docPages, $pages, $pageLimit);
 
         $texts = [];
 
@@ -349,20 +364,9 @@ class Pdf
      */
     protected static function classifyPages(Extract\Document $doc, mixed $pages = null, ?int $pageLimit = null): array
     {
-        $pages    = ($pages !== null) ? ((!is_array($pages)) ? [$pages] : $pages) : null;
+        $pages    = self::normalizePages($pages);
         $docPages = Extract\Content\PageWalker::walk($doc, $pages, $pageLimit);
-
-        if ($pages !== null) {
-            $selected = [];
-            foreach ($docPages as $i => $docPage) {
-                if (in_array(($i + 1), $pages)) {
-                    $selected[] = $docPage;
-                }
-            }
-            $docPages = $selected;
-        } elseif (is_int($pageLimit) && ($pageLimit > 0)) {
-            $docPages = array_slice($docPages, 0, $pageLimit);
-        }
+        $docPages = self::selectByPageFilter($docPages, $pages, $pageLimit);
 
         $result = [];
 
@@ -371,6 +375,47 @@ class Pdf
         }
 
         return $result;
+    }
+
+    /**
+     * Normalize a $pages argument (int, array, or null) into an array or null
+     *
+     * @param  mixed $pages
+     * @return ?array
+     */
+    protected static function normalizePages(mixed $pages): ?array
+    {
+        return ($pages !== null) ? ((!is_array($pages)) ? [$pages] : $pages) : null;
+    }
+
+    /**
+     * Select items by 1-indexed position, either an explicit page list or a page limit
+     *
+     * An explicit $pages list wins outright; $pageLimit only applies when
+     * $pages is null. Shared by every extract-style method that filters a
+     * per-page result set the same way (text extraction, image-only
+     * classification, image extraction).
+     *
+     * @param  array  $items
+     * @param  ?array $pages
+     * @param  ?int   $pageLimit
+     * @return array
+     */
+    protected static function selectByPageFilter(array $items, ?array $pages, ?int $pageLimit): array
+    {
+        if ($pages !== null) {
+            $selected = [];
+            foreach ($items as $i => $item) {
+                if (in_array(($i + 1), $pages)) {
+                    $selected[] = $item;
+                }
+            }
+            return $selected;
+        } elseif (is_int($pageLimit) && ($pageLimit > 0)) {
+            return array_slice($items, 0, $pageLimit);
+        }
+
+        return $items;
     }
 
     /**

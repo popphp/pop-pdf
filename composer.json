@@ -33,7 +33,8 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^12.5.0",
-        "phpstan/phpstan": "^2.2"
+        "phpstan/phpstan": "^2.2",
+        "ext-imagick": "*"
     },
     "suggest": {
         "ext-gd": "For added images to PDFs",

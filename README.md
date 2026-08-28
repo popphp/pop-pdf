@@ -15,6 +15,7 @@ pop-pdf
     - [Import from File](#import-from-file)
     - [Import from Raw Data](#import-from-raw-data)
     - [Import from Images](#import-from-images)
+    - [Extract as Images](#extract-as-images)
     - [Merge](#merge)
     - [Extract Text](#extract-text)
     - [Image-Only Detection](#image-only-detection)
@@ -128,6 +129,7 @@ to route the various object components to the right place to be processed.
 - `importFromFile($file, $pages = null): AbstractDocument`
 - `importRawData($data, $pages = null): AbstractDocument`
 - `importFromImages($images, $quality = 70): AbstractDocument`
+- `extractAsImages($file, $location, $format = 'jpg', $resolution = 72, $pages = null, $pageLimit = null): array`
 - `merge($files): AbstractDocument`
 - `mergeRawData($data): AbstractDocument`
 - `extractTextFromFile($file, $pages = null, $pageLimit = null): string`
@@ -205,6 +207,37 @@ use Pop\Pdf\Pdf;
 
 $doc = Pdf::importFromImages($arrayOfImages);
 ```
+
+### Extract as Images
+
+The opposite of importing from images: `extractAsImages()` rasterizes the pages of an existing PDF
+into standalone image files, one per page, via [Imagick](https://www.php.net/manual/en/book.imagick.php).
+It requires the `ext-imagick` PHP extension (listed as a suggested dependency, not a hard requirement,
+since it isn't installed everywhere) and works regardless of whether a page is text, vector graphics,
+a scanned image, or any mix — Imagick's PDF delegate rasterizes the page's full content directly.
+
+```php
+use Pop\Pdf\Pdf;
+
+// Writes one image per page into 'path/to/output/', e.g. document-01.jpg, document-02.jpg, etc.
+$images = Pdf::extractAsImages('path/to/document.pdf', 'path/to/output/');
+
+// $images is keyed by 1-based page number:
+// [1 => 'path/to/output/document-01.jpg', 2 => 'path/to/output/document-02.jpg', ...]
+```
+
+`$format` (`jpg`, `jpeg`, `png`, `webp`, `tiff` or `tif`) and `$resolution` (output DPI) can be customized, and the same
+`$pages`/`$pageLimit` filters as the text-extraction methods below are supported:
+
+```php
+use Pop\Pdf\Pdf;
+
+// Extract pages 1 and 3 only, as high-resolution PNGs
+$images = Pdf::extractAsImages('path/to/document.pdf', 'path/to/output/', 'png', 300, [1, 3]);
+```
+
+Each requested page is rasterized and written to disk individually, so memory use stays flat
+regardless of how many pages the source PDF has.
 
 ### Merge
 

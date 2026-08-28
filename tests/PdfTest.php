@@ -407,6 +407,88 @@ class PdfTest extends TestCase
         $this->assertLessThan(5.0, $elapsed);
     }
 
+    public function testExtractAsImagesWritesFileForEachPage()
+    {
+        if (!class_exists('Imagick', false)) {
+            $this->markTestSkipped('The Imagick extension is not available.');
+        }
+
+        $location = sys_get_temp_dir() . '/pop-pdf-extract-as-images-' . uniqid();
+        mkdir($location);
+
+        $result = Pdf\Pdf::extractAsImages(__DIR__ . '/tmp/image-only-3page.pdf', $location);
+
+        try {
+            $this->assertCount(3, $result);
+            $this->assertFileExists($result[1]);
+            $this->assertFileExists($result[2]);
+            $this->assertFileExists($result[3]);
+        } finally {
+            foreach (glob($location . '/*') as $file) {
+                unlink($file);
+            }
+            rmdir($location);
+        }
+    }
+
+    public function testExtractAsImagesRespectsPageLimit()
+    {
+        if (!class_exists('Imagick', false)) {
+            $this->markTestSkipped('The Imagick extension is not available.');
+        }
+
+        $location = sys_get_temp_dir() . '/pop-pdf-extract-as-images-' . uniqid();
+        mkdir($location);
+
+        $result = Pdf\Pdf::extractAsImages(__DIR__ . '/tmp/image-only-3page.pdf', $location, 'jpg', 72, null, 2);
+
+        try {
+            $this->assertCount(2, $result);
+            $this->assertArrayHasKey(1, $result);
+            $this->assertArrayHasKey(2, $result);
+            $this->assertArrayNotHasKey(3, $result);
+        } finally {
+            foreach (glob($location . '/*') as $file) {
+                unlink($file);
+            }
+            rmdir($location);
+        }
+    }
+
+    public function testExtractAsImagesRespectsSpecificPages()
+    {
+        if (!class_exists('Imagick', false)) {
+            $this->markTestSkipped('The Imagick extension is not available.');
+        }
+
+        $location = sys_get_temp_dir() . '/pop-pdf-extract-as-images-' . uniqid();
+        mkdir($location);
+
+        $result = Pdf\Pdf::extractAsImages(__DIR__ . '/tmp/image-only-3page.pdf', $location, 'jpg', 72, [2]);
+
+        try {
+            $this->assertCount(1, $result);
+            $this->assertArrayHasKey(2, $result);
+            $this->assertArrayNotHasKey(1, $result);
+            $this->assertArrayNotHasKey(3, $result);
+        } finally {
+            foreach (glob($location . '/*') as $file) {
+                unlink($file);
+            }
+            rmdir($location);
+        }
+    }
+
+    public function testExtractAsImagesThrowsForMissingFile()
+    {
+        if (!class_exists('Imagick', false)) {
+            $this->markTestSkipped('The Imagick extension is not available.');
+        }
+
+        $this->expectException(\Pop\Pdf\Build\Exception::class);
+        Pdf\Pdf::extractAsImages(__DIR__ . '/tmp/does-not-exist.pdf', sys_get_temp_dir());
+    }
+
     public function testMergeCombinesFiles()
     {
         $doc = Pdf\Pdf::merge([__DIR__ . '/tmp/doc.pdf', __DIR__ . '/tmp/test.pdf']);
