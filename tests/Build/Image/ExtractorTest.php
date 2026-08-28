@@ -46,7 +46,9 @@ class ExtractorTest extends TestCase
     public function testExtractWritesOneImageFilePerRequestedPage()
     {
         $extractor = new Extractor();
-        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'jpg', 72, [1, 2, 3]);
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'jpg', 72, '%1$s-%2$02d', [1, 2, 3]
+        );
 
         $this->assertCount(3, $result);
         foreach ($result as $path) {
@@ -58,17 +60,45 @@ class ExtractorTest extends TestCase
     public function testExtractFilenamesAreZeroPaddedWithoutThePageWord()
     {
         $extractor = new Extractor();
-        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'jpg', 72, [1, 2, 3]);
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'jpg', 72, '%1$s-%2$02d', [1, 2, 3]
+        );
 
         $this->assertEquals('image-only-3page-01.jpg', basename($result[1]));
         $this->assertEquals('image-only-3page-02.jpg', basename($result[2]));
         $this->assertEquals('image-only-3page-03.jpg', basename($result[3]));
     }
 
+    public function testExtractPageSuffixCanDropTheBasenameAndZeroPad()
+    {
+        $extractor = new Extractor();
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'jpg', 72, 'page-%2$02d', [1, 2, 3]
+        );
+
+        $this->assertEquals('page-01.jpg', basename($result[1]));
+        $this->assertEquals('page-02.jpg', basename($result[2]));
+        $this->assertEquals('page-03.jpg', basename($result[3]));
+    }
+
+    public function testExtractPageSuffixCanUseUnderscoreAndSkipZeroPadding()
+    {
+        $extractor = new Extractor();
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'jpg', 72, 'page_%2$d', [1, 2, 3]
+        );
+
+        $this->assertEquals('page_1.jpg', basename($result[1]));
+        $this->assertEquals('page_2.jpg', basename($result[2]));
+        $this->assertEquals('page_3.jpg', basename($result[3]));
+    }
+
     public function testExtractOnlyWritesRequestedPages()
     {
         $extractor = new Extractor();
-        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'png', 72, [2]);
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'png', 72, '%1$s-%2$02d', [2]
+        );
 
         $this->assertCount(1, $result);
         $this->assertArrayHasKey(2, $result);
@@ -78,7 +108,9 @@ class ExtractorTest extends TestCase
     public function testExtractWritesValidPngBytes()
     {
         $extractor = new Extractor();
-        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'png', 72, [1]);
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'png', 72, '%1$s-%2$02d', [1]
+        );
 
         $bytes = file_get_contents($result[1]);
         $this->assertStringStartsWith("\x89PNG", $bytes);
@@ -87,7 +119,9 @@ class ExtractorTest extends TestCase
     public function testExtractWritesValidWebpBytes()
     {
         $extractor = new Extractor();
-        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'webp', 72, [1]);
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'webp', 72, '%1$s-%2$02d', [1]
+        );
 
         $bytes = file_get_contents($result[1]);
         $this->assertStringStartsWith('RIFF', $bytes);
@@ -97,7 +131,9 @@ class ExtractorTest extends TestCase
     public function testExtractWritesValidTiffBytes()
     {
         $extractor = new Extractor();
-        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'tiff', 72, [1]);
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'tiff', 72, '%1$s-%2$02d', [1]
+        );
 
         $bytes = file_get_contents($result[1]);
         // TIFF starts with either little-endian "II" or big-endian "MM" byte order marker
@@ -107,7 +143,9 @@ class ExtractorTest extends TestCase
     public function testExtractSupportsTifAsTiffAlias()
     {
         $extractor = new Extractor();
-        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'tif', 72, [1]);
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'tif', 72, '%1$s-%2$02d', [1]
+        );
 
         $bytes = file_get_contents($result[1]);
         $this->assertStringEndsWith('.tif', $result[1]);
@@ -117,7 +155,9 @@ class ExtractorTest extends TestCase
     public function testExtractSetsHighCompressionQualityForJpg()
     {
         $extractor = new Extractor();
-        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'jpg', 72, [1]);
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'jpg', 72, '%1$s-%2$02d', [1]
+        );
 
         $this->assertFileEquals($this->buildReferenceImage('jpg', 90), $result[1]);
     }
@@ -125,7 +165,9 @@ class ExtractorTest extends TestCase
     public function testExtractSetsHighCompressionQualityForWebp()
     {
         $extractor = new Extractor();
-        $result    = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'webp', 72, [1]);
+        $result    = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'webp', 72, '%1$s-%2$02d', [1]
+        );
 
         $this->assertFileEquals($this->buildReferenceImage('webp', 90), $result[1]);
     }
@@ -157,13 +199,17 @@ class ExtractorTest extends TestCase
     {
         $extractor = new Extractor();
 
-        $low      = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'png', 72, [1]);
+        $low      = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'png', 72, '%1$s-%2$02d', [1]
+        );
         $lowImage = new \Imagick($low[1]);
         $lowWidth = $lowImage->getImageWidth();
         $lowImage->clear();
         unlink($low[1]);
 
-        $high      = $extractor->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'png', 144, [1]);
+        $high      = $extractor->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'png', 144, '%1$s-%2$02d', [1]
+        );
         $highImage = new \Imagick($high[1]);
         $highWidth = $highImage->getImageWidth();
         $highImage->clear();
@@ -174,19 +220,25 @@ class ExtractorTest extends TestCase
     public function testExtractThrowsForUnsupportedFormat()
     {
         $this->expectException(Exception::class);
-        (new Extractor())->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'bmp', 72, [1]);
+        (new Extractor())->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location, 'bmp', 72, '%1$s-%2$02d', [1]
+        );
     }
 
     public function testExtractThrowsForMissingSourceFile()
     {
         $this->expectException(Exception::class);
-        (new Extractor())->extract(__DIR__ . '/../../tmp/does-not-exist.pdf', $this->location, 'jpg', 72, [1]);
+        (new Extractor())->extract(
+            __DIR__ . '/../../tmp/does-not-exist.pdf', $this->location, 'jpg', 72, '%1$s-%2$02d', [1]
+        );
     }
 
     public function testExtractThrowsForNonExistentLocation()
     {
         $this->expectException(Exception::class);
-        (new Extractor())->extract(__DIR__ . '/../../tmp/image-only-3page.pdf', $this->location . '/nope', 'jpg', 72, [1]);
+        (new Extractor())->extract(
+            __DIR__ . '/../../tmp/image-only-3page.pdf', $this->location . '/nope', 'jpg', 72, '%1$s-%2$02d', [1]
+        );
     }
 
 }

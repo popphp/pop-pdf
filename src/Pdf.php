@@ -184,13 +184,16 @@ class Pdf
      * @param  string $location
      * @param  string $format
      * @param  int    $resolution
+     * @param  string $filenameFormat sprintf() format string, given the file's basename and the 1-indexed
+     *                                page number (e.g. '%1$s-%2$02d' => 'document-01', 'page-%2$02d' => 'page-01')
      * @param  mixed  $pages
      * @param  ?int   $pageLimit
-     * @throws Build\Exception
      * @return array
+     *@throws Build\Exception
      */
     public static function extractAsImages(
-        string $file, string $location, string $format = 'jpg', int $resolution = 300, mixed $pages = null, ?int $pageLimit = null
+        string $file, string $location, string $format = 'jpg', int $resolution = 300,
+        string $filenameFormat = '%1$s-%2$02d', mixed $pages = null, ?int $pageLimit = null
     ): array
     {
         $extractor  = new Build\Image\Extractor();
@@ -200,7 +203,7 @@ class Pdf
         $pages       = self::normalizePages($pages);
         $pageNumbers = self::selectByPageFilter($allPages, $pages, $pageLimit);
 
-        return $extractor->extract($file, $location, $format, $resolution, $pageNumbers);
+        return $extractor->extract($file, $location, $format, $resolution, $filenameFormat, $pageNumbers);
     }
 
     /**

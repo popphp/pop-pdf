@@ -81,11 +81,16 @@ class Extractor
      * @param  string $location
      * @param  string $format
      * @param  int    $resolution
+     * @param  string $filenameFormat sprintf() format string, given the file's basename and the
+     *                                1-indexed page number (e.g. '%1$s-%2$02d' => 'document-01',
+     *                                'page-%2$02d' => 'page-01')
      * @param  array  $pageNumbers 1-indexed page numbers to extract
      * @throws Exception
      * @return array
      */
-    public function extract(string $file, string $location, string $format, int $resolution, array $pageNumbers): array
+    public function extract(
+        string $file, string $location, string $format, int $resolution, string $filenameFormat, array $pageNumbers
+    ): array
     {
         if (!file_exists($file)) {
             throw new Exception("Error: The PDF file '{$file}' does not exist.");
@@ -119,7 +124,7 @@ class Extractor
                 $page->setImageCompressionQuality(90);
             }
 
-            $path = $location . DIRECTORY_SEPARATOR . $basename . '-' . sprintf('%02d', $pageNum) . '.' . $format;
+            $path = $location . DIRECTORY_SEPARATOR . sprintf($filenameFormat, $basename, $pageNum) . '.' . $format;
             $page->writeImage($path);
             $page->clear();
 

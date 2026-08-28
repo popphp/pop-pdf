@@ -440,7 +440,7 @@ class PdfTest extends TestCase
         $location = sys_get_temp_dir() . '/pop-pdf-extract-as-images-' . uniqid();
         mkdir($location);
 
-        $result = Pdf\Pdf::extractAsImages(__DIR__ . '/tmp/image-only-3page.pdf', $location, 'jpg', 72, null, 2);
+        $result = Pdf\Pdf::extractAsImages(__DIR__ . '/tmp/image-only-3page.pdf', $location, 'jpg', 72, pageLimit: 2);
 
         try {
             $this->assertCount(2, $result);
@@ -464,13 +464,37 @@ class PdfTest extends TestCase
         $location = sys_get_temp_dir() . '/pop-pdf-extract-as-images-' . uniqid();
         mkdir($location);
 
-        $result = Pdf\Pdf::extractAsImages(__DIR__ . '/tmp/image-only-3page.pdf', $location, 'jpg', 72, [2]);
+        $result = Pdf\Pdf::extractAsImages(__DIR__ . '/tmp/image-only-3page.pdf', $location, 'jpg', 72, pages: [2]);
 
         try {
             $this->assertCount(1, $result);
             $this->assertArrayHasKey(2, $result);
             $this->assertArrayNotHasKey(1, $result);
             $this->assertArrayNotHasKey(3, $result);
+        } finally {
+            foreach (glob($location . '/*') as $file) {
+                unlink($file);
+            }
+            rmdir($location);
+        }
+    }
+
+    public function testExtractAsImagesSupportsCustomFilenameFormat()
+    {
+        if (!class_exists('Imagick', false)) {
+            $this->markTestSkipped('The Imagick extension is not available.');
+        }
+
+        $location = sys_get_temp_dir() . '/pop-pdf-extract-as-images-' . uniqid();
+        mkdir($location);
+
+        $result = Pdf\Pdf::extractAsImages(
+            __DIR__ . '/tmp/image-only-3page.pdf', $location, 'jpg', 72, 'page_%2$d', pages: [1, 2]
+        );
+
+        try {
+            $this->assertEquals('page_1.jpg', basename($result[1]));
+            $this->assertEquals('page_2.jpg', basename($result[2]));
         } finally {
             foreach (glob($location . '/*') as $file) {
                 unlink($file);
