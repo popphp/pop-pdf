@@ -33,6 +33,7 @@ pop-pdf
 * [Images](#images)
     - [Image Size](#image-size)
 * [Paths](#paths)
+    - [Composed Paths](#composed-paths)
 * [Annotations](#annotations)
     - [URLs](#urls)
     - [Internal](#internal)
@@ -908,6 +909,39 @@ The basic methods available to draw paths and shapes are:
 - `drawArc(int $x, int $y, int $start, int $end, int $w, ?int $h = null): Path`
 - `drawChord(int $x, int $y, int $start, int $end, int $w, ?int $h = null): Path`
 - `drawPie(int $x, int $y, int $start, int $end, int $w, ?int $h = null): Path`
+
+Each shape paints itself in the path's style as it is drawn.
+
+### Composed Paths
+
+Several outlines can be painted together as a single path instead, which is what an even-odd fill
+needs to cut a hole - the rule reads every outline on the same path to decide what is inside. Open
+the path, draw the outlines, and paint them in one go:
+
+```php
+use Pop\Pdf\Document\Page\Path;
+use Pop\Color\Color;
+
+$path = new Path(Path::FILL_EVEN_ODD);
+$path->setFillColor(Color::rgb(0, 102, 204));
+
+$path->openPath();
+$path->drawPolygon([
+    ['x' => 150, 'y' => 250], ['x' => 450, 'y' => 250],
+    ['x' => 450, 'y' => 550], ['x' => 150, 'y' => 550]
+]);
+$path->drawPolygon([
+    ['x' => 250, 'y' => 350], ['x' => 350, 'y' => 350],
+    ['x' => 350, 'y' => 450], ['x' => 250, 'y' => 450]
+]);
+$path->paintPath();
+```
+
+That fills the outer 300-point square and leaves the inner 100-point square blank. Swapping the style
+for `Path::FILL` fills the same two outlines solid.
+
+- `openPath(): Path`
+- `paintPath(): Path`
 
 [Top](#pop-pdf)
 

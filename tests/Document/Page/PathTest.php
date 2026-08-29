@@ -251,4 +251,95 @@ class PathTest extends TestCase
         $this->assertEquals(240, $lastPoint['y5']);
     }
 
+
+    public function testDrawPolygonPaintsItself()
+    {
+        $path = new Path(Path::FILL);
+        $path->drawPolygon([
+            ['x' => 300, 'y' => 200],
+            ['x' => 400, 'y' => 300],
+            ['x' => 500, 'y' => 200]
+        ]);
+        $stream = $path->getStreams()[0]['stream'];
+        $this->assertStringContainsString('h', $stream);
+        $this->assertStringEndsWith(Path::FILL . "\n", $stream);
+    }
+
+    public function testDrawPolygonUsesTheCurrentStyle()
+    {
+        $path = new Path(Path::FILL_STROKE);
+        $path->drawPolygon([
+            ['x' => 10, 'y' => 10],
+            ['x' => 20, 'y' => 20],
+            ['x' => 30, 'y' => 10]
+        ]);
+        $this->assertStringEndsWith(Path::FILL_STROKE . "\n", $path->getStreams()[0]['stream']);
+    }
+
+    public function testOpenPathSuppressesThePaintOperator()
+    {
+        $path = new Path(Path::FILL_EVEN_ODD);
+        $path->openPath();
+        $path->drawPolygon([
+            ['x' => 150, 'y' => 250],
+            ['x' => 450, 'y' => 250],
+            ['x' => 450, 'y' => 550]
+        ]);
+        $this->assertStringNotContainsString(Path::FILL_EVEN_ODD, $path->getStreams()[0]['stream']);
+    }
+
+    public function testOpenPathSuppressesThePaintOperatorOnOtherShapes()
+    {
+        $path = new Path(Path::FILL);
+        $path->openPath();
+        $path->drawRectangle(100, 200, 300, 150);
+        $this->assertStringNotContainsString("\n" . Path::FILL . "\n", $path->getStreams()[0]['stream']);
+    }
+
+    public function testPaintPathEmitsTheStyleOnce()
+    {
+        $path = new Path(Path::FILL_EVEN_ODD);
+        $path->openPath();
+        $path->drawPolygon([
+            ['x' => 150, 'y' => 250],
+            ['x' => 450, 'y' => 250],
+            ['x' => 450, 'y' => 550]
+        ]);
+        $path->drawPolygon([
+            ['x' => 250, 'y' => 350],
+            ['x' => 350, 'y' => 350],
+            ['x' => 350, 'y' => 450]
+        ]);
+        $path->paintPath();
+
+        $streams = $path->getStreams();
+        $last    = $streams[count($streams) - 1]['stream'];
+        $this->assertStringContainsString(Path::FILL_EVEN_ODD, $last);
+    }
+
+    public function testPaintPathReturnsToPaintingPerShape()
+    {
+        $path = new Path(Path::FILL);
+        $path->openPath();
+        $path->drawRectangle(10, 10, 20, 20);
+        $path->paintPath();
+        $path->drawRectangle(50, 50, 20, 20);
+
+        $streams = $path->getStreams();
+        $this->assertStringEndsWith(Path::FILL . "\n", $streams[count($streams) - 1]['stream']);
+    }
+
+    public function testClippingNoStyleIsAnAllowedStyle()
+    {
+        $path = new Path();
+        $path->setStyle(Path::CLIPPING_NO_STYLE);
+        $this->assertEquals(Path::CLIPPING_NO_STYLE, $path->getStyle());
+    }
+
+    public function testClippingNoStyleThroughTheConstructor()
+    {
+        $path = new Path(Path::CLIPPING_NO_STYLE);
+        $this->assertEquals(Path::CLIPPING_NO_STYLE, $path->getStyle());
+    }
+
 }

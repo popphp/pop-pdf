@@ -55,7 +55,7 @@ class Path
      */
     protected array $allowedStyles = [
         'S', 's', 'F', 'f*', 'B', 'B*', 'b', 'b*',
-        'W', 'W F', 'W*', 'W* F', 'W* n', 'n'
+        'W', 'W F', 'W n', 'W*', 'W* F', 'W* n', 'n'
     ];
 
     /**
@@ -69,6 +69,12 @@ class Path
      * @var string
      */
     protected string $style = 'S';
+
+    /**
+     * Whether shapes are being composed into a single path
+     * @var bool
+     */
+    protected bool $composing = false;
 
     /**
      * Constructor
@@ -172,6 +178,55 @@ class Path
     }
 
     /**
+     * Open a composed path
+     *
+     * Shapes drawn after this call contribute their outlines to one path and are
+     * painted together by paintPath(), rather than each painting itself. An
+     * even-odd fill across several outlines needs this - the rule reads every
+     * outline on the same path to decide what is inside.
+     *
+     * @return Path
+     */
+    public function openPath(): Path
+    {
+        $this->composing = true;
+        return $this;
+    }
+
+    /**
+     * Paint a composed path
+     *
+     * Emits the path's style once, painting every outline drawn since openPath(),
+     * and returns to painting each shape as it is drawn.
+     *
+     * @return Path
+     */
+    public function paintPath(): Path
+    {
+        if ($this->composing) {
+            $this->composing = false;
+            $this->streams[] = [
+                'stream' => "\n" . $this->style . "\n"
+            ];
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get the paint operator a shape should emit
+     *
+     * While a composed path is open no shape paints itself; paintPath() emits the
+     * style once for all of them.
+     *
+     * @return string
+     */
+    protected function paintOperator(): string
+    {
+        return ($this->composing) ? '' : $this->style;
+    }
+
+    /**
      * Open a graphics state layer
      *
      * @return Path
@@ -258,7 +313,7 @@ class Path
             'points' => [
                 ['x' => $x, 'y' => $y]
             ],
-            'stream' => "\n[{x}] [{y}] {$w} {$h} re\n" . $this->style . "\n"
+            'stream' => "\n[{x}] [{y}] {$w} {$h} re\n" . $this->paintOperator() . "\n"
         ];
 
         return $this;
@@ -325,7 +380,7 @@ class Path
 
         $this->streams[] = [
             'points' => $points,
-            'stream' => "\n{$rectangle}\n" . $this->style . "\n"
+            'stream' => "\n{$rectangle}\n" . $this->paintOperator() . "\n"
         ];
 
         return $this;
@@ -369,7 +424,6 @@ class Path
     public function drawPolygon(array $points): Path
     {
         $i = 1;
-        $polygon = null;
 
         $stream = [
             'points' => [],
@@ -393,7 +447,7 @@ class Path
             $i++;
         }
 
-        $stream['stream'] .= "h\n";
+        $stream['stream'] .= "h\n" . $this->paintOperator() . "\n";
         $this->streams[] = $stream;
 
         return $this;
@@ -465,7 +519,7 @@ class Path
             'stream' => "\n[{x1}] [{y1}] m\n[{x5}] [{y5}] [{x7}] [{y7}] [{x2}] [{y2}] c\n" .
                 "[{x8}] [{y8}] [{x9}] [{y9}] [{x3}] [{y3}] c\n[{x10}] [{y10}] " .
                 "[{x11}] [{y11}] [{x4}] [{y4}] c\n[{x12}] [{y12}] [{x6}] [{y6}] " .
-                "[{x1}] [{y1}] c\n" . $this->style . "\n"
+                "[{x1}] [{y1}] c\n" . $this->paintOperator() . "\n"
         ];
 
         return $this;
@@ -571,7 +625,7 @@ class Path
                 ['x3' => $bezierX2, 'y3' => $bezierY2],
                 ['x4' => $x2, 'y4' => $y2]
             ],
-            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n" . $this->style . "\n"
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n" . $this->paintOperator() . "\n"
         ];
 
         return $this;
@@ -601,7 +655,7 @@ class Path
                 ['x3' => $bezierX2, 'y3' => $bezierY2],
                 ['x4' => $x2,       'y4' => $y2]
             ],
-            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\nh\n" . $this->style . "\n"
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\nh\n" . $this->paintOperator() . "\n"
         ];
 
         return $this;
@@ -627,7 +681,7 @@ class Path
                 ['x2' => $bezierX, 'y2' => $bezierY],
                 ['x3' => $x2,      'y3' => $y2]
             ],
-            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] " . (($first) ? "y" : "v") . "\n" . $this->style . "\n"
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] " . (($first) ? "y" : "v") . "\n" . $this->paintOperator() . "\n"
         ];
 
         return $this;
@@ -653,7 +707,7 @@ class Path
                 ['x2' => $bezierX, 'y2' => $bezierY],
                 ['x3' => $x2,      'y3' => $y2]
             ],
-            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] " . (($first) ? "y" : "v") . "\nh\n" . $this->style . "\n"
+            'stream' => "\n[{x1}] [{y1}] m\n[{x2}] [{y2}] [{x3}] [{y3}] " . (($first) ? "y" : "v") . "\nh\n" . $this->paintOperator() . "\n"
         ];
 
         return $this;
@@ -759,9 +813,9 @@ class Path
                 if (count($degrees) == 1) {
                     if ($pie) {
                         $points[] = ['x5' => $x,   'y5' => $y];
-                        $stream .= "\n[{x5}] [{y5}] l\n" . (($closed) ? "h" : null) . "\n" . $this->style . "\n";
+                        $stream .= "\n[{x5}] [{y5}] l\n" . (($closed) ? "h" : null) . "\n" . $this->paintOperator() . "\n";
                     } else {
-                        $stream .= (($closed) ? "h" : null) . "\n" . $this->style . "\n";
+                        $stream .= (($closed) ? "h" : null) . "\n" . $this->paintOperator() . "\n";
                     }
                 }
 
@@ -778,7 +832,7 @@ class Path
                             ['x4' => $endX, 'y4' => $endY],
                             ['x5' => $x,    'y5' => $y]
                         ],
-                        'stream' => "\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n[{x5}] [{y5}] l\nh\n" . $this->style . "\n"
+                        'stream' => "\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n[{x5}] [{y5}] l\nh\n" . $this->paintOperator() . "\n"
                     ];
                 } else {
                     $this->streams[] = [
@@ -787,7 +841,7 @@ class Path
                             ['x3' => $q2X,  'y3' => $q2Y],
                             ['x4' => $endX, 'y4' => $endY]
                         ],
-                        'stream' => "\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n" . (($closed) ? "h" : null) . "\n" . $this->style . "\n"
+                        'stream' => "\n[{x2}] [{y2}] [{x3}] [{y3}] [{x4}] [{y4}] c\n" . (($closed) ? "h" : null) . "\n" . $this->paintOperator() . "\n"
                     ];
                 }
             } else {
