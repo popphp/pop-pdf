@@ -199,8 +199,31 @@ class Parser
         if ($basePath !== null) {
             $this->fileDir = $basePath;
         }
-        $this->html = Child::parseString($this->normalizeHtmlEncoding($htmlString));
+        $htmlString  = $this->extractStyleBlocks($htmlString);
+        $this->html  = Child::parseString($this->normalizeHtmlEncoding($htmlString));
         return $this;
+    }
+
+    /**
+     * Extract <style> blocks from raw HTML and feed them into the CSS engine
+     *
+     * Pop\Dom\Child::parseString() builds its tree from a DOMDocument, and
+     * libxml's HTML parser stores <style>/<script> content as a CDATA
+     * section rather than a text node - a node type Child::parseString()
+     * doesn't walk, so a <style> block's CSS text is unreachable once the
+     * string has been handed off to the DOM. Pulling it out of the raw
+     * string first (and removing the tag so it never reaches the DOM, where
+     * it would otherwise render as literal text) sidesteps that entirely.
+     *
+     * @param  string $htmlString
+     * @return string
+     */
+    protected function extractStyleBlocks(string $htmlString): string
+    {
+        return (string)preg_replace_callback('/<style\b[^>]*>(.*?)<\/style>/is', function ($matches) {
+            $this->css->parseCss($matches[1]);
+            return '';
+        }, $htmlString);
     }
 
     /**
@@ -1096,224 +1119,23 @@ class Parser
         }
 
         if ($this->css->hasSelector($name)) {
-            if ($this->css[$name]->hasProperty('font-family')) {
-                $styles['fontFamily'] = str_replace('"', '', $this->css[$name]['font-family']);
-            }
-            if ($this->css[$name]->hasProperty('font-size')) {
-                //$styles['fontSize'] = (int)$this->css[$name]['font-size'];
-            }
-            if ($this->css[$name]->hasProperty('font-weight')) {
-                $styles['fontWeight'] = $this->css[$name]['font-weight'];
-            }
-            if ($this->css[$name]->hasProperty('color')) {
-                $styles['color'] = $this->css[$name]['color'];
-                if (is_string($styles['color'])) {
-                    $styles['color'] = $this->parseCssColorToRgbArray($styles['color']);
-                }
-            }
-            if ($this->css[$name]->hasProperty('float')) {
-                $styles['float'] = $this->css[$name]['float'];
-            }
-            if ($this->css[$name]->hasProperty('width')) {
-                $styles['width'] = $this->css[$name]['width'];
-            }
-            if ($this->css[$name]->hasProperty('height')) {
-                $styles['height'] = $this->css[$name]['height'];
-            }
-            if ($this->css[$name]->hasProperty('line-height')) {
-                $styles['lineHeight'] = (int)$this->css[$name]['line-height'];
-            }
-            if ((int)$this->css[$name]['margin-top'] > 0) {
-                $styles['marginTop'] = (int)$this->css[$name]['margin-top'];
-            }
-            if ((int)$this->css[$name]['padding-top'] > 0) {
-                $styles['paddingTop'] = (int)$this->css[$name]['padding-top'];
-            }
-            if ((int)$this->css[$name]['margin-right'] > 0) {
-                $styles['marginRight'] = (int)$this->css[$name]['margin-right'];
-            }
-            if ((int)$this->css[$name]['padding-right'] > 0) {
-                $styles['paddingRight'] = (int)$this->css[$name]['padding-right'];
-            }
-            if ((int)$this->css[$name]['margin-bottom'] > 0) {
-                $styles['marginBottom'] = (int)$this->css[$name]['margin-bottom'];
-            }
-            if ((int)$this->css[$name]['padding-bottom'] > 0) {
-                $styles['paddingBottom'] = (int)$this->css[$name]['padding-bottom'];
-            }
-            if ((int)$this->css[$name]['margin-left'] > 0) {
-                $styles['marginLeft'] = (int)$this->css[$name]['margin-left'];
-            }
-            if ((int)$this->css[$name]['padding-left'] > 0) {
-                $styles['paddingLeft'] = (int)$this->css[$name]['padding-left'];
-            }
-            if ($this->css[$name]->hasProperty('text-align')) {
-                $styles['textAlign'] = $this->css[$name]['text-align'];
-            }
-            if ($this->css[$name]->hasProperty('border-width')) {
-                $styles['borderWidth'] = (int)$this->css[$name]['border-width'];
-            }
-            if ($this->css[$name]->hasProperty('border-color')) {
-                $borderColor = $this->css[$name]['border-color'];
-                if (is_string($borderColor)) {
-                    $borderColor = $this->parseCssColorToRgbArray($borderColor);
-                }
-                $styles['borderColor'] = $borderColor;
-            }
-            if ($this->css[$name]->hasProperty('background-color')) {
-                $bgColor = $this->css[$name]['background-color'];
-                if (is_string($bgColor)) {
-                    $bgColor = $this->parseCssColorToRgbArray($bgColor);
-                }
-                $styles['backgroundColor'] = $bgColor;
-            }
+            $styles = $this->applySelectorProperties($styles, $this->css[$name]);
         }
 
         if (isset($attribs['id']) && $this->css->hasSelector('#' . $attribs['id'])) {
-            if ($this->css['#' . $attribs['id']]->hasProperty('font-family')) {
-                $styles['fontFamily'] = str_replace('"', '', $this->css['#' . $attribs['id']]['font-family']);
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('font-size')) {
-                $styles['fontSize'] = (int)$this->css['#' . $attribs['id']]['font-size'];
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('font-weight')) {
-                $styles['fontWeight'] = $this->css['#' . $attribs['id']]['font-weight'];
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('color')) {
-                $styles['color'] = $this->css['#' . $attribs['id']]['color'];
-                if (is_string($styles['color'])) {
-                    $styles['color'] = $this->parseCssColorToRgbArray($styles['color']);
-                }
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('float')) {
-                $styles['float'] = $this->css['#' . $attribs['id']]['float'];
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('width')) {
-                $styles['width'] = $this->css['#' . $attribs['id']]['width'];
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('height')) {
-                $styles['height'] = $this->css['#' . $attribs['id']]['height'];
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('line-height')) {
-                $styles['lineHeight'] = (int)$this->css['#' . $attribs['id']]['line-height'];
-            }
-            if ((int)$this->css['#' . $attribs['id']]['margin-top'] > 0) {
-                $styles['marginTop'] = (int)$this->css['#' . $attribs['id']]['margin-top'];
-            }
-            if ((int)$this->css['#' . $attribs['id']]['padding-top'] > 0) {
-                $styles['paddingTop'] = (int)$this->css['#' . $attribs['id']]['padding-top'];
-            }
-            if ((int)$this->css['#' . $attribs['id']]['margin-right'] > 0) {
-                $styles['marginRight'] = (int)$this->css['#' . $attribs['id']]['margin-right'];
-            }
-            if ((int)$this->css['#' . $attribs['id']]['padding-right'] > 0) {
-                $styles['paddingRight'] = (int)$this->css['#' . $attribs['id']]['padding-right'];
-            }
-            if ((int)$this->css['#' . $attribs['id']]['margin-bottom'] > 0) {
-                $styles['marginBottom'] = (int)$this->css['#' . $attribs['id']]['margin-bottom'];
-            }
-            if ((int)$this->css['#' . $attribs['id']]['padding-bottom'] > 0) {
-                $styles['paddingBottom'] = (int)$this->css['#' . $attribs['id']]['padding-bottom'];
-            }
-            if ((int)$this->css['#' . $attribs['id']]['margin-left'] > 0) {
-                $styles['marginLeft'] = (int)$this->css['#' . $attribs['id']]['margin-left'];
-            }
-            if ((int)$this->css['#' . $attribs['id']]['padding-left'] > 0) {
-                $styles['paddingLeft'] = (int)$this->css['#' . $attribs['id']]['padding-left'];
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('text-align')) {
-                $styles['textAlign'] = $this->css['#' . $attribs['id']]['text-align'];
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('border-width')) {
-                $styles['borderWidth'] = (int)$this->css['#' . $attribs['id']]['border-width'];
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('border-color')) {
-                $borderColor = $this->css['#' . $attribs['id']]['border-color'];
-                if (is_string($borderColor)) {
-                    $borderColor = $this->parseCssColorToRgbArray($borderColor);
-                }
-                $styles['borderColor'] = $borderColor;
-            }
-            if ($this->css['#' . $attribs['id']]->hasProperty('background-color')) {
-                $bgColor = $this->css['#' . $attribs['id']]['background-color'];
-                if (is_string($bgColor)) {
-                    $bgColor = $this->parseCssColorToRgbArray($bgColor);
-                }
-                $styles['backgroundColor'] = $bgColor;
-            }
+            $styles = $this->applySelectorProperties($styles, $this->css['#' . $attribs['id']]);
         }
 
         if (isset($attribs['class']) && $this->css->hasSelector('.' . $attribs['class'])) {
-            if ($this->css['.' . $attribs['class']]->hasProperty('font-family')) {
-                $styles['fontFamily'] = str_replace('"', '', $this->css['.' . $attribs['class']]['font-family']);
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('font-size')) {
-                $styles['fontSize'] = (int)$this->css['.' . $attribs['class']]['font-size'];
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('font-weight')) {
-                $styles['fontWeight'] = $this->css['.' . $attribs['class']]['font-weight'];
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('color')) {
-                $styles['color'] = $this->css['.' . $attribs['class']]['color'];
-                if (is_string($styles['color'])) {
-                    $styles['color'] = $this->parseCssColorToRgbArray($styles['color']);
-                }
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('float')) {
-                $styles['float'] = $this->css['.' . $attribs['class']]['float'];
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('width')) {
-                $styles['width'] = $this->css['.' . $attribs['class']]['width'];
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('height')) {
-                $styles['height'] = $this->css['.' . $attribs['class']]['height'];
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('line-height')) {
-                $styles['lineHeight'] = (int)$this->css['.' . $attribs['class']]['line-height'];
-            }
-            if ((int)$this->css['.' . $attribs['class']]['margin-top'] > 0) {
-                $styles['marginTop'] = (int)$this->css['.' . $attribs['class']]['margin-top'];
-            }
-            if ((int)$this->css['.' . $attribs['class']]['padding-top'] > 0) {
-                $styles['paddingTop'] = (int)$this->css['.' . $attribs['class']]['padding-top'];
-            }
-            if ((int)$this->css['.' . $attribs['class']]['margin-right'] > 0) {
-                $styles['marginRight'] = (int)$this->css['.' . $attribs['class']]['margin-right'];
-            }
-            if ((int)$this->css['.' . $attribs['class']]['padding-right'] > 0) {
-                $styles['paddingRight'] = (int)$this->css['.' . $attribs['class']]['padding-right'];
-            }
-            if ((int)$this->css['.' . $attribs['class']]['margin-bottom'] > 0) {
-                $styles['marginBottom'] = (int)$this->css['.' . $attribs['class']]['margin-bottom'];
-            }
-            if ((int)$this->css['.' . $attribs['class']]['padding-bottom'] > 0) {
-                $styles['paddingBottom'] = (int)$this->css['.' . $attribs['class']]['padding-bottom'];
-            }
-            if ((int)$this->css['.' . $attribs['class']]['margin-left'] > 0) {
-                $styles['marginLeft'] = (int)$this->css['.' . $attribs['class']]['margin-left'];
-            }
-            if ((int)$this->css['.' . $attribs['class']]['padding-left'] > 0) {
-                $styles['paddingLeft'] = (int)$this->css['.' . $attribs['class']]['padding-left'];
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('text-align')) {
-                $styles['textAlign'] = $this->css['.' . $attribs['class']]['text-align'];
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('border-width')) {
-                $styles['borderWidth'] = (int)$this->css['.' . $attribs['class']]['border-width'];
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('border-color')) {
-                $borderColor = $this->css['.' . $attribs['class']]['border-color'];
-                if (is_string($borderColor)) {
-                    $borderColor = $this->parseCssColorToRgbArray($borderColor);
-                }
-                $styles['borderColor'] = $borderColor;
-            }
-            if ($this->css['.' . $attribs['class']]->hasProperty('background-color')) {
-                $bgColor = $this->css['.' . $attribs['class']]['background-color'];
-                if (is_string($bgColor)) {
-                    $bgColor = $this->parseCssColorToRgbArray($bgColor);
-                }
-                $styles['backgroundColor'] = $bgColor;
+            $styles = $this->applySelectorProperties($styles, $this->css['.' . $attribs['class']]);
+        }
+
+        // Inline style="..." takes precedence over tag/#id/.class selectors,
+        // matching normal CSS cascade/specificity - applied last so it wins.
+        if (!empty($attribs['style'])) {
+            $inlineSelector = Css\Css::parseString('.__inline__{' . $attribs['style'] . '}')->getSelector('.__inline__');
+            if ($inlineSelector !== null) {
+                $styles = $this->applySelectorProperties($styles, $inlineSelector);
             }
         }
 
@@ -1389,6 +1211,94 @@ class Parser
                     $this->document->addFont(new Document\Font($styles['currentFont']));
                 }
             }
+        }
+
+        return $styles;
+    }
+
+    /**
+     * Apply a CSS selector's properties onto a styles array
+     *
+     * Shared by the tag/#id/.class selector matches and by an inline
+     * style="..." attribute (parsed into a one-off Selector) in
+     * prepareNodeStyles(), so all four sources read the same property set.
+     *
+     * @param  array         $styles
+     * @param  Css\Selector  $selector
+     * @return array
+     */
+    protected function applySelectorProperties(array $styles, Css\Selector $selector): array
+    {
+        if ($selector->hasProperty('font-family')) {
+            $styles['fontFamily'] = str_replace('"', '', $selector['font-family']);
+        }
+        if ($selector->hasProperty('font-size')) {
+            $styles['fontSize'] = (int)$selector['font-size'];
+        }
+        if ($selector->hasProperty('font-weight')) {
+            $styles['fontWeight'] = $selector['font-weight'];
+        }
+        if ($selector->hasProperty('color')) {
+            $styles['color'] = $selector['color'];
+            if (is_string($styles['color'])) {
+                $styles['color'] = $this->parseCssColorToRgbArray($styles['color']);
+            }
+        }
+        if ($selector->hasProperty('float')) {
+            $styles['float'] = $selector['float'];
+        }
+        if ($selector->hasProperty('width')) {
+            $styles['width'] = $selector['width'];
+        }
+        if ($selector->hasProperty('height')) {
+            $styles['height'] = $selector['height'];
+        }
+        if ($selector->hasProperty('line-height')) {
+            $styles['lineHeight'] = (int)$selector['line-height'];
+        }
+        if ((int)$selector['margin-top'] > 0) {
+            $styles['marginTop'] = (int)$selector['margin-top'];
+        }
+        if ((int)$selector['padding-top'] > 0) {
+            $styles['paddingTop'] = (int)$selector['padding-top'];
+        }
+        if ((int)$selector['margin-right'] > 0) {
+            $styles['marginRight'] = (int)$selector['margin-right'];
+        }
+        if ((int)$selector['padding-right'] > 0) {
+            $styles['paddingRight'] = (int)$selector['padding-right'];
+        }
+        if ((int)$selector['margin-bottom'] > 0) {
+            $styles['marginBottom'] = (int)$selector['margin-bottom'];
+        }
+        if ((int)$selector['padding-bottom'] > 0) {
+            $styles['paddingBottom'] = (int)$selector['padding-bottom'];
+        }
+        if ((int)$selector['margin-left'] > 0) {
+            $styles['marginLeft'] = (int)$selector['margin-left'];
+        }
+        if ((int)$selector['padding-left'] > 0) {
+            $styles['paddingLeft'] = (int)$selector['padding-left'];
+        }
+        if ($selector->hasProperty('text-align')) {
+            $styles['textAlign'] = $selector['text-align'];
+        }
+        if ($selector->hasProperty('border-width')) {
+            $styles['borderWidth'] = (int)$selector['border-width'];
+        }
+        if ($selector->hasProperty('border-color')) {
+            $borderColor = $selector['border-color'];
+            if (is_string($borderColor)) {
+                $borderColor = $this->parseCssColorToRgbArray($borderColor);
+            }
+            $styles['borderColor'] = $borderColor;
+        }
+        if ($selector->hasProperty('background-color')) {
+            $bgColor = $selector['background-color'];
+            if (is_string($bgColor)) {
+                $bgColor = $this->parseCssColorToRgbArray($bgColor);
+            }
+            $styles['backgroundColor'] = $bgColor;
         }
 
         return $styles;

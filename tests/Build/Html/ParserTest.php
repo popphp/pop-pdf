@@ -521,6 +521,74 @@ class ParserTest extends TestCase
         $this->assertContains('nested', $strings);
     }
 
+    public function testInlineStyleAttributeSetsColorWithNoMatchingSelector()
+    {
+        // Regression test: an inline style="" attribute was never read by
+        // prepareNodeStyles() - only tag/#id/.class selectors were - so a
+        // color set purely inline had no effect at all.
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseString('<p>Hello</p>', $doc);
+
+        $styles = $html->prepareNodeStyles('p', ['style' => 'color: #ff0000;']);
+
+        $this->assertEquals([255, 0, 0], $styles['color']);
+    }
+
+    public function testInlineStyleAttributeOverridesClassSelector()
+    {
+        // Inline style must win over a conflicting class rule, matching
+        // normal CSS cascade/specificity expectations.
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseString('<p class="red">Hello</p>', $doc);
+        $html->parseCss('.red { color: #ff0000; }');
+
+        $styles = $html->prepareNodeStyles('p', ['class' => 'red', 'style' => 'color: #0000ff;']);
+
+        $this->assertEquals([0, 0, 255], $styles['color']);
+    }
+
+    public function testStyleBlockInHeadIsParsedAsCss()
+    {
+        // Regression test: <style> blocks were never read at all - prepare()
+        // only special-cased <link type="text/css"> inside <head>.
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseString(
+            '<html><head><style>.boxed { color: #00ff00; }</style></head><body><p class="boxed">Hi</p></body></html>',
+            $doc
+        );
+
+        $this->assertTrue($html->getCss()->hasSelector('.boxed'));
+    }
+
+    public function testStyleBlockInBodyIsNotRenderedAsText()
+    {
+        // Regression test: a <style> block placed directly in <body> (not
+        // guarded against by node name) fell through to the generic text
+        // node branch and its raw CSS text was rendered as visible PDF text.
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseString(
+            '<body><style>.boxed { color: #00ff00; }</style><p class="boxed">Hi</p></body>',
+            $doc
+        );
+        $html->process();
+
+        $page = $doc->getPage(1);
+        $strings = [];
+        foreach ($page->getTextStreams() as $stream) {
+            foreach ($stream->getTextStreams() as $entry) {
+                $strings[] = $entry['string'];
+            }
+        }
+        foreach ($strings as $string) {
+            $this->assertStringNotContainsString('boxed', $string);
+        }
+        $this->assertTrue($html->getCss()->hasSelector('.boxed'));
+    }
+
     public function testUnescapedPunctuationDoesNotCorruptOutput()
     {
         $doc = new Document();

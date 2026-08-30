@@ -1205,6 +1205,23 @@ $parser->process();
 Pdf::writeToFile($parser->document(), 'my-document.pdf');
 ```
 
+CSS can also be embedded directly in the HTML - either in a `<style>` block or as an inline `style="..."`
+attribute on an element, with inline styles taking precedence over `<style>`/linked/tag/class/id rules:
+
+```php
+$html = <<<HTML
+<style>
+h1 { color: #f00; }
+</style>
+<h1>Hello World!</h1>
+<p style="color: #009dff; font-weight: bold;">Inline styles are supported too.</p>
+HTML;
+
+$parser = new Parser($document);
+$parser->parseHtml($html, __DIR__);
+$parser->process();
+```
+
 ### Tables
 
 `<table>` elements are supported, including `colspan`/`rowspan`, and header rows (`<thead>`, or a row whose
