@@ -500,6 +500,27 @@ class ParserTest extends TestCase
         $this->assertContains('link', $strings);
     }
 
+    public function testDoublyNestedInlineTagTextIsNotDropped()
+    {
+        // Regression test: a text node three levels below the block element
+        // (e.g. <p><b><i>text</i></b></p>) attaches to the <i> element, not
+        // its <p> or <b> ancestors - a walk that only visits the immediate
+        // child and grandchild silently drops it.
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseString('<p>Hi <b><i>nested</i></b> there</p>', $doc);
+        $html->process();
+
+        $page = $doc->getPage(1);
+        $strings = [];
+        foreach ($page->getTextStreams() as $stream) {
+            foreach ($stream->getTextStreams() as $entry) {
+                $strings[] = $entry['string'];
+            }
+        }
+        $this->assertContains('nested', $strings);
+    }
+
     public function testUnescapedPunctuationDoesNotCorruptOutput()
     {
         $doc = new Document();

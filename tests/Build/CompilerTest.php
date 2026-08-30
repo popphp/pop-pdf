@@ -259,27 +259,6 @@ class CompilerTest extends TestCase
         $this->assertStringContainsString('MF', $compiler->getFontReferences()['Arial']);
     }
 
-    public function testPrepareFontsWithPlainArrayFontReference()
-    {
-        // Document::importFonts() (used by re-editing an imported document)
-        // stores fonts as plain ['name' => ..., 'ref' => ...] arrays rather
-        // than Document\Font instances - Compiler::prepareFonts() must carry
-        // that pre-built reference straight through instead of trying to
-        // parse it as a real font.
-        $doc = new Document();
-        $doc->addFont(new Font('Arial'));
-        $doc->importFonts([['name' => 'ImportedFont', 'ref' => '/MF9 9 0 R']]);
-
-        $page = new Page(Page::LETTER);
-        $page->addText(new Page\Text('Hello World', 12), 'Arial', 50, 50);
-        $doc->addPage($page);
-
-        $compiler = new Compiler();
-        $compiler->finalize($doc);
-
-        $this->assertEquals('/MF9 9 0 R', $compiler->getFontReferences()['ImportedFont']);
-    }
-
     public function testPrepareImagesFromStream()
     {
         $doc = new Document();
@@ -362,6 +341,44 @@ class CompilerTest extends TestCase
         $compiler->finalize($doc);
 
         $this->assertStringContainsString('%PDF', $compiler->getOutput());
+    }
+
+    public function testPrepareTextWithAlignmentDoesNotDoubleEscapeParens()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+
+        $text = new Page\Text('Hello (World) Hello (World) Hello (World) Hello (World)', 12);
+        $text->setAlignment(Page\Text\Alignment::createLeft(50, 550));
+
+        $page = new Page(Page::LETTER);
+        $page->addText($text, 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertStringContainsString('\(World\)', $compiler->getOutput());
+        $this->assertStringNotContainsString('\\\\(World\\\\)', $compiler->getOutput());
+    }
+
+    public function testPrepareTextWithWrapDoesNotDoubleEscapeParens()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+
+        $text = new Page\Text('Hello (World) Hello (World) Hello (World) Hello (World)', 12);
+        $text->setWrap(Page\Text\Wrap::createLeft(50, 550));
+
+        $page = new Page(Page::LETTER);
+        $page->addText($text, 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertStringContainsString('\(World\)', $compiler->getOutput());
+        $this->assertStringNotContainsString('\\\\(World\\\\)', $compiler->getOutput());
     }
 
     public function testPrepareTextWithWrapAndFillColor()

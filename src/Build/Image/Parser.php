@@ -312,6 +312,11 @@ class Parser
         // If resize dimensions are passed
         if (($resize !== null) && !($preserveResolution)) {
             $this->resizeImage($resize);
+            // resizeImage() rewrites $this->stream to the resized bytes -
+            // $imgSize must be re-read from it, or /Width, /Height and
+            // /Columns end up declaring the original, pre-resize size while
+            // the embedded pixel data is actually the resized size.
+            $imgSize = getimagesizefromstring($this->stream);
         }
 
         if ($resize !== null) {

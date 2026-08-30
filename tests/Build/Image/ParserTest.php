@@ -172,6 +172,8 @@ class ParserTest extends TestCase
         $image->setIndex(1);
 
         $this->assertInstanceOf('Pop\Pdf\Build\Image\Parser', $image);
+        $this->assertEquals(60, $image->getWidth());
+        $this->assertEquals(30, $image->getHeight());
         $image->parse();
         $this->assertNotEmpty($image->getObjects());
     }

@@ -225,6 +225,15 @@ class TextTest extends TestCase
         $this->assertEquals('Hello \(World\)', Text::escape('Hello (World)'));
     }
 
+    public function testEscapeConvertsRealBackspaceCharacter()
+    {
+        // Regression test: the search list's "\b" entry is a PHP string
+        // literal (backslash followed by 'b'), not a recognized escape
+        // sequence for chr(8) - so a real backspace byte in the subject was
+        // passing straight through unescaped.
+        $this->assertEquals('Before \b After', Text::escape('Before ' . chr(8) . ' After'));
+    }
+
     public function testSetStringsConvertsMultibyteStringsAndTextObjects()
     {
         // Both branches of setStrings()'s array_map() closure convert a

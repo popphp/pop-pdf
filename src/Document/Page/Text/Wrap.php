@@ -151,14 +151,18 @@ class Wrap extends AbstractAlignment
      */
     public function getStrings(Page\Text $text, Font $font, int $startY): array
     {
-        $stringAry  = ($text->hasStrings()) ? $text->getStrings() : [$text->getString()];
+        // Use the raw (unescaped) string, not getString() - the fragments
+        // are handed back to fresh Text objects that escape them again on
+        // their own, so starting from an already-escaped string would
+        // double-escape backslashes/parens.
+        $stringAry  = ($text->hasStrings()) ? $text->getStrings() : [$text->getRawString()];
         $strings    = [];
         $append     = false;
         $size       = $text->getSize();
         $spaceWidth = $font->getStringWidth(' ', $size);
 
         foreach ($stringAry as $key => $string) {
-            $stringValue = ($string instanceof Page\Text) ? $string->getString() : $string;
+            $stringValue = ($string instanceof Page\Text) ? $string->getRawString() : $string;
             if (($append) && !empty($curString)) {
                 $stringValue = $curString . ' ' . $stringValue;
                 $append      = false;

@@ -51,7 +51,7 @@ class Page extends AbstractPage
         $height = null;
         $index  = null;
 
-        if (is_string($args[0]) && array_key_exists($args[0], $this->sizes)) {
+        if (isset($args[0]) && is_string($args[0]) && array_key_exists($args[0], $this->sizes)) {
             $width  = $this->sizes[$args[0]]['width'];
             $height = $this->sizes[$args[0]]['height'];
 

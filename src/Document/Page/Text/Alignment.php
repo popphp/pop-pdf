@@ -89,7 +89,11 @@ class Alignment extends AbstractAlignment
         $strings    = [];
         $curString  = '';
         $curWidth   = 0;
-        $words      = explode(' ', $text->getString());
+        // Split the raw (unescaped) string, not getString() - the fragments
+        // are handed back to fresh Text objects that escape them again on
+        // their own, so starting from an already-escaped string would
+        // double-escape backslashes/parens.
+        $words      = explode(' ', $text->getRawString());
         $wrapLength = abs($this->rightX - $this->leftX);
         $startX     = $this->leftX;
         $size       = $text->getSize();

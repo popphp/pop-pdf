@@ -41,12 +41,6 @@ class Document extends AbstractDocument
     protected array $importedObjects = [];
 
     /**
-     * Imported fonts
-     * @var array
-     */
-    protected array $importedFonts = [];
-
-    /**
      * Constructor
      *
      * Instantiate a PDF document
@@ -374,21 +368,6 @@ class Document extends AbstractDocument
     }
 
     /**
-     * Import fonts into document
-     *
-     * @param  array $fonts
-     * @return Document
-     */
-    public function importFonts(array $fonts): Document
-    {
-        foreach ($fonts as $font) {
-            $this->fonts[$font['name']] = $font;
-        }
-        $this->importedFonts = $fonts;
-        return $this;
-    }
-
-    /**
      * Determine if the document has imported objects
      *
      * @return bool
@@ -399,16 +378,6 @@ class Document extends AbstractDocument
     }
 
     /**
-     * Determine if the document has imported fonts
-     *
-     * @return bool
-     */
-    public function hasImportedFonts(): bool
-    {
-        return (count($this->importedFonts) > 0);
-    }
-
-    /**
      * Get the imported objects
      *
      * @return array
@@ -416,16 +385,6 @@ class Document extends AbstractDocument
     public function getImportObjects(): array
     {
         return $this->importedObjects;
-    }
-
-    /**
-     * Get the import fonts
-     *
-     * @return array
-     */
-    public function getImportedFonts(): array
-    {
-        return $this->importedFonts;
     }
 
     /**

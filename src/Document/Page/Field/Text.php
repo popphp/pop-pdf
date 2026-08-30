@@ -172,8 +172,8 @@ class Text extends AbstractField
 
         $name    = ($this->name !== null) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')/TM(' . $this->name . ')' : '';
         $flags   = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
-        $value   = ($this->value !== null) ? "\n    /V " . $this->value . "\n" : null;
-        $default = ($this->defaultValue !== null) ? "\n    /DV " . $this->defaultValue . "\n" : null;
+        $value   = ($this->value !== null) ? "\n    /V (" . \Pop\Pdf\Document\Page\Text::escape($this->value) . ")\n" : null;
+        $default = ($this->defaultValue !== null) ? "\n    /DV (" . \Pop\Pdf\Document\Page\Text::escape($this->defaultValue) . ")\n" : null;
 
         // Return the stream
         return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Tx\n    /Rect [{$x} {$y} " .

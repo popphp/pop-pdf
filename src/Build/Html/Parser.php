@@ -815,18 +815,7 @@ class Parser
             }
 
             if ($child->hasChildNodes()) {
-                foreach ($child->getChildNodes() as $grandChild) {
-                    $gcStyles = $this->prepareNodeStyles($grandChild->getNodeName(), $grandChild->getAttributes(), $styles);
-                    $textStream->setCurrentStyle(
-                        $gcStyles['currentFont'],
-                        $gcStyles['fontSize'],
-                        new Color\Rgb($gcStyles['color'][0], $gcStyles['color'][1], $gcStyles['color'][2])
-                    );
-                    $streamY = $gcStyles['lineHeight'] ?? null;
-                    if (!empty($grandChild->getNodeValue())) {
-                        $textStream->addText($grandChild->getNodeValue(), $streamY, ($grandChild->getNodeName() == 'br'));
-                    }
-                }
+                $this->addNestedInlineText($textStream, $child->getChildNodes(), $styles);
             }
 
             $this->page->addTextStream($textStream);
@@ -881,6 +870,40 @@ class Parser
                 $this->yOverride = null;
                 $this->y += (int)round($textStream->measureHeight($this->document->getFonts())
                     + ((!empty($styles['marginBottom'])) ? $styles['marginBottom'] : 0));
+            }
+        }
+    }
+
+    /**
+     * Recursively walk a node's descendants, adding each one's own text to the stream
+     *
+     * A text node's value attaches only to its immediate parent element, which can sit
+     * arbitrarily deep below the block element addNodeToDocument() is rendering (e.g.
+     * <p><b><i>text</i></b></p> - the text belongs to <i>, two levels below <b>). Only
+     * descending into the immediate child, as opposed to recursing all the way down,
+     * would silently drop that text.
+     *
+     * @param  Document\Page\Text\Stream $textStream
+     * @param  array                     $nodes
+     * @param  array                     $parentStyles
+     * @return void
+     */
+    protected function addNestedInlineText(Document\Page\Text\Stream $textStream, array $nodes, array $parentStyles): void
+    {
+        foreach ($nodes as $node) {
+            $styles = $this->prepareNodeStyles($node->getNodeName(), $node->getAttributes(), $parentStyles);
+            $textStream->setCurrentStyle(
+                $styles['currentFont'],
+                $styles['fontSize'],
+                new Color\Rgb($styles['color'][0], $styles['color'][1], $styles['color'][2])
+            );
+            $streamY = $styles['lineHeight'] ?? null;
+            if (!empty($node->getNodeValue())) {
+                $textStream->addText($node->getNodeValue(), $streamY, ($node->getNodeName() == 'br'));
+            }
+
+            if ($node->hasChildNodes()) {
+                $this->addNestedInlineText($textStream, $node->getChildNodes(), $styles);
             }
         }
     }

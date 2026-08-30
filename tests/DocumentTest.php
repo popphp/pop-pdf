@@ -152,8 +152,6 @@ class DocumentTest extends TestCase
         $this->assertEquals(2, count($doc->getFont('Times-Bold')->getParsedFont()->getWidthsForGlyphs([0, 1])));
         $this->assertEquals(64.0, ceil($doc->getFont('Times-Bold')->getParsedFont()->getStringWidth('Hello World', 12)));
         $this->assertEquals(1, $doc->getNumberOfFonts());
-        $this->assertFalse($doc->hasImportedFonts());
-        $this->assertEquals(0, count($doc->getImportedFonts()));
     }
 
     public function testEmbedFonts()
@@ -164,8 +162,6 @@ class DocumentTest extends TestCase
         $this->assertEquals(2, count($doc->getFont('Times-Bold')->getParsedFont()->getWidthsForGlyphs([0, 1])));
         $this->assertEquals(64.0, ceil($doc->getFont('Times-Bold')->getParsedFont()->getStringWidth('Hello World', 12)));
         $this->assertEquals(1, $doc->getNumberOfFonts());
-        $this->assertFalse($doc->hasImportedFonts());
-        $this->assertEquals(0, count($doc->getImportedFonts()));
     }
 
     public function testEmbedFontWithStandardFont()
@@ -301,15 +297,6 @@ class DocumentTest extends TestCase
         $doc->createStyle('normal', 'Arial', 12);
         $this->assertTrue($doc->isStyleAvailable('normal'));
         $this->assertFalse($doc->isStyleAvailable('does-not-exist'));
-    }
-
-    public function testImportFonts()
-    {
-        $doc = new Document();
-        $doc->importFonts(['Arial' => ['name' => 'Arial']]);
-        $this->assertTrue($doc->hasImportedFonts());
-        $this->assertEquals(1, count($doc->getImportedFonts()));
-        $this->assertTrue($doc->hasFont('Arial'));
     }
 
     public function testEmbedFontThrowsExceptionForNonEmbeddableFontLicense()

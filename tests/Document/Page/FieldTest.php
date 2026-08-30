@@ -101,6 +101,20 @@ class FieldTest extends TestCase
         $this->assertStringContainsString('/FT /Tx', $field->getStream(10, 2, null, 20, 200));
     }
 
+    public function testTextValueIsQuotedAndEscaped()
+    {
+        $field = new Field\Text('name', 'Arial', 14);
+        $field->setWidth(200);
+        $field->setHeight(24);
+        $field->setValue('Hello (World)');
+        $field->setDefaultValue('Default (Value)');
+
+        $stream = $field->getStream(10, 2, '/MF1 1 0 R', 20, 200);
+
+        $this->assertStringContainsString('/V (Hello \(World\))', $stream);
+        $this->assertStringContainsString('/DV (Default \(Value\))', $stream);
+    }
+
     public function testButton()
     {
         $field = new Field\Button('name');

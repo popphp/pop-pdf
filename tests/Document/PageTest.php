@@ -20,6 +20,15 @@ class PageTest extends TestCase
         $page = new Page('BAD_SIZE');
     }
 
+    public function testConstructorNoArgsThrowsExceptionWithoutWarning()
+    {
+        // Regression test: a zero-arg call must go straight to the intended
+        // Exception, not first trigger an undefined-array-key warning from
+        // indexing func_get_args() before the arg count is checked.
+        $this->expectException('Pop\Pdf\Document\Exception');
+        $page = new Page();
+    }
+
     public function testGetWidth()
     {
         $page = new Page(Page::LETTER, 1);

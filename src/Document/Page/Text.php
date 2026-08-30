@@ -417,7 +417,7 @@ class Text
     public static function escape(string $subject, mixed $search  = null, mixed $replace = null): string
     {
         if (($search === null) && ($replace === null)) {
-            $search  = ["\\", '(', ')', "\n", "\r", "\t", "\b", "\f"];
+            $search  = ["\\", '(', ')', "\n", "\r", "\t", chr(8), "\f"];
             $replace = ["\\\\", '\(', '\)', "\\n", "\\r", "\\t", "\\b", "\\f"];
         }
         return str_replace($search, $replace, $subject);
@@ -455,6 +455,16 @@ class Text
     public function getString(): ?string
     {
         return $this->string;
+    }
+
+    /**
+     * Get the raw (unescaped) text string
+     *
+     * @return string
+     */
+    public function getRawString(): string
+    {
+        return $this->rawString;
     }
 
     /**
