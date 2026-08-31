@@ -942,6 +942,123 @@ class DocumentTest extends TestCase
         $this->assertSame([], $method->invoke($doc, [1 => ['inStream' => 5, 'index' => 0]]));
     }
 
+    /**
+     * Build a minimal AES-128 encrypted PDF whose content stream object sits
+     * at a NON-ZERO generation number.
+     *
+     * qpdf cannot produce this: it renumbers every object to generation 0
+     * while writing, so `qpdf --encrypt` on a generation-3 source emits a
+     * generation-0 file (verified directly). The fixture is therefore
+     * hand-assembled, but the crypto material in it is not invented - /O, /U,
+     * /P and /ID are lifted verbatim out of a real qpdf-encrypted file, so the
+     * password verification and file-key recovery under test run against
+     * qpdf's own values.
+     *
+     * The per-object key is derived INLINE here from ISO 32000-1 Algorithm 1
+     * rather than through ObjectCipher, so the generation number's role is
+     * stated independently of the code being tested. Only the (generation-
+     * independent) file key comes from StandardSecurityHandler.
+     *
+     * @return array{0: string, 1: string} the PDF bytes and the expected plaintext content
+     */
+    protected function buildGenerationThreeEncryptedPdf(): array
+    {
+        $source = file_get_contents($this->qpdfEncrypt('test-extract.pdf', '128'));
+
+        // Scope the search to the /Encrypt object's own body - /P in
+        // particular appears in plenty of unrelated dictionaries earlier in
+        // the file, so an unscoped match picks up the wrong number.
+        $encryptBody = '';
+
+        if (preg_match('~/Encrypt (\d+) 0 R~', $source, $ref) === 1) {
+            $start       = strpos($source, "\n{$ref[1]} 0 obj");
+            $end         = ($start === false) ? false : strpos($source, 'endobj', $start);
+            $encryptBody = ($end === false) ? '' : substr($source, $start, $end - $start);
+        }
+
+        if ((preg_match('~/O <([0-9a-fA-F]+)>~', $encryptBody, $o) !== 1) ||
+            (preg_match('~/U <([0-9a-fA-F]+)>~', $encryptBody, $u) !== 1) ||
+            (preg_match('~/P (-?\d+)~', $encryptBody, $p) !== 1) ||
+            (preg_match('~/ID \[<([0-9a-fA-F]+)>~', $source, $id) !== 1)) {
+            $this->markTestSkipped('Could not lift the /Encrypt values out of the qpdf fixture.');
+        }
+
+        // Recovering the file key is generation-independent, and this exact
+        // path is already verified byte-for-byte against qpdf's own decryption.
+        $fileKey = \Pop\Pdf\Build\Security\StandardSecurityHandler::openRevision4(
+            ['O' => hex2bin($o[1]), 'U' => hex2bin($u[1]), 'P' => (int) $p[1]],
+            hex2bin($id[1]),
+            'open-me'
+        );
+
+        $objNum     = 4;
+        $generation = 3;
+
+        // ISO 32000-1 Algorithm 1: file key + object number (3 low bytes,
+        // little-endian) + generation (2 low bytes, little-endian) + "sAlT".
+        $objectKey = substr(md5(
+            $fileKey .
+            chr($objNum & 0xFF) . chr(($objNum >> 8) & 0xFF) . chr(($objNum >> 16) & 0xFF) .
+            chr($generation & 0xFF) . chr(($generation >> 8) & 0xFF) .
+            "\x73\x41\x6C\x54",
+            true
+        ), 0, 16);
+
+        $content    = "BT /F1 24 Tf 72 700 Td (Generation three) Tj ET\n";
+        $iv         = str_repeat("\x01", 16);
+        $ciphertext = $iv . openssl_encrypt($content, 'aes-128-cbc', $objectKey, OPENSSL_RAW_DATA, $iv);
+
+        $encryptDict = '<< /Filter /Standard /V 4 /R 4 /Length 128 ' .
+            '/CF << /StdCF << /CFM /AESV2 /AuthEvent /DocOpen /Length 16 >> >> /StmF /StdCF /StrF /StdCF ' .
+            '/O <' . $o[1] . '> /U <' . $u[1] . '> /P ' . $p[1] . ' >>';
+
+        $bodies = [
+            1 => "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+            2 => "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+            3 => "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " .
+                 "/Contents 4 3 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n",
+            4 => "4 {$generation} obj\n<< /Length " . strlen($ciphertext) . " >>\nstream\n" .
+                 $ciphertext . "\nendstream\nendobj\n",
+            5 => "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+            6 => "6 0 obj\n" . $encryptDict . "\nendobj\n",
+        ];
+
+        $pdf     = "%PDF-1.7\n%\xE2\xE3\xCF\xD3\n";
+        $offsets = [];
+
+        foreach ($bodies as $num => $body) {
+            $offsets[$num] = strlen($pdf);
+            $pdf          .= $body;
+        }
+
+        $xrefPos = strlen($pdf);
+        $xref    = "xref\n0 7\n0000000000 65535 f \n";
+
+        foreach ($offsets as $num => $offset) {
+            $xref .= sprintf("%010d %05d n \n", $offset, ($num === $objNum) ? $generation : 0);
+        }
+
+        $pdf .= $xref . "trailer\n<< /Size 7 /Root 1 0 R /Encrypt 6 0 R " .
+            '/ID [<' . $id[1] . '><' . $id[1] . ">] >>\nstartxref\n{$xrefPos}\n%%EOF\n";
+
+        return [$pdf, $content];
+    }
+
+    public function testDecryptsAStreamBelongingToANonZeroGenerationObject()
+    {
+        // Revision 4's per-object key mixes in the generation number, so a
+        // reader that assumes generation 0 derives the wrong key and decrypts
+        // to garbage. Every qpdf fixture is generation 0 and cannot catch that.
+        [$pdf, $expected] = $this->buildGenerationThreeEncryptedPdf();
+
+        $doc   = new Document($pdf, 'open-me');
+        $pages = PageWalker::walk($doc);
+
+        $this->assertTrue($doc->isEncrypted());
+        $this->assertCount(1, $pages);
+        $this->assertSame($expected, $pages[0]->content);
+    }
+
     public function testRejectsAnRc4EncryptedPdfRatherThanDecryptingItToGarbage()
     {
         // qpdf 11+ refuses to WRITE RC4 without --allow-weak-crypto. RC4 is
