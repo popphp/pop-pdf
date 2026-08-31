@@ -9,3 +9,4 @@ kettle
 .phpunit.cache
 CLAUDE.md
 /docs
+/.worktrees
