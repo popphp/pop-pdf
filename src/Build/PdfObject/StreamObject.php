@@ -99,7 +99,18 @@ class StreamObject extends AbstractObject
             // __toString() always re-adds the EOL before 'endstream' itself, so
             // an EOL captured here from the original string would otherwise be
             // duplicated, making the declared and actual stream lengths disagree.
-            if (str_ends_with($str, "\r\n")) {
+            //
+            // A declared, literal /Length is authoritative on exactly how many
+            // data bytes follow the leading EOL - a trailing-byte heuristic
+            // can't be, since it can't distinguish the template's own
+            // separator from a stream whose real last byte(s) happen to be
+            // \r/\n themselves (e.g. "\r" + the template's "\n" looks
+            // identical to one atomic "\r\n" separator, and stripping both
+            // would silently drop a real trailing \r of data).
+            if (preg_match('/\/Length\s+(\d+)\b(?!\s+\d+\s+R\b)/', $def, $lengthMatch)) {
+                $leadingEolLength = str_starts_with($str, "\r\n") ? 2 : 1;
+                $str = substr($str, 0, $leadingEolLength + (int)$lengthMatch[1]);
+            } else if (str_ends_with($str, "\r\n")) {
                 $str = substr($str, 0, -2);
             } else if (str_ends_with($str, "\n") || str_ends_with($str, "\r")) {
                 $str = substr($str, 0, -1);

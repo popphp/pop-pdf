@@ -32,6 +32,22 @@ class StreamObjectTest extends TestCase
         $this->assertEquals(strlen($imageData), $declaredLength);
     }
 
+    public function testParsePreservesStreamDataEndingInABareCarriageReturn()
+    {
+        // Regression: when the real data's own last byte is \r, the old
+        // trailing-EOL heuristic mistook it plus the template's own \n
+        // separator for one atomic "\r\n" separator and stripped both bytes,
+        // silently losing 1 real byte of data. This is what
+        // testParseDeclaredLengthMatchesActualStreamLength's random_bytes()
+        // occasionally reproduces (~1/256 chance per run).
+        $imageData = "abc\r";
+        $raw = "5 0 obj\n<<\n    /Length " . strlen($imageData) . "\n>>\nstream\n{$imageData}\nendstream\nendobj\n";
+
+        $object = StreamObject::parse($raw);
+
+        $this->assertEquals("\n" . $imageData, $object->getStream());
+    }
+
     public function testParseStripsTrailingCarriageReturnLinefeedBeforeEndstream()
     {
         $raw = "5 0 obj\n<< /Length 5 >>\nstream\nhello\r\nendstream\nendobj\n";
