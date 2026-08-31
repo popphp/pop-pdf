@@ -272,19 +272,25 @@ class Compiler extends AbstractCompiler
                     // since those declare it explicitly rather than having
                     // it recomputed from the stream. Encryption always
                     // changes the on-disk byte count (16-byte IV + PKCS#7
-                    // padding), so a literal declared /Length needs
-                    // correcting here explicitly - otherwise a reader is
-                    // handed a stale, too-short length and a non-block-
-                    // aligned ciphertext buffer. An indirect /Length (e.g.
-                    // "6 0 R", common in imported/merged PDFs) is left
-                    // untouched: the digits there are another object's
-                    // number, not a byte count, so rewriting them the same
-                    // way would emit invalid syntax ("/Length <n> 0 R" with
-                    // a nonsense object number).
+                    // padding), so the declared /Length needs correcting
+                    // here explicitly - otherwise a reader is handed a
+                    // stale, too-short length and a non-block-aligned
+                    // ciphertext buffer. This must handle an INDIRECT
+                    // /Length too (e.g. "6 0 R", common in imported/merged
+                    // PDFs, since Build\Parser/Build\Merger leave a source's
+                    // declared /Length untouched): replacing just the
+                    // leading digit(s) of "N G R" the same way a literal
+                    // integer is replaced would emit invalid syntax (an
+                    // indirect reference needs all three of object number,
+                    // generation, and "R"), so the WHOLE "N G R" span is
+                    // matched and replaced with a fresh literal instead -
+                    // the same pattern StreamObject::__toString() already
+                    // uses for its own (literal-length-only) dynamic
+                    // /Length recompute.
                     $definition = (string)$object->getDefinition();
-                    if (preg_match('/\/Length\s+\d+\b(?!\s+\d+\s+R\b)/', $definition) === 1) {
+                    if (preg_match('/\/Length\s+\d+(?:\s+\d+\s+R)?/', $definition) === 1) {
                         $object->setDefinition(
-                            preg_replace('/\/Length\s+\d+\b(?!\s+\d+\s+R\b)/', '/Length ' . strlen($encrypted), $definition, 1)
+                            preg_replace('/\/Length\s+\d+(?:\s+\d+\s+R)?/', '/Length ' . strlen($encrypted), $definition, 1)
                             ?? $definition
                         );
                     }

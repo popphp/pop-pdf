@@ -850,6 +850,98 @@ class CompilerTest extends TestCase
         $this->assertStringContainsString($content2, $decrypted);
     }
 
+    // Round 2's fix (StreamObject::getLeadingEolLength()) correctly strips
+    // leading padding before encrypting regardless of whether /Length is
+    // literal or indirect - but that is a separate concern from the
+    // POST-encryption /Length rewrite for Image/Length1 objects (which
+    // StreamObject::__toString() never recomputes dynamically for those two
+    // object types). An imported image XObject with an indirect /Length
+    // (e.g. "/Length 7 0 R", common in PDFs produced by other tools) needs
+    // that indirect span replaced with a fresh literal matching the
+    // encrypted byte count, exactly like a literal /Length does - otherwise
+    // the object it points to keeps declaring the OLD, pre-encryption
+    // length, and a strict reader can't even attempt AES-CBC on a
+    // non-block-aligned buffer.
+    public function testFinalizeEncryptsImportedImageWithIndirectLength()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $jpegBytes        = (string)file_get_contents(__DIR__ . '/../tmp/images/logo-rgb.jpg');
+        [$width, $height] = getimagesize(__DIR__ . '/../tmp/images/logo-rgb.jpg');
+        $pdfData          = $this->buildImageIndirectLengthPdf($jpegBytes, $width, $height);
+
+        $doc = Pdf\Pdf::importRawData($pdfData);
+        $doc->setSecurity(new Document\Security('open-me', 'admin123'));
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('/Encrypt', $output);
+        $this->assertStringNotContainsString($jpegBytes, $output);
+
+        $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
+
+        // The recovered image bytes must be byte-for-byte identical to the
+        // source JPEG, not merely "some bytes qpdf could recover" - qpdf's
+        // own stream-length-recovery heuristic can mask a corrupt /Length
+        // by re-deriving the boundary from the JPEG's own EOI marker, so
+        // passing --check alone would not prove the declared /Length is
+        // actually correct.
+        $imageStart = strpos($decrypted, "\xFF\xD8\xFF");
+        $this->assertNotFalse($imageStart, 'Decrypted output does not contain a JPEG SOI marker.');
+        $this->assertStringContainsString($jpegBytes, substr($decrypted, $imageStart, strlen($jpegBytes) + 64));
+    }
+
+    /**
+     * Build a minimal single-page raw PDF containing one JPEG image XObject
+     * whose /Length is an INDIRECT reference (e.g. "/Length 7 0 R", pointing
+     * at a separate object holding the plain integer byte count) rather
+     * than a literal one - the shape that exposed a stale post-encryption
+     * /Length rewrite for Image/Length1 objects specifically.
+     *
+     * @param  string $jpegBytes
+     * @param  int    $width
+     * @param  int    $height
+     * @return string
+     */
+    protected function buildImageIndirectLengthPdf(string $jpegBytes, int $width, int $height): string
+    {
+        $content = "q {$width} 0 0 {$height} 50 600 cm /Im0 Do Q";
+
+        $objs = [];
+        $objs[1] = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+        $objs[2] = "2 0 obj\n<< /Type /Pages /Kids [4 0 R] /Count 1 >>\nendobj\n";
+        $objs[4] = "4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " .
+            "/Resources << /XObject << /Im0 5 0 R >> >> /Contents 6 0 R >>\nendobj\n";
+        $objs[5] = "5 0 obj\n<< /Type /XObject /Subtype /Image /Width {$width} /Height {$height} " .
+            "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length 7 0 R >>\nstream\n" .
+            $jpegBytes . "\nendstream\nendobj\n";
+        $objs[6] = "6 0 obj\n<< /Length " . strlen($content) . " >>\nstream\n{$content}\nendstream\nendobj\n";
+        $objs[7] = "7 0 obj\n" . strlen($jpegBytes) . "\nendobj\n";
+        ksort($objs);
+
+        $header  = "%PDF-1.4\n";
+        $offsets = [];
+        $cur     = $header;
+        foreach ($objs as $n => $o) {
+            $offsets[$n] = strlen($cur);
+            $cur .= $o;
+        }
+        $body    = implode('', $objs);
+        $xrefPos = strlen($header . $body);
+        $maxObj  = max(array_keys($objs));
+        $xref    = "xref\n0 " . ($maxObj + 1) . "\n0000000000 65535 f \n";
+        for ($i = 1; $i <= $maxObj; $i++) {
+            $xref .= isset($offsets[$i]) ? sprintf("%010d 00000 n \n", $offsets[$i]) : "0000000000 65535 f \n";
+        }
+        $xref .= "trailer\n<< /Size " . ($maxObj + 1) . " /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
+
+        return $header . $body . $xref;
+    }
+
     /**
      * Build a minimal single-page raw PDF whose content stream declares an
      * INDIRECT /Length (e.g. "/Length 6 0 R", pointing at a separate object
