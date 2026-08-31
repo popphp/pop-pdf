@@ -1160,7 +1160,7 @@ Less common CSS properties and nested block markup may not be fully supported ye
 
 ### Choosing a page size
 
-Pages created while parsing HTML default to `LETTER`. To use a different size, pass it as the third
+Pages created while parsing HTML default to `LETTER`. To use a different size, pass it as the second
 constructor argument - either one of the `Page` size constants, or a `[width, height]` array for a
 custom size:
 
@@ -1176,7 +1176,7 @@ $parser = new Parser(new Document(), [400, 600]);
 
 The `parseString()`, `parseFile()` and `parseUri()` static methods, as well as `Pdf::importFromHtml()`,
 `Pdf::importFromHtmlFile()` and `Pdf::importFromHtmlUri()`, all accept the same page size as an optional
-third argument.
+argument.
 
 ### Parsing HTML from a file:
 
