@@ -48,6 +48,16 @@ class ParentObject extends AbstractObject
     protected ?int $countOverride = null;
 
     /**
+     * Kids to append after every other kid has been added, rather than at
+     * their point of assignment (e.g. a merge's own source subtrees, which
+     * must land after any pages a target document already had before the
+     * merge, even though the merge builds this object before those existing
+     * pages get their own kid indices assigned during compilation)
+     * @var array
+     */
+    protected array $deferredKids = [];
+
+    /**
      * Constructor
      *
      * Instantiate a PDF parent object.
@@ -161,6 +171,38 @@ class ParentObject extends AbstractObject
     public function getKids(): array
     {
         return $this->kids;
+    }
+
+    /**
+     * Set the kids to append after every other kid has been added
+     *
+     * @param  array $kids
+     * @return ParentObject
+     */
+    public function setDeferredKids(array $kids): ParentObject
+    {
+        $this->deferredKids = $kids;
+        return $this;
+    }
+
+    /**
+     * Get the kids to append after every other kid has been added
+     *
+     * @return array
+     */
+    public function getDeferredKids(): array
+    {
+        return $this->deferredKids;
+    }
+
+    /**
+     * Determine whether there are kids to append after every other kid
+     *
+     * @return bool
+     */
+    public function hasDeferredKids(): bool
+    {
+        return (count($this->deferredKids) > 0);
     }
 
     /**

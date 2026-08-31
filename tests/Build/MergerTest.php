@@ -62,6 +62,78 @@ class MergerTest extends TestCase
         $this->assertNotEmpty($root);
     }
 
+    public function testMergeFilesIntoProvidedDocumentReturnsThatSameInstance()
+    {
+        $starter = new Document();
+        $starter->addFont(new Font('Arial'));
+
+        $merger = new Merger();
+        $doc    = $merger->mergeFiles([__DIR__ . '/../tmp/doc.pdf', __DIR__ . '/../tmp/test.pdf'], $starter);
+
+        $this->assertSame($starter, $doc);
+        $this->assertTrue($doc->hasFont('Arial'));
+    }
+
+    public function testMergeDataIntoProvidedDocumentReturnsThatSameInstance()
+    {
+        $starter = new Document();
+        $starter->addFont(new Font('Arial'));
+
+        $merger = new Merger();
+        $doc    = $merger->mergeData([
+            file_get_contents(__DIR__ . '/../tmp/doc.pdf'),
+            file_get_contents(__DIR__ . '/../tmp/test.pdf'),
+        ], $starter);
+
+        $this->assertSame($starter, $doc);
+        $this->assertTrue($doc->hasFont('Arial'));
+    }
+
+    public function testMergeFilesIntoProvidedDocumentAddsToItsExistingPages()
+    {
+        $starter = new Document();
+        $starter->addFont(new Font('Arial'));
+        $starter->addPage(new Page(Page::LETTER));
+
+        $merger = new Merger();
+        $doc    = $merger->mergeFiles([__DIR__ . '/../tmp/doc.pdf', __DIR__ . '/../tmp/test.pdf'], $starter);
+
+        $docPages  = (new \Pop\Pdf\Build\Parser())->parseFile(__DIR__ . '/../tmp/doc.pdf')->getNumberOfPages();
+        $testPages = (new \Pop\Pdf\Build\Parser())->parseFile(__DIR__ . '/../tmp/test.pdf')->getNumberOfPages();
+
+        // The starter document's own pre-existing page plus both merged sources.
+        $this->assertEquals(1 + $docPages + $testPages, $doc->getNumberOfPages());
+    }
+
+    public function testMergeFilesIntoProvidedDocumentPlacesItsExistingPagesBeforeMergedContent()
+    {
+        $starter = new Document();
+        $starter->addFont(new Font('Arial'));
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('STARTER PAGE MARKER', 12), 'Arial', 50, 700);
+        $starter->addPage($page);
+
+        $merger = new Merger();
+        $doc    = $merger->mergeFiles([__DIR__ . '/../tmp/doc.pdf', __DIR__ . '/../tmp/test.pdf'], $starter);
+
+        $tmpFile = __DIR__ . '/../tmp/merger-order-test.pdf';
+        \Pop\Pdf\Pdf::writeToFile($doc, $tmpFile);
+
+        try {
+            $text = \Pop\Pdf\Pdf::extractTextFromFile($tmpFile);
+
+            $starterPosition = strpos($text, 'STARTER PAGE MARKER');
+            $mergedPosition  = strpos($text, 'One More Time!');
+
+            $this->assertNotFalse($starterPosition);
+            $this->assertNotFalse($mergedPosition);
+            $this->assertLessThan($mergedPosition, $starterPosition);
+        } finally {
+            unlink($tmpFile);
+        }
+    }
+
     public function testMergeRequiresAtLeastTwoSources()
     {
         $this->expectException(Exception::class);

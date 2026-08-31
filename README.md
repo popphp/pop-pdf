@@ -276,6 +276,25 @@ use Pop\Pdf\Pdf;
 $doc = Pdf::mergeRawData([$pdfStream1, $pdfStream2]);
 ```
 
+If you already have a `Document` object you've started building - with its own fonts, metadata or
+pages already added - pass it as the second argument, and the merged files' pages are added into it
+instead of a new document being created:
+
+```php
+use Pop\Pdf\Pdf;
+use Pop\Pdf\Document;
+use Pop\Pdf\Document\Font;
+
+$document = new Document();
+$document->addFont(Font::ARIAL);
+
+$doc = Pdf::merge(['path/to/one.pdf', 'path/to/two.pdf'], $document);
+// $doc is the same $document instance, with the merged pages appended
+```
+
+If the `Document` you pass in already has pages of its own, they're placed *before* the merged
+files' pages in the resulting document, regardless of the order in which they were added.
+
 ### Extract Text
 
 If you just want to extract the text from a PDF that contains text (not a PDF comprised of images with text in them),

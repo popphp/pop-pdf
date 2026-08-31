@@ -141,6 +141,17 @@ class Compiler extends AbstractCompiler
             $pageObjects[$pageObject->getIndex()] = $pageObject;
         }
 
+        // A merge's own source subtrees are deferred rather than included
+        // directly in the page tree's kids up front, so that any pages the
+        // target document already had (just processed above) land before
+        // them instead of after - done before annotations are prepared,
+        // since those resolve internal-link targets against the final kids.
+        if ($this->parent->hasDeferredKids()) {
+            foreach ($this->parent->getDeferredKids() as $kid) {
+                $this->parent->addKid($kid);
+            }
+        }
+
         // Prepare annotation objects, after the pages have been set
         foreach ($this->pages as $page) {
             if ($page->hasAnnotations()) {

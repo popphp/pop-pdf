@@ -157,25 +157,27 @@ class Pdf
     /**
      * Merge PDF files into one document
      *
-     * @param  array $files
+     * @param  array    $files
+     * @param  Document $document
      * @return AbstractDocument
      */
-    public static function merge(array $files): AbstractDocument
+    public static function merge(array $files, Document $document = new Document()): AbstractDocument
     {
         $merger = new Build\Merger();
-        return $merger->mergeFiles($files);
+        return $merger->mergeFiles($files, $document);
     }
 
     /**
      * Merge raw PDF data streams into one document
      *
-     * @param  array $data
+     * @param  array    $data
+     * @param  Document $document
      * @return AbstractDocument
      */
-    public static function mergeRawData(array $data): AbstractDocument
+    public static function mergeRawData(array $data, Document $document = new Document()): AbstractDocument
     {
         $merger = new Build\Merger();
-        return $merger->mergeData($data);
+        return $merger->mergeData($data, $document);
     }
 
     /**

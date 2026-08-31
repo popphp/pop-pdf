@@ -58,4 +58,26 @@ class ParentObjectTest extends TestCase
         $this->assertEquals(5, $parent->getCount());
     }
 
+    public function testDeferredKidsDefaultToEmptyAndAreNotPartOfKids()
+    {
+        $parent = new ParentObject(2);
+
+        $this->assertFalse($parent->hasDeferredKids());
+        $this->assertEquals([], $parent->getDeferredKids());
+        $this->assertEquals([], $parent->getKids());
+    }
+
+    public function testSetDeferredKidsStoresThemSeparatelyFromKids()
+    {
+        $parent = new ParentObject(2);
+        $parent->addKid(3);
+        $parent->setDeferredKids([7, 9]);
+
+        $this->assertTrue($parent->hasDeferredKids());
+        $this->assertEquals([7, 9], $parent->getDeferredKids());
+        // Deferred kids are not real kids until something explicitly adds
+        // them via addKid() - setDeferredKids() alone must not affect getKids().
+        $this->assertEquals([3], $parent->getKids());
+    }
+
 }

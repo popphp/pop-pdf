@@ -576,6 +576,80 @@ class PdfTest extends TestCase
         $this->assertGreaterThan(0, $doc->getNumberOfPages());
     }
 
+    public function testMergeIntoProvidedDocumentReturnsSameInstance()
+    {
+        $starter = new Document();
+        $starter->addFont(new Font('Arial'));
+
+        $result = Pdf\Pdf::merge([__DIR__ . '/tmp/doc.pdf', __DIR__ . '/tmp/test.pdf'], $starter);
+
+        $this->assertSame($starter, $result);
+        $this->assertTrue($result->hasFont('Arial'));
+    }
+
+    public function testMergeRawDataIntoProvidedDocumentReturnsSameInstance()
+    {
+        $starter = new Document();
+        $starter->addFont(new Font('Arial'));
+
+        $result = Pdf\Pdf::mergeRawData([
+            file_get_contents(__DIR__ . '/tmp/doc.pdf'),
+            file_get_contents(__DIR__ . '/tmp/test.pdf'),
+        ], $starter);
+
+        $this->assertSame($starter, $result);
+        $this->assertTrue($result->hasFont('Arial'));
+    }
+
+    public function testMergeIntoProvidedDocumentKeepsThatDocumentsExistingPageContent()
+    {
+        // The "starter document" scenario: a caller that's already built up a
+        // Document of its own wants the merged files' pages added to it,
+        // rather than losing what they already had.
+        $starter = new Document();
+        $starter->addFont(new Font('Arial'));
+
+        $page = new Document\Page(Document\Page::LETTER);
+        $page->addText(new Document\Page\Text('STARTER PAGE CONTENT', 12), 'Arial', 50, 700);
+        $starter->addPage($page);
+
+        $result = Pdf\Pdf::merge([__DIR__ . '/tmp/doc.pdf', __DIR__ . '/tmp/test.pdf'], $starter);
+
+        // 1 starter page + however many the two merged files contribute.
+        $this->assertGreaterThan(1, $result->getNumberOfPages());
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'merge_into_document_test_') . '.pdf';
+        Pdf\Pdf::writeToFile($result, $tmpFile);
+        $text = Pdf\Pdf::extractTextFromFile($tmpFile);
+        unlink($tmpFile);
+
+        $this->assertStringContainsString('STARTER PAGE CONTENT', $text);
+    }
+
+    public function testMergeIntoProvidedDocumentPlacesItsExistingPagesBeforeMergedContent()
+    {
+        $starter = new Document();
+        $starter->addFont(new Font('Arial'));
+
+        $page = new Document\Page(Document\Page::LETTER);
+        $page->addText(new Document\Page\Text('STARTER PAGE MARKER', 12), 'Arial', 50, 700);
+        $starter->addPage($page);
+
+        $result = Pdf\Pdf::merge([__DIR__ . '/tmp/doc.pdf', __DIR__ . '/tmp/test.pdf'], $starter);
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'merge_order_test_') . '.pdf';
+        Pdf\Pdf::writeToFile($result, $tmpFile);
+        $text = Pdf\Pdf::extractTextFromFile($tmpFile);
+        unlink($tmpFile);
+
+        $starterPosition = strpos($text, 'STARTER PAGE MARKER');
+        $mergedPosition  = strpos($text, 'One More Time!');
+
+        $this->assertNotFalse($starterPosition);
+        $this->assertNotFalse($mergedPosition);
+        $this->assertLessThan($mergedPosition, $starterPosition);
+    }
+
     public function testMergeExtractedTextContainsBothSources()
     {
         // Reuses the already-built native text-extraction pipeline as an

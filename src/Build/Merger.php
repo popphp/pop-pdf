@@ -14,6 +14,7 @@ declare(strict_types=1);
  */
 namespace Pop\Pdf\Build;
 
+use Pop\Pdf\Document;
 use Pop\Pdf\Document\AbstractDocument;
 use Pop\Pdf\Extract\Document as ExtractDocument;
 use Pop\Pdf\Extract\Value;
@@ -40,11 +41,12 @@ class Merger
     /**
      * Merge PDF files into one document
      *
-     * @param  array $files
+     * @param  array    $files
+     * @param  Document $document
      * @throws Exception
      * @return AbstractDocument
      */
-    public function mergeFiles(array $files): AbstractDocument
+    public function mergeFiles(array $files, Document $document = new Document()): AbstractDocument
     {
         $sources = [];
 
@@ -59,17 +61,18 @@ class Merger
             }
         }
 
-        return $this->mergeSources($sources);
+        return $this->mergeSources($sources, $document);
     }
 
     /**
      * Merge raw PDF data streams into one document
      *
-     * @param  array $dataList
+     * @param  array    $dataList
+     * @param  Document $document
      * @throws Exception
      * @return AbstractDocument
      */
-    public function mergeData(array $dataList): AbstractDocument
+    public function mergeData(array $dataList, Document $document = new Document()): AbstractDocument
     {
         $sources = [];
 
@@ -81,17 +84,18 @@ class Merger
             }
         }
 
-        return $this->mergeSources($sources);
+        return $this->mergeSources($sources, $document);
     }
 
     /**
      * Merge a set of already-parsed Extract\Document sources
      *
-     * @param  array $sources
+     * @param  array    $sources
+     * @param  Document $document
      * @throws Exception
      * @return AbstractDocument
      */
-    protected function mergeSources(array $sources): AbstractDocument
+    protected function mergeSources(array $sources, Document $document = new Document()): AbstractDocument
     {
         if (count($sources) < 2) {
             throw new Exception('Error: Merging requires at least 2 source PDF documents.');
@@ -140,8 +144,14 @@ class Merger
             $masterKids[]                         = $graph['topPagesObjNum'];
         }
 
+        // Deferred rather than set directly: a target document passed in by
+        // the caller may already have its own pages, which only get their
+        // kid indices assigned later during compilation - deferring these
+        // lets Compiler::finalize() append them after that happens, so the
+        // target document's existing pages land before the merged content
+        // rather than after it.
         $masterParent = new PdfObject\ParentObject($masterObjNum);
-        $masterParent->setKids($masterKids);
+        $masterParent->setDeferredKids($masterKids);
         $masterParent->setCount(count($allPages));
         $masterParent->setImported(true);
         $allObjects[$masterObjNum] = $masterParent;
@@ -164,7 +174,6 @@ class Merger
         $info->setImported(true);
         $allObjects[$infoObjNum] = $info;
 
-        $document = new \Pop\Pdf\Document();
         $document->importObjects($allObjects);
 
         foreach ($allPages as $pageObject) {
