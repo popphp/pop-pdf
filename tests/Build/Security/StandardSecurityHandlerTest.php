@@ -22,7 +22,9 @@ class StandardSecurityHandlerTest extends TestCase
         $this->assertEquals(32, strlen($result['dict']['UE']));
         $this->assertEquals(32, strlen($result['dict']['OE']));
         $this->assertEquals(16, strlen($result['dict']['Perms']));
-        $this->assertEquals(-1, $result['dict']['P']);
+        // Fully permissive: every bit set except ISO 32000-1 Table 22's
+        // reserved bits 1 and 2, which must always be 0.
+        $this->assertEquals(-4, $result['dict']['P']);
     }
 
     public function testBuildRevision6ProducesADifferentFileKeyEachCall()
@@ -324,7 +326,9 @@ class StandardSecurityHandlerTest extends TestCase
         $this->assertEquals(16, strlen($result['fileKey']));
         $this->assertEquals(32, strlen($result['dict']['U']));
         $this->assertEquals(32, strlen($result['dict']['O']));
-        $this->assertEquals(-1, $result['dict']['P']);
+        // Fully permissive: every bit set except ISO 32000-1 Table 22's
+        // reserved bits 1 and 2, which must always be 0.
+        $this->assertEquals(-4, $result['dict']['P']);
     }
 
     public function testBuildRevision4UserPasswordRecoversTheSameFileKey()

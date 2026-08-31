@@ -31,13 +31,13 @@ class PermissionsTest extends TestCase
         $this->assertTrue($permissions->isModifyingAllowed());
     }
 
-    public function testToPValueWithEverythingAllowedIsAllOnes()
+    public function testToPValueWithEverythingAllowedIsAllOnesExceptTheReservedLowBits()
     {
-        // -1 as a 32-bit signed int is 0xFFFFFFFF - every bit set, which is
-        // how a fully-permissive P value is represented (PDF's reserved
-        // bits must always read as 1, and every permission bit is "1 =
-        // allowed" per ISO 32000-1 Table 22).
-        $this->assertEquals(-1, (new Permissions())->toPValue());
+        // Every permission bit is "1 = allowed" and every unassigned bit
+        // from 7 upward must read as 1, so a fully-permissive P value is
+        // 0xFFFFFFFF with only bits 1 and 2 (combined value 3) cleared -
+        // ISO 32000-1 Table 22 reserves those two as "must be 0".
+        $this->assertEquals(-4, (new Permissions())->toPValue());
     }
 
     public function testToPValueClearsOnlyTheDeniedBits()
@@ -50,5 +50,27 @@ class PermissionsTest extends TestCase
         $this->assertEquals(0, $p & 4);
         $this->assertEquals(0, $p & 1024);
         $this->assertEquals(8, $p & 8); // modifying still allowed
+    }
+
+    public function testToPValueAlwaysLeavesReservedBits1And2Clear()
+    {
+        // ISO 32000-1 Table 22: bits 1 and 2 are reserved and must be 0,
+        // no matter which permissions are allowed or denied.
+        $everything = new Permissions();
+        $this->assertEquals(0, $everything->toPValue() & 3);
+
+        $nothing = (new Permissions())
+            ->allowPrinting(false)
+            ->allowHighResPrinting(false)
+            ->allowModifying(false)
+            ->allowCopying(false)
+            ->allowAnnotating(false)
+            ->allowFillingForms(false)
+            ->allowExtractingForAccessibility(false)
+            ->allowAssembling(false);
+        $this->assertEquals(0, $nothing->toPValue() & 3);
+
+        $mixed = (new Permissions())->allowPrinting(false)->allowCopying(false);
+        $this->assertEquals(0, $mixed->toPValue() & 3);
     }
 }

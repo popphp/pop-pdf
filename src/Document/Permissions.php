@@ -122,17 +122,20 @@ class Permissions
 
     /**
      * Pack the permission flags into ISO 32000-1 Table 22's signed 32-bit
-     * /P value. Reserved bit positions must always read as 1, so this
-     * starts from -1 (0xFFFFFFFF, everything set) and clears only the
-     * specific bit for each permission that is denied - it never sets bits
-     * from 0 upward, which would risk leaving a reserved bit incorrectly
-     * cleared.
+     * /P value. Every bit from 7 upward that Table 22 does not assign a
+     * meaning is reserved and must read as 1, so this starts from all bits
+     * set and clears only the specific bit for each permission that is
+     * denied - it never sets bits from 0 upward, which would risk leaving a
+     * reserved bit incorrectly cleared.
+     *
+     * Bits 1 and 2 (combined value 3) are the exception: Table 22 reserves
+     * them explicitly as "must be 0", so they are cleared up front.
      *
      * @return int
      */
     public function toPValue(): int
     {
-        $p = -1;
+        $p = -1 & ~3;
 
         if (!$this->printing) {
             $p &= ~4;
