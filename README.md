@@ -586,9 +586,10 @@ Notes and caveats:
   the single-byte encoding path.
 * Fonts are embedded in full; there is no glyph subsetting, so a large Unicode font
   makes for a large PDF.
-* Text alignment (`Text\Alignment`) and box wrapping (`Text\Wrap`) work with embedded
-  Unicode fonts and non-Latin text. Character wrapping (`Text::setCharWrap()`) does not —
-  it splits on byte counts and throws `Build\Font\Exception` for a CID font.
+* Text alignment (`Text\Alignment`), box wrapping (`Text\Wrap`), and character wrapping
+  (`Text::setCharWrap()`) all work with embedded Unicode fonts and non-Latin text.
+  Character wrap width is measured in characters, not bytes, so multi-byte text (accented
+  Latin, Cyrillic, CJK, etc.) wraps at the intended width instead of wrapping too early.
 
 #### Unsupported characters now throw
 

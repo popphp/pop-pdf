@@ -282,13 +282,25 @@ class TextTest extends TestCase
         $text->getPartialStream();
     }
 
-    public function testGetPartialStreamWithCidFontAndCharWrapThrows()
+    public function testGetPartialStreamWithCidFontAndCharWrapWrapsByCharacterCount()
     {
-        $this->expectException('Pop\Pdf\Build\Font\Exception');
-        $text = new Text(str_repeat("\u{041F}", 40), 12);
-        $text->setFont(new Font(__DIR__ . '/../../tmp/fonts/DejaVuSans.ttf'));
-        $text->setCharWrap(20);
-        $text->getPartialStream();
+        // "ПРИ" is 3 Cyrillic characters (6 UTF-8 bytes) - a byte-based wrap
+        // at width 7 would never fit two words plus a space (7 chars, 13
+        // bytes) on one line, but a character-based wrap should.
+        $word = "\u{041F}\u{0420}\u{0418}";
+        $font = new Font(__DIR__ . '/../../tmp/fonts/DejaVuSans.ttf');
+        // Computed from the same font instance, so this is the ground-truth
+        // glyph-hex for the combined string - not a re-derivation that could
+        // independently share the same mistake as the code under test.
+        $expectedTwoWordHex = $font->stringToGidHex($word . ' ' . $word);
+
+        $text = new Text(str_repeat($word . ' ', 10), 12);
+        $text->setFont($font);
+        $text->setCharWrap(7);
+
+        $stream = $text->getPartialStream();
+
+        $this->assertStringContainsString('<' . $expectedTwoWordHex . '>', $stream);
     }
 
     public function testGetPartialStreamWithStandardFontValidatesStringsWithOffsets()
@@ -384,6 +396,27 @@ class TextTest extends TestCase
 
         $this->assertStringContainsString("caf\xE9", $stream);
         $this->assertStringNotContainsString("\xC3\xA9", $stream);
+    }
+
+    public function testGetPartialStreamWithStandardFontCharWrapUsesCharacterCountNotByteCount()
+    {
+        // "café" is 4 characters but 5 bytes. A byte-based wrap at width 9
+        // could never fit two "café"s (11 bytes) on one line, even though
+        // they're only 9 characters - the wrap must be character-based.
+        $text = new Text(str_repeat('café ', 10), 12);
+        $text->setFont(new Font('Arial'));
+        $text->setCharWrap(9);
+
+        $stream = $text->getPartialStream();
+
+        $this->assertStringContainsString("caf\xE9 caf\xE9", $stream);
+    }
+
+    public function testGetNumberOfWrappedLinesCountsCharactersNotBytes()
+    {
+        $text = new Text(str_repeat('café ', 10), 12);
+        $text->setCharWrap(9);
+        $this->assertEquals(6, $text->getNumberOfWrappedLines());
     }
 
 }

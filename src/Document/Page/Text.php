@@ -448,6 +448,46 @@ class Text
     }
 
     /**
+     * Word-wrap a string by character count rather than byte count
+     *
+     * PHP's wordwrap() measures $width in bytes, so multi-byte UTF-8
+     * characters (accented Latin, Cyrillic, CJK, etc.) wrap far earlier than
+     * intended - a word made of 2-3 byte characters can blow a byte budget
+     * while still well under the intended character width. This mirrors
+     * wordwrap()'s default (non-cut) behavior using character counts instead.
+     *
+     * @param  string $string
+     * @param  int    $width
+     * @return string
+     */
+    protected function mbWordwrap(string $string, int $width): string
+    {
+        $paragraphs = explode("\n", $string);
+
+        foreach ($paragraphs as $i => $paragraph) {
+            $words   = explode(' ', $paragraph);
+            $lines   = [];
+            $current = '';
+
+            foreach ($words as $word) {
+                if ($current === '') {
+                    $current = $word;
+                } else if (mb_strlen($current) + 1 + mb_strlen($word) <= $width) {
+                    $current .= ' ' . $word;
+                } else {
+                    $lines[] = $current;
+                    $current = $word;
+                }
+            }
+
+            $lines[]        = $current;
+            $paragraphs[$i] = implode("\n", $lines);
+        }
+
+        return implode("\n", $paragraphs);
+    }
+
+    /**
      * Get the text string
      *
      * @return ?string
@@ -544,7 +584,7 @@ class Text
      */
     public function getNumberOfWrappedLines(): int
     {
-        return count(explode("\n", wordwrap($this->string, $this->charWrap, "\n")));
+        return count(explode("\n", $this->mbWordwrap($this->string, $this->charWrap)));
     }
 
     /**
@@ -783,20 +823,21 @@ class Text
                 $stream .= "]TJ\n";
             }
         } else {
-            if (($this->hasCharWrap()) && (strlen($this->string) > $this->charWrap)) {
-                if ($isCid) {
-                    throw new FontException(
-                        "Error: Character wrap is not yet supported with a CID/Unicode-embedded font ('" .
-                        $this->font->getName() . "')."
-                    );
-                }
-
+            if (($this->hasCharWrap()) && (mb_strlen($this->string) > $this->charWrap)) {
                 if ((int)$this->leading == 0) {
                     $this->leading = $this->size;
                 }
 
-                if ($isStandard) {
-                    $strings = explode("\n", wordwrap($this->rawString, $this->charWrap, "\n"));
+                if ($isCid) {
+                    $strings = explode("\n", $this->mbWordwrap($this->rawString, $this->charWrap));
+                    foreach ($strings as $i => $string) {
+                        $stream .= "    <" . $this->font->stringToGidHex($string) . ">Tj\n";
+                        if ($i < count($strings)) {
+                            $stream .= "    0 -" . $this->leading . " Td\n";
+                        }
+                    }
+                } else if ($isStandard) {
+                    $strings = explode("\n", $this->mbWordwrap($this->rawString, $this->charWrap));
                     foreach ($strings as $i => $string) {
                         $stream .= "    (" . $this->encodeWinAnsi($string) . ")Tj\n";
                         if ($i < count($strings)) {
@@ -804,7 +845,7 @@ class Text
                         }
                     }
                 } else {
-                    $strings = explode("\n", wordwrap($this->string, $this->charWrap, "\n"));
+                    $strings = explode("\n", $this->mbWordwrap($this->string, $this->charWrap));
                     foreach ($strings as $i => $string) {
                         $stream .= "    ({$string})Tj\n";
                         if ($i < count($strings)) {
