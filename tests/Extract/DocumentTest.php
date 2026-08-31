@@ -2,9 +2,11 @@
 
 namespace Pop\Pdf\Test\Extract;
 
+use Pop\Pdf\Extract\Content\Interpreter;
 use Pop\Pdf\Extract\Content\PageWalker;
 use Pop\Pdf\Extract\Document;
 use Pop\Pdf\Extract\Exception;
+use Pop\Pdf\Extract\Font\Resolver;
 use Pop\Pdf\Extract\Value;
 use PHPUnit\Framework\TestCase;
 
@@ -104,10 +106,64 @@ class DocumentTest extends TestCase
     }
 
     /**
+     * Extract every page's text, decoded through each run's font. This reaches
+     * further than page content alone: font objects commonly live inside an
+     * /ObjStm, so a document whose object streams decrypted wrongly still
+     * yields the right content stream bytes but the wrong TEXT.
+     */
+    protected function extractText(Document $doc): string
+    {
+        $texts = [];
+
+        foreach (PageWalker::walk($doc) as $page) {
+            $text = '';
+
+            foreach ((new Interpreter())->run($doc, $page->content, $page->resources) as $run) {
+                $text .= Resolver::decodeRun($run, $doc);
+            }
+
+            $texts[] = $text;
+        }
+
+        return implode("\n", $texts);
+    }
+
+    /**
+     * Describe every page's resolved font objects. In the 1.5 fixture these
+     * live INSIDE the /ObjStm, so this is what actually distinguishes a
+     * correctly decrypted object stream from one that failed to expand at all
+     * - page content bytes alone don't, and text decoding of plain ASCII
+     * falls back to something identical when a font can't be resolved.
+     */
+    protected function resolvedFonts(Document $doc): array
+    {
+        $fonts = [];
+
+        foreach (PageWalker::walk($doc) as $i => $page) {
+            $fontDict = $doc->resolve($page->resources['Font'] ?? null);
+
+            if (!is_array($fontDict)) {
+                continue;
+            }
+
+            foreach ($fontDict as $name => $ref) {
+                $font    = $doc->resolve($ref);
+                $subtype = is_array($font) ? ($font['BaseFont'] ?? $font['Subtype'] ?? null) : null;
+
+                $fonts["{$i}/{$name}"] = ($subtype instanceof Value\Name) ? $subtype->name : var_export($font, true);
+            }
+        }
+
+        ksort($fonts);
+
+        return $fonts;
+    }
+
+    /**
      * Map every non-cross-reference stream object to a hash of its bytes.
-     * Cross-reference streams are excluded because the encrypted file legitimately
-     * has a different one (it carries an extra /Encrypt object), not because
-     * of anything decryption did.
+     * Cross-reference streams are excluded because the encrypted file
+     * legitimately has a different one (it carries an extra /Encrypt object),
+     * not because of anything decryption did.
      */
     protected function streamHashes(Document $doc): array
     {
@@ -792,8 +848,11 @@ class DocumentTest extends TestCase
         $encrypted = $this->qpdfEncrypt($fixture, $bits);
         $plain     = $this->qpdfNormalize($fixture);
 
-        $encPages   = PageWalker::walk(new Document(file_get_contents($encrypted), 'open-me'));
-        $plainPages = PageWalker::walk(new Document(file_get_contents($plain)));
+        $encDoc   = new Document(file_get_contents($encrypted), 'open-me');
+        $plainDoc = new Document(file_get_contents($plain));
+
+        $encPages   = PageWalker::walk($encDoc);
+        $plainPages = PageWalker::walk($plainDoc);
 
         $this->assertNotEmpty($plainPages);
         $this->assertCount(count($plainPages), $encPages);
@@ -802,6 +861,85 @@ class DocumentTest extends TestCase
             $this->assertNotSame('', $plainPage->content);
             $this->assertSame($plainPage->content, $encPages[$i]->content);
         }
+
+        $plainText = $this->extractText($plainDoc);
+
+        $this->assertNotSame('', $plainText);
+        $this->assertSame($plainText, $this->extractText($encDoc));
+    }
+
+    /**
+     * Point startxref at nothing so the brute-force repair path takes over.
+     */
+    protected function breakXref(string $pdf): string
+    {
+        return (string) preg_replace('/startxref\s+\d+/', "startxref\n999999", $pdf);
+    }
+
+    /**
+     * The repair path bypasses both the xref AND getObject() (it pre-expands
+     * /ObjStm containers itself), so it needs its own decryption wiring. It
+     * also has to FIND the /Encrypt reference: a repair scan only recovers a
+     * trailer from a literal "trailer" keyword, which a cross-reference-stream
+     * file (the 1.5 fixture) doesn't have - its /Encrypt and /ID live in the
+     * xref stream's dictionary. Without that recovery an encrypted document
+     * loads "successfully" and hands back raw ciphertext with no error at all.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('encryptionFixtureProvider')]
+    public function testRepairsAndDecryptsAnEncryptedPdfWithABrokenXref(string $fixture, string $bits)
+    {
+        $encrypted = $this->qpdfEncrypt($fixture, $bits);
+        $plain     = $this->qpdfNormalize($fixture);
+
+        $encDoc   = new Document($this->breakXref(file_get_contents($encrypted)), 'open-me');
+        $plainDoc = new Document(file_get_contents($plain));
+
+        $encPages   = PageWalker::walk($encDoc);
+        $plainPages = PageWalker::walk($plainDoc);
+
+        $this->assertNotEmpty($plainPages);
+        $this->assertCount(count($plainPages), $encPages);
+
+        foreach ($plainPages as $i => $plainPage) {
+            $this->assertNotSame('', $plainPage->content);
+            $this->assertSame($plainPage->content, $encPages[$i]->content);
+        }
+
+        $plainText = $this->extractText($plainDoc);
+
+        $this->assertNotSame('', $plainText);
+        $this->assertSame($plainText, $this->extractText($encDoc));
+
+        // Reaches into the /ObjStm the repair path pre-expands for itself:
+        // these font objects exist nowhere else in the 1.5 fixture, so they
+        // resolve only if that container decrypted and expanded correctly.
+        $plainFonts = $this->resolvedFonts($plainDoc);
+
+        $this->assertNotEmpty($plainFonts);
+        $this->assertSame($plainFonts, $this->resolvedFonts($encDoc));
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('encryptionFixtureProvider')]
+    public function testARepairedEncryptedPdfStillRequiresAPassword(string $fixture, string $bits)
+    {
+        $encrypted = $this->qpdfEncrypt($fixture, $bits);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('a password is required');
+
+        new Document($this->breakXref(file_get_contents($encrypted)));
+    }
+
+    public function testRecoverEncryptionTrailerKeysFindsNothingInAnUnencryptedDocument()
+    {
+        // The recovery is deliberately inert unless some cross-reference
+        // stream actually declares /Encrypt, so it can never change how an
+        // unencrypted document is repaired.
+        $doc    = new Document($this->buildSimplePdf());
+        $method = new \ReflectionMethod(Document::class, 'recoverEncryptionTrailerKeys');
+
+        $this->assertSame([], $method->invoke($doc, [1 => ['offset' => strlen("%PDF-1.4\n")]]));
+        $this->assertSame([], $method->invoke($doc, [1 => ['inStream' => 5, 'index' => 0]]));
     }
 
     public function testRejectsAnRc4EncryptedPdfRatherThanDecryptingItToGarbage()

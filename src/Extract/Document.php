@@ -457,6 +457,16 @@ class Document
         if (!$this->isUsable($offsets, $trailer)) {
             [$offsets, $trailer] = $this->loadViaRepair();
             $repairOffsets       = $offsets;
+
+            // A repair scan can only recover a trailer from a literal
+            // "trailer" keyword, which a cross-reference-STREAM file doesn't
+            // have - its /Encrypt and /ID live in the xref stream's own
+            // dictionary instead. Without them an encrypted document would
+            // load "successfully" and hand back raw ciphertext, silently,
+            // rather than either decrypting it or saying it couldn't.
+            if (!isset($trailer['Encrypt'])) {
+                $trailer = $this->recoverEncryptionTrailerKeys($offsets) + $trailer;
+            }
         }
 
         // Encryption has to be set up before anything reads an object's stream
@@ -470,6 +480,56 @@ class Document
         if ($repairOffsets !== null) {
             $this->cache = $this->expandObjectStreamsFromRepair($repairOffsets) + $this->cache;
         }
+    }
+
+    /**
+     * Recover /Encrypt (and the /ID revision 4 needs alongside it) from a
+     * cross-reference stream's dictionary, for a repaired document whose
+     * trailer the repair scan couldn't find
+     *
+     * Deliberately narrow: it returns nothing at all unless some xref stream
+     * actually declares /Encrypt, so it cannot change how any unencrypted
+     * document is repaired. The LAST such stream in the file wins, matching
+     * how an incremental update's most recent section supersedes earlier ones.
+     *
+     * @param  array $offsets
+     * @return array
+     */
+    protected function recoverEncryptionTrailerKeys(array $offsets): array
+    {
+        $recovered = [];
+        $bestAt    = -1;
+
+        foreach ($offsets as $location) {
+            if (!isset($location['offset']) || ($location['offset'] <= $bestAt)) {
+                continue;
+            }
+
+            try {
+                $value = $this->parseAt($location['offset']);
+            } catch (\Throwable $e) {
+                continue;
+            }
+
+            if (!($value instanceof Value\Stream)) {
+                continue;
+            }
+
+            $type = $value->dict['Type'] ?? null;
+
+            if (!($type instanceof Value\Name) || ($type->name !== 'XRef') || !isset($value->dict['Encrypt'])) {
+                continue;
+            }
+
+            $recovered = ['Encrypt' => $value->dict['Encrypt']];
+            $bestAt    = $location['offset'];
+
+            if (isset($value->dict['ID'])) {
+                $recovered['ID'] = $value->dict['ID'];
+            }
+        }
+
+        return $recovered;
     }
 
     /**
