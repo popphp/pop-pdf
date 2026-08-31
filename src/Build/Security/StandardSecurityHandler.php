@@ -139,11 +139,16 @@ class StandardSecurityHandler
      * input (that is what binds /O to /U); the user hashes take an empty
      * string there.
      *
-     * The user password is tried first and the owner password second.
-     * Algorithm 2.A states the opposite order, which matters only for a
-     * reader deciding WHICH permission level was unlocked - /UE and /OE
-     * wrap one and the same file key, so the recovered key, and hence this
-     * method's result, is identical either way.
+     * The user password is tried first and the owner password second;
+     * Algorithm 2.A states the opposite order. For any conforming file the
+     * order cannot change the result, because /UE and /OE are required to
+     * wrap one and the same file key (buildRevision6() passes the identical
+     * key to both) - so it would matter only to a caller that needed to know
+     * WHICH permission level was unlocked, which this method's return type
+     * cannot express anyway. That is a property of the file being conforming,
+     * not an identity: a malformed or hostile file whose /UE and /OE wrap
+     * different keys has no single right answer, and neither ordering
+     * produces one.
      *
      * @param  array<string, string|int> $encryptDict must contain O, U, OE, UE (as built by buildRevision6())
      * @param  string                    $candidatePassword

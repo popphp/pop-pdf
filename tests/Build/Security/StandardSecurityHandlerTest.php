@@ -331,6 +331,62 @@ class StandardSecurityHandlerTest extends TestCase
     }
 
     /**
+     * ISO 32000-2 7.6.4.3.3: a password is truncated to 127 bytes before it
+     * is hashed. buildRevision6() does that truncation, so openRevision6()
+     * must do the identical truncation or a password longer than 127 bytes
+     * could never reopen a document this library had just written - the
+     * build side would have hashed 127 bytes and the open side 204.
+     *
+     * The tail beyond byte 127 is deliberately distinct from the repeated
+     * prefix: with a uniform str_repeat() password the truncated and
+     * untruncated forms would hash differently anyway, but this makes the
+     * "only the first 127 bytes count" property the explicit subject.
+     */
+    public function testOpenRevision6RecoversTheFileKeyWithAPasswordLongerThan127Bytes()
+    {
+        $longPassword = str_repeat('x', 200) . 'TAIL';
+        $security     = new Security($longPassword, 'admin123');
+        $built        = StandardSecurityHandler::buildRevision6($security, random_bytes(16));
+
+        $this->assertEquals($built['fileKey'], StandardSecurityHandler::openRevision6($built['dict'], $longPassword));
+
+        // ...and anything sharing those first 127 bytes opens it too, which
+        // is what truncation MEANS - a reader that kept all 204 bytes would
+        // reject this one.
+        $this->assertEquals(
+            $built['fileKey'],
+            StandardSecurityHandler::openRevision6($built['dict'], str_repeat('x', 127) . 'DIFFERENT-TAIL')
+        );
+    }
+
+    /**
+     * ISO 32000-2 fixes /U and /O at exactly 48 bytes, but producers
+     * descended from the pre-standard Adobe extension level 3 revision pad
+     * them out to 127 with trailing bytes that carry no meaning, and every
+     * reader worth interoperating with ignores the excess (pdf.js truncates
+     * both to 48 on the way in).
+     *
+     * Both assertions below bite: without the truncation the length guard
+     * rejects a 127-byte /U outright, and even past that the owner path
+     * would hand hash2B() all 127 bytes as udata when /O was only ever
+     * computed over the first 48.
+     */
+    public function testOpenRevision6IgnoresUAndOPaddingBeyond48Bytes()
+    {
+        $security = new Security('open-me', 'admin123');
+        $built    = StandardSecurityHandler::buildRevision6($security, random_bytes(16));
+
+        $dict = $built['dict'];
+        $dict['U'] .= random_bytes(79);
+        $dict['O'] .= random_bytes(79);
+        $this->assertEquals(127, strlen($dict['U']));
+        $this->assertEquals(127, strlen($dict['O']));
+
+        $this->assertEquals($built['fileKey'], StandardSecurityHandler::openRevision6($dict, 'open-me'));
+        $this->assertEquals($built['fileKey'], StandardSecurityHandler::openRevision6($dict, 'admin123'));
+    }
+
+    /**
      * A truncated or otherwise malformed /Encrypt dictionary is a read-path
      * input coming straight off disk, so it must produce a clear exception
      * rather than a silent "incorrect password" (which would send a caller
@@ -368,21 +424,31 @@ class StandardSecurityHandlerTest extends TestCase
             $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
         }
 
-        $source = tempnam(sys_get_temp_dir(), 'pop_pdf_r6_src_') . '.pdf';
-        $target = tempnam(sys_get_temp_dir(), 'pop_pdf_r6_enc_') . '.pdf';
-        copy(__DIR__ . '/../../tmp/test-extract.pdf', $source);
+        // Not tempnam(): tempnam() creates a file AT the path it returns, so
+        // appending '.pdf' to it leaves that original file orphaned in the
+        // temp dir on every single run. The try/finally then guarantees both
+        // files are removed even when an assertion below throws.
+        $source = sys_get_temp_dir() . '/pop_pdf_r6_src_' . uniqid() . '.pdf';
+        $target = sys_get_temp_dir() . '/pop_pdf_r6_enc_' . uniqid() . '.pdf';
 
-        exec(
-            'qpdf --encrypt open-me admin123 256 -- ' . escapeshellarg($source) . ' ' .
-            escapeshellarg($target) . ' 2>&1',
-            $output, $status
-        );
-        $this->assertEquals(0, $status, implode("\n", $output));
+        try {
+            copy(__DIR__ . '/../../tmp/test-extract.pdf', $source);
 
-        $dict = $this->extractR6EncryptDict((string)file_get_contents($target));
+            exec(
+                'qpdf --encrypt open-me admin123 256 -- ' . escapeshellarg($source) . ' ' .
+                escapeshellarg($target) . ' 2>&1',
+                $output, $status
+            );
+            $this->assertEquals(0, $status, implode("\n", $output));
 
-        unlink($source);
-        unlink($target);
+            $dict = $this->extractR6EncryptDict((string)file_get_contents($target));
+        } finally {
+            foreach ([$source, $target] as $file) {
+                if (file_exists($file)) {
+                    unlink($file);
+                }
+            }
+        }
 
         $fromUser  = StandardSecurityHandler::openRevision6($dict, 'open-me');
         $fromOwner = StandardSecurityHandler::openRevision6($dict, 'admin123');
