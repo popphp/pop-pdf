@@ -51,6 +51,79 @@ class ParserTest extends TestCase
         $this->assertIsArray($html->getDefaultStyles());
     }
 
+    public function testSetDefaultStyleFontSizeIsCoercedToInt()
+    {
+        // Regression test: setDefaultStyle() stored the raw string it was
+        // given, but defaultStyles['font-size'] is expected to be an int
+        // everywhere else it's read - the raw string either got silently
+        // overruled (on tags with their own pre-registered font-size, e.g.
+        // <p>/<h1>-<h6>) or reached the renderer several layers down and
+        // threw a TypeError there (on any other tag, e.g. <div>/<span>).
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = new Parser($doc);
+        $html->setDefaultStyle('font-size', '26');
+
+        $this->assertSame(26, $html->getDefaultStyle('font-size'));
+        $this->assertSame(26, $html->prepareNodeStyles('div', [])['fontSize']);
+    }
+
+    public function testSetDefaultStyleFontSizeThrowsOnNonNumericValue()
+    {
+        $this->expectException('Pop\Pdf\Build\Html\Exception');
+
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = new Parser($doc);
+        $html->setDefaultStyle('font-size', 'not-a-number');
+    }
+
+    public function testSetDefaultStyleLineHeightIsCoercedToInt()
+    {
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = new Parser($doc);
+        $html->setDefaultStyle('line-height', '30');
+
+        $this->assertSame(30, $html->getDefaultStyle('line-height'));
+        $this->assertSame(30, $html->prepareNodeStyles('div', [])['lineHeight']);
+    }
+
+    public function testSetDefaultStyleLineHeightThrowsOnNonNumericValue()
+    {
+        $this->expectException('Pop\Pdf\Build\Html\Exception');
+
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = new Parser($doc);
+        $html->setDefaultStyle('line-height', 'garbage');
+    }
+
+    public function testSetDefaultStyleColorIsParsedToRgbArray()
+    {
+        // Regression test: setDefaultStyle('color', ...) stored the raw
+        // string, which was never run through parseCssColorToRgbArray() -
+        // it was later indexed character-by-character (e.g. '#cc0000'[0])
+        // when building a Color\Rgb, silently producing black or garbage.
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = new Parser($doc);
+        $html->setDefaultStyle('color', '#cc0000');
+
+        $this->assertSame([204, 0, 0], $html->getDefaultStyle('color'));
+        $this->assertSame([204, 0, 0], $html->prepareNodeStyles('div', [])['color']);
+    }
+
+    public function testSetDefaultStyleColorThrowsOnUnparseableValue()
+    {
+        $this->expectException('Pop\Pdf\Build\Html\Exception');
+
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = new Parser($doc);
+        $html->setDefaultStyle('color', '204,0,0');
+    }
+
     public function testCssString()
     {
         $doc = new Document();

@@ -437,12 +437,35 @@ class Parser
      *
      * @param  string $property
      * @param  string $value
+     * @throws Exception
      * @return Parser
      */
     public function setDefaultStyle(string $property, string $value): Parser
     {
-        $this->defaultStyles[$property] = $value;
+        $this->defaultStyles[$property] = match ($property) {
+            'font-size', 'line-height' => $this->parseCssSizeToInt($property, $value),
+            'color'                    => $this->parseCssColorToRgbArray($value),
+            default                    => $value,
+        };
+
         return $this;
+    }
+
+    /**
+     * Parse a CSS size string (e.g. "26" or "26px") into an int
+     *
+     * @param  string $property
+     * @param  string $value
+     * @throws Exception
+     * @return int
+     */
+    protected function parseCssSizeToInt(string $property, string $value): int
+    {
+        if (!preg_match('/^-?\d+(\.\d+)?/', trim($value))) {
+            throw new Exception("Error: The value for '" . $property . "' must be numeric.");
+        }
+
+        return (int)$value;
     }
 
     /**
@@ -588,10 +611,13 @@ class Parser
     /**
      * Get a default style
      *
+     * font-size/line-height are stored as int and color as an [r, g, b]
+     * array (see setDefaultStyle()), so this can't be narrowed to ?string.
+     *
      * @param  string $property
-     * @return ?string
+     * @return string|int|array|null
      */
-    public function getDefaultStyle(string $property): ?string
+    public function getDefaultStyle(string $property): string|int|array|null
     {
         return $this->defaultStyles[$property] ?? null;
     }
@@ -936,11 +962,16 @@ class Parser
      * already resolves to Color\Rgb (which has no toRgb() method to convert from itself)
      *
      * @param  string $colorString
+     * @throws Exception
      * @return array
      */
     protected function parseCssColorToRgbArray(string $colorString): array
     {
-        $rgbColor = $this->toRgbColor(Color::parse($colorString));
+        try {
+            $rgbColor = $this->toRgbColor(Color::parse($colorString));
+        } catch (Color\Exception $exception) {
+            throw new Exception("Error: The color value '" . $colorString . "' is not in a supported CSS color format.");
+        }
 
         return $rgbColor->toArray(false);
     }
