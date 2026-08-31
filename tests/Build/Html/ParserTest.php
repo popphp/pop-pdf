@@ -643,6 +643,25 @@ class ParserTest extends TestCase
         $this->assertEquals($headingStyles['fontSize'], $html->prepareNodeStyles('strong', [], $headingStyles)['fontSize']);
     }
 
+    public function testCssRuleNotSettingFontSizeDoesNotResetHeadingFontSize()
+    {
+        // Regression test: Pop\Css\AbstractCss::addSelector() used to replace
+        // a same-name selector wholesale instead of merging into it, so any
+        // user CSS rule for a tag with a pre-registered default (h1-h6, p)
+        // silently discarded that default's font-size/margin-bottom unless
+        // the new rule also restated them - e.g. "h1 { color: #cc0000; }"
+        // alone shrank h1 from 32pt to 27pt. Fixed in pop-css; this locks
+        // down the user-facing behavior at the pop-pdf layer too.
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+
+        foreach (['h1' => 32, 'h2' => 28, 'h3' => 24, 'p' => 12] as $tag => $expectedFontSize) {
+            $html = new Parser($doc);
+            $html->parseCss($tag . ' { color: #cc0000; }');
+            $this->assertSame($expectedFontSize, $html->prepareNodeStyles($tag, [])['fontSize'], "for <$tag>");
+        }
+    }
+
     public function testStyleBlockInHeadIsParsedAsCss()
     {
         // Regression test: <style> blocks were never read at all - prepare()

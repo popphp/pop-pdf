@@ -109,13 +109,17 @@ class Page extends AbstractPage
     /**
      * Add an image to the PDF page
      *
-     * @param  Page\Image $image
-     * @param  int|float  $x
-     * @param  int|float  $y
+     * @param  Page\Image|string $image
+     * @param  int|float         $x
+     * @param  int|float         $y
      * @return Page
      */
-    public function addImage(Page\Image $image, int|float $x = 0, int|float $y = 0): Page
+    public function addImage(Page\Image|string $image, int|float $x = 0, int|float $y = 0): Page
     {
+        if (is_string($image)) {
+            $image = Page\Image::createImageFromFile($image);
+        }
+
         $this->images[] = [
             'image' => $image,
             'x'     => $x,

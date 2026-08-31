@@ -803,6 +803,13 @@ raw stream:
 $page->addImage(Image::loadImageFromStream($imageContents), 50, 422);
 ```
 
+As a shortcut, `addImage()` also accepts a file path directly, creating the `Image` object
+for you:
+
+```php
+$page->addImage('my-image.jpg', 50, 422);
+```
+
 [Top](#pop-pdf)
 
 ### Image Size

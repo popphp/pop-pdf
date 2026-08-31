@@ -55,6 +55,22 @@ class PageTest extends TestCase
         $this->assertEquals(1, count($page->getImages()));
     }
 
+    public function testAddImageFromFilePath()
+    {
+        $page = new Page(Page::LETTER);
+        $page->addImage(__DIR__ . '/../tmp/images/logo-rgb.jpg');
+        $images = $page->getImages();
+        $this->assertEquals(1, count($images));
+        $this->assertInstanceOf('Pop\Pdf\Document\Page\Image', $images[0]['image']);
+    }
+
+    public function testAddImageFromFilePathThrowsOnMissingFile()
+    {
+        $this->expectException('Pop\Pdf\Document\Page\Exception');
+        $page = new Page(Page::LETTER);
+        $page->addImage(__DIR__ . '/../tmp/images/does-not-exist.jpg');
+    }
+
     public function testAddText()
     {
         $page = new Page(Page::LETTER);
