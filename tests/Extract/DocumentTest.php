@@ -2,6 +2,7 @@
 
 namespace Pop\Pdf\Test\Extract;
 
+use Pop\Pdf\Extract\Content\PageWalker;
 use Pop\Pdf\Extract\Document;
 use Pop\Pdf\Extract\Exception;
 use Pop\Pdf\Extract\Value;
@@ -9,6 +10,129 @@ use PHPUnit\Framework\TestCase;
 
 class DocumentTest extends TestCase
 {
+
+    /**
+     * Temp files created by a test, removed in tearDown()
+     * @var array
+     */
+    protected array $tempFiles = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempFiles as $tempFile) {
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+
+        $this->tempFiles = [];
+    }
+
+    /**
+     * Reserve a temp .pdf path, tracking BOTH it and the extension-less file
+     * tempnam() actually creates, so neither is left behind.
+     */
+    protected function tempPdfPath(): string
+    {
+        $base = tempnam(sys_get_temp_dir(), 'extract_doc_enc_test_');
+        $path = $base . '.pdf';
+
+        $this->tempFiles[] = $base;
+        $this->tempFiles[] = $path;
+
+        return $path;
+    }
+
+    /**
+     * Run qpdf, returning the output path. Skips the test if qpdf is not
+     * available.
+     *
+     * qpdf exits 3 ("succeeded with warnings") for any source it had to
+     * repair, so a non-zero status alone is NOT a reliable "qpdf is missing"
+     * signal - keying the skip off it would silently turn every encryption
+     * test into a false pass. Existence of a non-empty output file is.
+     */
+    protected function runQpdf(array $args): string
+    {
+        $out  = $this->tempPdfPath();
+        $args = array_merge($args, [$out]);
+        $cmd  = 'qpdf ' . implode(' ', array_map('escapeshellarg', $args)) . ' 2>&1';
+
+        exec($cmd, $output, $status);
+
+        if (!file_exists($out) || (filesize($out) === 0)) {
+            $this->markTestSkipped(
+                'qpdf is not available to produce an encrypted fixture (status ' . $status . '): ' .
+                implode("\n", $output)
+            );
+        }
+
+        return $out;
+    }
+
+    /**
+     * Produce a qpdf-encrypted copy of one of this repo's plain fixtures.
+     *
+     * 128-bit encryption needs --use-aes=y: qpdf's default for 128 bits is
+     * RC4 (revision 3), which qpdf 11+ refuses to write at all without
+     * --allow-weak-crypto and which this library deliberately does not
+     * support. Only --use-aes=y yields AESV2/revision 4.
+     */
+    protected function qpdfEncrypt(string $fixture, string $bits, string $user = 'open-me'): string
+    {
+        $args = ['--encrypt', $user, 'admin123', $bits];
+
+        if ($bits === '128') {
+            $args[] = '--use-aes=y';
+        }
+
+        $args[] = '--';
+        $args[] = __DIR__ . '/../tmp/' . $fixture;
+
+        return $this->runQpdf($args);
+    }
+
+    /**
+     * Produce a qpdf-normalized but UNENCRYPTED copy of the same fixture, so
+     * the two files differ only by encryption - object numbering and stream
+     * bytes are otherwise identical, which is what makes a byte-for-byte
+     * comparison between them meaningful.
+     */
+    protected function qpdfNormalize(string $fixture): string
+    {
+        return $this->runQpdf([__DIR__ . '/../tmp/' . $fixture]);
+    }
+
+    /**
+     * Map every non-cross-reference stream object to a hash of its bytes.
+     * Cross-reference streams are excluded because the encrypted file legitimately
+     * has a different one (it carries an extra /Encrypt object), not because
+     * of anything decryption did.
+     */
+    protected function streamHashes(Document $doc): array
+    {
+        $hashes = [];
+
+        foreach ($doc->getObjectNumbers() as $objNum) {
+            $value = $doc->getObject($objNum);
+
+            if (!($value instanceof Value\Stream)) {
+                continue;
+            }
+
+            $type = $value->dict['Type'] ?? null;
+
+            if (($type instanceof Value\Name) && ($type->name === 'XRef')) {
+                continue;
+            }
+
+            $hashes[$objNum] = hash('sha256', $value->raw);
+        }
+
+        ksort($hashes);
+
+        return $hashes;
+    }
 
     protected function buildSimplePdf(): string
     {
@@ -535,6 +659,302 @@ class DocumentTest extends TestCase
         $result = $method->invoke($doc, [1 => ['inStream' => 5, 'index' => 0]]);
 
         $this->assertNull($result);
+    }
+
+    public static function encryptionFixtureProvider(): array
+    {
+        return [
+            'AES-256, classic xref'   => ['test-extract.pdf', '256'],
+            'AES-128, classic xref'   => ['test-extract.pdf', '128'],
+            'AES-256, object streams' => ['test-extract-1.5.pdf', '256'],
+            'AES-128, object streams' => ['test-extract-1.5.pdf', '128'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('encryptionFixtureProvider')]
+    public function testConstructorOpensAnEncryptedPdfGivenTheCorrectUserPassword(string $fixture, string $bits)
+    {
+        $encrypted = $this->qpdfEncrypt($fixture, $bits);
+
+        $doc = new Document(file_get_contents($encrypted), 'open-me');
+
+        $this->assertTrue($doc->isEncrypted());
+        $this->assertNotEmpty($doc->getTrailer());
+        $this->assertEquals('Catalog', $doc->getRoot()['Type']->name);
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('encryptionFixtureProvider')]
+    public function testConstructorOpensAnEncryptedPdfGivenTheOwnerPassword(string $fixture, string $bits)
+    {
+        $encrypted = $this->qpdfEncrypt($fixture, $bits);
+
+        $doc = new Document(file_get_contents($encrypted), 'admin123');
+
+        $this->assertEquals('Catalog', $doc->getRoot()['Type']->name);
+    }
+
+    public function testConstructorThrowsForAnEncryptedPdfWithNoPassword()
+    {
+        $encrypted = $this->qpdfEncrypt('test-extract.pdf', '256');
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('a password is required');
+
+        new Document(file_get_contents($encrypted));
+    }
+
+    public function testConstructorThrowsForAnEncryptedPdfWithTheWrongPassword()
+    {
+        $encrypted = $this->qpdfEncrypt('test-extract.pdf', '256');
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('password provided is incorrect');
+
+        new Document(file_get_contents($encrypted), 'wrong-password');
+    }
+
+    public function testFromFileOpensAnEncryptedPdfGivenAPassword()
+    {
+        $encrypted = $this->qpdfEncrypt('test-extract.pdf', '256');
+
+        $doc = Document::fromFile($encrypted, 'open-me');
+
+        $this->assertTrue($doc->isEncrypted());
+        $this->assertEquals('Catalog', $doc->getRoot()['Type']->name);
+    }
+
+    public function testAnEmptyUserPasswordOpensADocumentEncryptedWithOne()
+    {
+        // An empty string is a real, openable password; null means "none was
+        // supplied at all" and must still be rejected. The two must not
+        // collapse into each other.
+        $encrypted = $this->qpdfEncrypt('test-extract.pdf', '256', '');
+
+        $this->assertTrue((new Document(file_get_contents($encrypted), ''))->isEncrypted());
+
+        $this->expectException(Exception::class);
+        new Document(file_get_contents($encrypted));
+    }
+
+    /**
+     * The blocking end-to-end proof that decryption is wired up correctly:
+     * every stream of a qpdf-ENCRYPTED file (a file this library never wrote)
+     * must come back byte-for-byte identical to the same stream in an
+     * otherwise-identical unencrypted file, not merely "non-empty" or "didn't
+     * throw".
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('encryptionFixtureProvider')]
+    public function testEncryptedPdfStreamsAreByteIdenticalToTheUnencryptedSource(string $fixture, string $bits)
+    {
+        $encrypted = $this->qpdfEncrypt($fixture, $bits);
+        $plain     = $this->qpdfNormalize($fixture);
+
+        $encDoc   = new Document(file_get_contents($encrypted), 'open-me');
+        $plainDoc = new Document(file_get_contents($plain));
+
+        $encHashes   = $this->streamHashes($encDoc);
+        $plainHashes = $this->streamHashes($plainDoc);
+
+        $this->assertNotEmpty($encHashes);
+        $this->assertSame(array_keys($plainHashes), array_keys($encHashes));
+
+        // /Metadata is compared separately: qpdf Flate-compresses it when it
+        // encrypts but leaves it raw when it merely normalizes, so the two
+        // files' bytes legitimately differ there even though the decrypted
+        // content is identical (asserted below, after inflating).
+        foreach ($encHashes as $objNum => $hash) {
+            $type = $encDoc->getObject($objNum)->dict['Type'] ?? null;
+
+            if (($type instanceof Value\Name) && ($type->name === 'Metadata')) {
+                $encMeta   = $encDoc->getObject($objNum)->raw;
+                $plainMeta = $plainDoc->getObject($objNum)->raw;
+                $inflated  = @gzuncompress($encMeta);
+
+                $this->assertSame($plainMeta, ($inflated === false) ? $encMeta : $inflated);
+                continue;
+            }
+
+            $this->assertSame($plainHashes[$objNum], $hash, "Stream object {$objNum} did not decrypt correctly");
+        }
+    }
+
+    /**
+     * Page CONTENT specifically - the decoded content stream every downstream
+     * consumer (Interpreter, text extraction, merging) actually reads - must
+     * match the unencrypted source exactly. For the 1.5 fixture this also
+     * proves object-stream handling: its page tree lives inside an /ObjStm,
+     * which is decrypted ONCE as a whole; double-decrypting the objects
+     * packed inside it would corrupt the page tree outright.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('encryptionFixtureProvider')]
+    public function testEncryptedPdfPageContentMatchesTheUnencryptedSource(string $fixture, string $bits)
+    {
+        $encrypted = $this->qpdfEncrypt($fixture, $bits);
+        $plain     = $this->qpdfNormalize($fixture);
+
+        $encPages   = PageWalker::walk(new Document(file_get_contents($encrypted), 'open-me'));
+        $plainPages = PageWalker::walk(new Document(file_get_contents($plain)));
+
+        $this->assertNotEmpty($plainPages);
+        $this->assertCount(count($plainPages), $encPages);
+
+        foreach ($plainPages as $i => $plainPage) {
+            $this->assertNotSame('', $plainPage->content);
+            $this->assertSame($plainPage->content, $encPages[$i]->content);
+        }
+    }
+
+    public function testRejectsAnRc4EncryptedPdfRatherThanDecryptingItToGarbage()
+    {
+        // qpdf 11+ refuses to WRITE RC4 without --allow-weak-crypto. RC4 is
+        // revision 3 / V 2, which shares no /CF crypt-filter machinery with
+        // AES - detecting it by revision alone would mistake it for AES-128
+        // and hand every caller silent garbage, so it has to be rejected
+        // explicitly.
+        $encrypted = $this->runQpdf([
+            '--allow-weak-crypto', '--encrypt', 'open-me', 'admin123', '128', '--',
+            __DIR__ . '/../tmp/test-extract.pdf',
+        ]);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('unsupported encryption configuration');
+
+        new Document(file_get_contents($encrypted), 'open-me');
+    }
+
+    public function testThrowsWhenTheEncryptDictionaryCannotBeLocated()
+    {
+        // /Encrypt points at an object number the xref doesn't know about.
+        $pdf = str_replace(
+            '/Root 1 0 R',
+            '/Root 1 0 R /Encrypt 99 0 R',
+            $this->buildSimplePdf()
+        );
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Could not locate');
+
+        new Document($pdf, 'open-me');
+    }
+
+    public function testThrowsWhenTheEncryptDictionaryIsNotADictionary()
+    {
+        $pdf = str_replace('/Root 1 0 R', '/Root 1 0 R /Encrypt 42', $this->buildSimplePdf());
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('missing or malformed');
+
+        new Document($pdf, 'open-me');
+    }
+
+    public function testAnIndirectFileIdDoesNotFatalWhileOpeningAnEncryptedPdf()
+    {
+        // /ID as an indirect reference is malformed, but must surface as a
+        // catchable Exception rather than a fatal "cannot use object as array"
+        // Error while the revision 4 file key is being derived.
+        $encryptObj = "4 0 obj\n<< /Filter /Standard /V 4 /R 4 /Length 128 " .
+            "/CF << /StdCF << /CFM /AESV2 /Length 16 >> >> /StmF /StdCF /StrF /StdCF " .
+            '/O <' . str_repeat('61', 32) . '> /U <' . str_repeat('62', 32) . "> /P -4 >>\nendobj\n";
+
+        $pdf = str_replace(
+            "trailer\n<< /Size 4 /Root 1 0 R >>",
+            "trailer\n<< /Size 5 /Root 1 0 R /Encrypt 4 0 R /ID 9 0 R >>",
+            $this->buildSimplePdf()
+        );
+
+        // Splice the /Encrypt object in and point the xref at it.
+        $insertAt = strpos($pdf, 'xref');
+        $pdf      = substr($pdf, 0, $insertAt) . $encryptObj . substr($pdf, $insertAt);
+        $pdf      = str_replace('0 4', '0 5', $pdf);
+        $pdf      = str_replace(
+            "trailer\n",
+            sprintf("%010d 00000 n \ntrailer\n", $insertAt),
+            $pdf
+        );
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('password provided is incorrect');
+
+        new Document($pdf, 'open-me');
+    }
+
+    public function testStreamCryptFilterMethodResolvesTheStmFCryptFilter()
+    {
+        $doc    = new Document($this->buildSimplePdf());
+        $method = new \ReflectionMethod(Document::class, 'streamCryptFilterMethod');
+
+        // /V below 4 has no /CF map at all - always RC4.
+        $this->assertEquals('V2', $method->invoke($doc, ['V' => 2]));
+        $this->assertEquals('', $method->invoke($doc, []));
+
+        // /StmF defaults to /Identity when absent (ISO 32000-1 Table 20).
+        $this->assertEquals('Identity', $method->invoke($doc, ['V' => 4]));
+        $this->assertEquals('Identity', $method->invoke($doc, ['V' => 5, 'StmF' => new Value\Name('Identity')]));
+
+        // A named crypt filter is looked up in /CF, not assumed from /R.
+        $this->assertEquals('AESV2', $method->invoke($doc, [
+            'V' => 4, 'StmF' => new Value\Name('StdCF'),
+            'CF' => ['StdCF' => ['CFM' => new Value\Name('AESV2')]],
+        ]));
+        $this->assertEquals('AESV3', $method->invoke($doc, [
+            'V' => 5, 'StmF' => new Value\Name('StdCF'),
+            'CF' => ['StdCF' => ['CFM' => new Value\Name('AESV3')]],
+        ]));
+
+        // A /StmF naming a crypt filter that isn't in /CF is undeterminable.
+        $this->assertEquals('', $method->invoke($doc, ['V' => 5, 'StmF' => new Value\Name('StdCF')]));
+    }
+
+    public function testParseAtReportsTheObjectGenerationNumber()
+    {
+        // Revision 4 (AES-128) derives its per-object key from the object's
+        // generation number as well as its object number, so parseAt() has to
+        // hand back the real generation rather than assuming 0. Every qpdf
+        // fixture writes generation 0, which is exactly why this needs its own
+        // test - a hardcoded 0 would pass every one of them.
+        $pdf = "%PDF-1.4\n7 3 obj\n<< /Type /Page >>\nendobj\n";
+
+        $doc    = new Document($this->buildSimplePdf());
+        $method = new \ReflectionMethod(Document::class, 'parseAt');
+
+        (new \ReflectionProperty(Document::class, 'data'))->setValue($doc, $pdf);
+
+        $generation = null;
+        $args       = [strlen("%PDF-1.4\n"), &$generation];
+        $value      = $method->invokeArgs($doc, $args);
+
+        $this->assertEquals('Page', $value['Type']->name);
+        $this->assertSame(3, $generation);
+    }
+
+    public function testDecryptStreamLeavesCrossReferenceStreamsAlone()
+    {
+        // A cross-reference stream is never encrypted - it has to be readable
+        // before the /Encrypt dictionary it points at can even be found.
+        $doc = new Document($this->buildSimplePdf());
+
+        (new \ReflectionProperty(Document::class, 'fileKey'))->setValue($doc, str_repeat("\x00", 32));
+        (new \ReflectionProperty(Document::class, 'encryptionAlgorithm'))->setValue($doc, 'AES256');
+
+        $method = new \ReflectionMethod(Document::class, 'decryptStream');
+        $stream = new Value\Stream(['Type' => new Value\Name('XRef')], 'not ciphertext');
+
+        $this->assertSame($stream, $method->invoke($doc, 5, 0, $stream));
+    }
+
+    public function testDecryptStreamReportsAFailedDecrypt()
+    {
+        $doc = new Document($this->buildSimplePdf());
+
+        (new \ReflectionProperty(Document::class, 'fileKey'))->setValue($doc, str_repeat("\x00", 32));
+        (new \ReflectionProperty(Document::class, 'encryptionAlgorithm'))->setValue($doc, 'AES256');
+
+        $method = new \ReflectionMethod(Document::class, 'decryptStream');
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Could not decrypt the stream of object 7');
+
+        $method->invoke($doc, 7, 0, new Value\Stream([], 'too short'));
     }
 
 }

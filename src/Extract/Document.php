@@ -14,6 +14,9 @@ declare(strict_types=1);
  */
 namespace Pop\Pdf\Extract;
 
+use Pop\Pdf\Build\Security\Exception as SecurityException;
+use Pop\Pdf\Build\Security\ObjectCipher;
+use Pop\Pdf\Build\Security\StandardSecurityHandler;
 use Pop\Pdf\Extract\Filter\Budget;
 
 /**
@@ -129,16 +132,40 @@ class Document
     protected Budget $decodeBudget;
 
     /**
+     * Password used to open this document, if it is encrypted
+     * @var ?string
+     */
+    protected ?string $password = null;
+
+    /**
+     * File Encryption Key recovered from the /Encrypt dictionary, if this
+     * document is encrypted and the password checked out
+     * @var ?string
+     */
+    protected ?string $fileKey = null;
+
+    /**
+     * Stream content encryption algorithm ('AES128' or 'AES256'), or null when
+     * this document either isn't encrypted or declares /StmF /Identity (i.e.
+     * its streams aren't encrypted even though the document is)
+     * @var ?string
+     */
+    protected ?string $encryptionAlgorithm = null;
+
+    /**
      * Constructor
      *
      * Instantiate a document from raw PDF data.
      *
-     * @param string $data
+     * @param string  $data
+     * @param ?string $password Required if the PDF is encrypted; either the
+     *                          user or the owner password will open it
      */
-    public function __construct(string $data)
+    public function __construct(string $data, ?string $password = null)
     {
         $this->decodeBudget = new Budget(self::MAX_TOTAL_DECODED_BYTES);
-        $this->data = $data;
+        $this->data         = $data;
+        $this->password     = $password;
         $this->load();
     }
 
@@ -155,11 +182,12 @@ class Document
     /**
      * Create a document from a PDF file
      *
-     * @param  string $file
+     * @param  string  $file
+     * @param  ?string $password Required if the PDF is encrypted
      * @throws Exception
      * @return Document
      */
-    public static function fromFile(string $file): Document
+    public static function fromFile(string $file, ?string $password = null): Document
     {
         if (!file_exists($file)) {
             throw new Exception('Error: That PDF file does not exist.');
@@ -174,7 +202,17 @@ class Document
             throw new Exception('Error: Could not read that PDF file.');
         }
 
-        return new self($data);
+        return new self($data, $password);
+    }
+
+    /**
+     * Determine if this document was encrypted (and therefore opened with a password)
+     *
+     * @return bool
+     */
+    public function isEncrypted(): bool
+    {
+        return ($this->fileKey !== null);
     }
 
     /**
@@ -231,9 +269,22 @@ class Document
         }
 
         $location = $this->offsets[$objNum];
-        $value    = isset($location['inStream'])
-            ? $this->getFromObjectStream($location['inStream'], $location['index'])
-            : $this->parseAt($location['offset']);
+
+        if (isset($location['inStream'])) {
+            // Objects packed inside an object stream are NEVER separately
+            // encrypted (ISO 32000-1 7.5.7): the container /ObjStm's own
+            // stream was already decrypted as a whole when it passed through
+            // this same method, so its contents are plaintext by the time
+            // they get here. Decrypting again would corrupt them.
+            $value = $this->getFromObjectStream($location['inStream'], $location['index']);
+        } else {
+            $generation = 0;
+            $value      = $this->parseAt($location['offset'], $generation);
+
+            if ($value instanceof Value\Stream) {
+                $value = $this->decryptStream($objNum, $generation, $value);
+            }
+        }
 
         $this->cache[$objNum] = $value;
 
@@ -322,16 +373,20 @@ class Document
     /**
      * Parse an object directly at a byte offset
      *
-     * @param  int $offset
+     * @param  int  $offset
+     * @param  ?int $generation Set to the object's generation number, which
+     *                          revision 4 (AES-128) decryption needs
      * @throws Exception
      * @return mixed
      */
-    protected function parseAt(int $offset): mixed
+    protected function parseAt(int $offset, ?int &$generation = null): mixed
     {
         $tokenizer = new Tokenizer($this->data, $offset);
         $tokenizer->next(); // object number
-        $tokenizer->next(); // generation number
+        $genToken = $tokenizer->next();
         $objToken = $tokenizer->next();
+
+        $generation = (($genToken['type'] === 'number') && is_int($genToken['value'])) ? $genToken['value'] : 0;
 
         if (($objToken['type'] !== 'keyword') || ($objToken['value'] !== 'obj')) {
             throw new Exception('Error: Expected obj keyword while resolving a PDF object.');
@@ -397,17 +452,218 @@ class Document
             $trailer = [];
         }
 
+        $repairOffsets = null;
+
         if (!$this->isUsable($offsets, $trailer)) {
-            [$offsets, $trailer, $preResolved] = $this->loadViaRepair();
-            $this->cache = $preResolved + $this->cache;
+            [$offsets, $trailer] = $this->loadViaRepair();
+            $repairOffsets       = $offsets;
         }
 
-        if (isset($trailer['Encrypt'])) {
-            throw new Exception('Error: Encrypted PDFs are not currently supported for text extraction.');
-        }
+        // Encryption has to be set up before anything reads an object's stream
+        // body - including the repair path's object-stream pre-expansion below,
+        // whose /ObjStm containers are themselves encrypted.
+        $this->initEncryption($offsets, $trailer);
 
         $this->offsets = $offsets;
         $this->trailer = $trailer;
+
+        if ($repairOffsets !== null) {
+            $this->cache = $this->expandObjectStreamsFromRepair($repairOffsets) + $this->cache;
+        }
+    }
+
+    /**
+     * Verify the supplied password against the /Encrypt dictionary and recover
+     * the File Encryption Key, if this document is encrypted
+     *
+     * @param  array $offsets
+     * @param  array $trailer
+     * @throws Exception
+     * @return void
+     */
+    protected function initEncryption(array $offsets, array $trailer): void
+    {
+        if (!isset($trailer['Encrypt'])) {
+            return;
+        }
+
+        if ($this->password === null) {
+            throw new Exception('Error: This PDF is encrypted; a password is required to open it.');
+        }
+
+        $encryptDict = $this->resolveEncryptDictRaw($offsets, $trailer['Encrypt']);
+        $revision    = (int) ($encryptDict['R'] ?? 0);
+        $method      = (string) ($encryptDict['CFM'] ?? '');
+
+        // /Identity means the document is encrypted but its STREAMS are not,
+        // which is legal and still requires the password to be verified - it
+        // just leaves nothing for decryptStream() to do.
+        if (($revision === 6) && (($method === 'AESV3') || ($method === 'Identity'))) {
+            $streamAlgorithm = ($method === 'AESV3') ? 'AES256' : null;
+        } elseif (($revision === 4) && (($method === 'AESV2') || ($method === 'Identity'))) {
+            $streamAlgorithm = ($method === 'AESV2') ? 'AES128' : null;
+        } else {
+            throw new Exception(
+                'Error: This PDF uses an unsupported encryption configuration (revision ' . $revision .
+                ", stream method '" . (($method === '') ? 'unknown' : $method) .
+                "'); only AES-128 (/AESV2, revision 4) and AES-256 (/AESV3, revision 6) are supported."
+            );
+        }
+
+        // Guarded with is_array() rather than just ?? - a malformed file whose
+        // /ID is an indirect reference (an object, not an array) would
+        // otherwise raise a fatal "cannot use object as array" Error here
+        // instead of a catchable Exception.
+        $id     = is_array($trailer['ID'] ?? null) ? ($trailer['ID'][0] ?? null) : null;
+        $fileId = is_string($id) ? $id : '';
+
+        try {
+            $this->fileKey = ($revision === 6)
+                ? StandardSecurityHandler::openRevision6($encryptDict, $this->password)
+                : StandardSecurityHandler::openRevision4($encryptDict, $fileId, $this->password);
+        } catch (SecurityException $e) {
+            // Rethrown in this namespace's own type so every caller of
+            // Extract\Document only ever has to catch Extract\Exception, but
+            // with the underlying message preserved - "the password is wrong"
+            // and "the /Encrypt dictionary is malformed" are different
+            // problems and flattening them together points at the wrong one.
+            throw new Exception($e->getMessage(), $e->getCode(), $e);
+        }
+
+        $this->encryptionAlgorithm = $streamAlgorithm;
+    }
+
+    /**
+     * Resolve the /Encrypt dictionary down to the raw scalar values
+     * StandardSecurityHandler expects
+     *
+     * The Tokenizer already decodes both <hex> and (literal) PDF strings into
+     * raw bytes (see Tokenizer::readAngleOpen()/readLiteralString()), so /O,
+     * /U, /OE and /UE arrive here in exactly the shape the security handler
+     * wants - no extra hex decoding is needed. The dictionary is parsed
+     * directly at its byte offset rather than through getObject()/resolve()
+     * so it never touches the object cache and can never itself be treated as
+     * something to decrypt.
+     *
+     * @param  array $offsets
+     * @param  mixed $encryptRef
+     * @throws Exception
+     * @return array
+     */
+    protected function resolveEncryptDictRaw(array $offsets, mixed $encryptRef): array
+    {
+        $dict = null;
+
+        if (is_array($encryptRef)) {
+            // The spec requires /Encrypt to be indirect, but a direct
+            // dictionary is trivially readable, so accept it too.
+            $dict = $encryptRef;
+        } elseif ($encryptRef instanceof Value\Reference) {
+            $location = $offsets[$encryptRef->objNum] ?? null;
+
+            // An /Encrypt dictionary is never inside an object stream - it has
+            // to be readable before anything can be decrypted at all.
+            if (!isset($location['offset'])) {
+                throw new Exception("Error: Could not locate this PDF's encryption dictionary.");
+            }
+
+            $dict = $this->parseAt($location['offset']);
+        }
+
+        if (!is_array($dict)) {
+            throw new Exception("Error: This PDF's encryption dictionary is missing or malformed.");
+        }
+
+        $raw = [];
+
+        foreach (['O', 'U', 'OE', 'UE'] as $key) {
+            if (isset($dict[$key]) && is_string($dict[$key])) {
+                $raw[$key] = $dict[$key];
+            }
+        }
+
+        foreach (['R', 'V', 'P', 'Length'] as $key) {
+            if (isset($dict[$key]) && is_int($dict[$key])) {
+                $raw[$key] = $dict[$key];
+            }
+        }
+
+        $raw['CFM'] = $this->streamCryptFilterMethod($dict);
+
+        return $raw;
+    }
+
+    /**
+     * Determine the crypt filter method (/CFM) that applies to this document's
+     * stream content, per the /StmF name and the /CF crypt filter map
+     *
+     * @param  array $dict
+     * @return string 'AESV2', 'AESV3', 'Identity', 'V2' (RC4), or '' if undeterminable
+     */
+    protected function streamCryptFilterMethod(array $dict): string
+    {
+        $v = (isset($dict['V']) && is_int($dict['V'])) ? $dict['V'] : 0;
+
+        // Crypt filters only exist from /V 4 onward - /V 1 and /V 2 are always
+        // RC4 over everything, with no /CF map to consult.
+        if ($v < 4) {
+            return ($v === 0) ? '' : 'V2';
+        }
+
+        $stmF = $dict['StmF'] ?? null;
+        $name = ($stmF instanceof Value\Name) ? $stmF->name : 'Identity'; // ISO 32000-1 Table 20 default
+
+        if ($name === 'Identity') {
+            return 'Identity';
+        }
+
+        $cf = $dict['CF'] ?? null;
+
+        if (!is_array($cf) || !isset($cf[$name]) || !is_array($cf[$name])) {
+            return '';
+        }
+
+        $cfm = $cf[$name]['CFM'] ?? null;
+
+        return ($cfm instanceof Value\Name) ? $cfm->name : '';
+    }
+
+    /**
+     * Decrypt a top-level object's stream body, if this document is encrypted
+     *
+     * @param  int          $objNum
+     * @param  int          $generation
+     * @param  Value\Stream $value
+     * @throws Exception
+     * @return Value\Stream
+     */
+    protected function decryptStream(int $objNum, int $generation, Value\Stream $value): Value\Stream
+    {
+        if (($this->fileKey === null) || ($this->encryptionAlgorithm === null)) {
+            return $value;
+        }
+
+        // A cross-reference stream is never encrypted (ISO 32000-1 7.5.8.2) -
+        // it has to be readable before the /Encrypt dictionary it points at
+        // can even be found. An /ObjStm, by contrast, IS encrypted, once, as a
+        // whole; that's exactly what makes its contents plaintext afterward.
+        $type = $value->dict['Type'] ?? null;
+
+        if (($type instanceof Value\Name) && ($type->name === 'XRef')) {
+            return $value;
+        }
+
+        try {
+            $decrypted = ($this->encryptionAlgorithm === 'AES256')
+                ? ObjectCipher::decryptAes256($this->fileKey, $value->raw)
+                : ObjectCipher::decryptAes128($this->fileKey, $objNum, $generation, $value->raw);
+        } catch (SecurityException $e) {
+            throw new Exception(
+                "Error: Could not decrypt the stream of object {$objNum}: " . $e->getMessage(), $e->getCode(), $e
+            );
+        }
+
+        return new Value\Stream($value->dict, $decrypted);
     }
 
     /**
@@ -511,9 +767,7 @@ class Document
             $trailer['Root'] = $this->findCatalogReference($result['offsets']);
         }
 
-        $preResolved = $this->expandObjectStreamsFromRepair($result['offsets']);
-
-        return [$result['offsets'], $trailer, $preResolved];
+        return [$result['offsets'], $trailer];
     }
 
     /**
@@ -540,13 +794,14 @@ class Document
     {
         $preResolved = [];
 
-        foreach ($offsets as $location) {
+        foreach ($offsets as $objNum => $location) {
             if (!isset($location['offset'])) {
                 continue;
             }
 
             try {
-                $value = $this->parseAt($location['offset']);
+                $generation = 0;
+                $value      = $this->parseAt($location['offset'], $generation);
             } catch (\Throwable $e) {
                 continue;
             }
@@ -557,6 +812,15 @@ class Document
 
             $type = $value->dict['Type'] ?? null;
             if (!($type instanceof Value\Name) || ($type->name !== 'ObjStm')) {
+                continue;
+            }
+
+            try {
+                // An /ObjStm in an encrypted document is itself encrypted, and
+                // this pre-expansion pass bypasses getObject(), so it has to
+                // decrypt for itself before it can expand anything.
+                $value = $this->decryptStream((int) $objNum, $generation, $value);
+            } catch (\Throwable $e) {
                 continue;
             }
 

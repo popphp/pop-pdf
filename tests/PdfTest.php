@@ -669,30 +669,46 @@ class PdfTest extends TestCase
         $this->assertStringContainsString(trim(explode("\n", $sourceAText)[0]), $mergedText);
     }
 
-    public function testMergeRejectsEncryptedSource()
+    public function testMergeRejectsEncryptedSourceWhenNoPasswordIsSupplied()
     {
-        // No fixture fixture of an actual encrypted PDF exists in this repo
-        // (Extract\Document has never supported decryption) - simulate one
-        // directly against a minimal hand-built PDF with /Encrypt in its
-        // trailer, matching Extract\Document's own existing rejection.
-        $obj1 = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
-        $obj2 = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
-        $obj3 = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n";
+        // Encrypted PDFs ARE supported now, but only when a password is
+        // supplied - and Pdf::mergeRawData() has no way to supply one yet, so
+        // an encrypted source must still be rejected here rather than merged
+        // as ciphertext. This deliberately uses a REAL qpdf-encrypted file
+        // rather than a hand-built /Encrypt stub: a stub would be rejected by
+        // the missing-password check no matter how broken decryption was,
+        // making the test pass for the wrong reason.
+        $base      = tempnam(sys_get_temp_dir(), 'pop_pdf_merge_enc_');
+        $encrypted = $base . '.pdf';
+        $source    = __DIR__ . '/tmp/test-extract.pdf';
 
-        $header  = "%PDF-1.4\n";
-        $body    = $obj1 . $obj2 . $obj3;
-        $offsets = [strlen($header), strlen($header . $obj1), strlen($header . $obj1 . $obj2)];
-        $xrefPos = strlen($header . $body);
+        exec(
+            'qpdf ' . escapeshellarg('--encrypt') . ' ' . escapeshellarg('open-me') . ' ' .
+            escapeshellarg('admin123') . ' ' . escapeshellarg('256') . ' ' . escapeshellarg('--') . ' ' .
+            escapeshellarg($source) . ' ' . escapeshellarg($encrypted) . ' 2>&1',
+            $output,
+            $status
+        );
 
-        $xref = "xref\n0 4\n0000000000 65535 f \n" .
-            sprintf("%010d 00000 n \n", $offsets[0]) .
-            sprintf("%010d 00000 n \n", $offsets[1]) .
-            sprintf("%010d 00000 n \n", $offsets[2]) .
-            "trailer\n<< /Size 4 /Root 1 0 R /Encrypt << /Filter /Standard >> >>\nstartxref\n{$xrefPos}\n%%EOF";
+        // qpdf exits 3 on warnings, so only a missing/empty output file
+        // reliably means qpdf itself is unavailable.
+        if (!file_exists($encrypted) || (filesize($encrypted) === 0)) {
+            @unlink($base);
+            $this->markTestSkipped('qpdf is not available to produce an encrypted fixture: ' . implode("\n", $output));
+        }
 
-        $encryptedData = $header . $body . $xref;
+        $encryptedData = file_get_contents($encrypted);
+
+        // Positive control: the fixture really is openable given the password,
+        // so the rejection below is specifically about the MISSING password
+        // and not about a broken fixture or broken decryption.
+        $this->assertTrue((new Pdf\Extract\Document($encryptedData, 'open-me'))->isEncrypted());
+
+        @unlink($base);
+        @unlink($encrypted);
 
         $this->expectException('Pop\Pdf\Build\Exception');
+        $this->expectExceptionMessage('a password is required');
         Pdf\Pdf::mergeRawData([file_get_contents(__DIR__ . '/tmp/doc.pdf'), $encryptedData]);
     }
 
