@@ -80,6 +80,9 @@ class CompilerTest extends TestCase
         $output = $compiler->getOutput();
 
         $this->assertMatchesRegularExpression('/\/ID\s*\[\s*<[0-9A-Fa-f]{32}>\s*<[0-9A-Fa-f]{32}>\s*\]/', $output);
+
+        preg_match('/\/ID\s*\[\s*<([0-9A-Fa-f]{32})>\s*<([0-9A-Fa-f]{32})>\s*\]/', $output, $matches);
+        $this->assertSame($matches[1], $matches[2]);
     }
 
     public function testFinalizeXrefOffsetsPointToObjects()
