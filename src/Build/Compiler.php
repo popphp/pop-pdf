@@ -296,6 +296,17 @@ class Compiler extends AbstractCompiler
                     }
                 }
             }
+
+            // The /Info dictionary's literal strings (title, author, etc.)
+            // are built directly by InfoObject rather than going through
+            // StreamObject, so the loop above never touches them - encrypt
+            // them here, using the InfoObject's own object index the same
+            // way each StreamObject above used its own.
+            $this->info->encryptWith(function (string $data) use ($algorithm, $fileKey) {
+                return ($algorithm === Document\Security::AES_128)
+                    ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $this->info->getIndex(), 0, $data)
+                    : PdfSecurity\ObjectCipher::encryptAes256($fileKey, $data);
+            });
         }
 
         // Loop through the rest of the objects, calculate their size and length

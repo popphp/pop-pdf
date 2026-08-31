@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Pop\Pdf\Build\PdfObject;
 
 use Pop\Pdf\Document\Metadata;
+use Pop\Pdf\Document\Page\Text;
 
 /**
  * Pdf info object class
@@ -40,6 +41,17 @@ class InfoObject extends AbstractObject
      * @var ?Metadata
      */
     protected ?Metadata $metadata = null;
+
+    /**
+     * Encrypted, PDF-literal-string-escaped overrides for this object's
+     * fields, keyed by the same placeholder name used in $this->data (e.g.
+     * 'title', 'creation_date'). Populated by encryptWith() and consumed by
+     * __toString(); empty when the document has no security configured, in
+     * which case __toString() falls back to the raw, unescaped metadata
+     * values exactly as it always has.
+     * @var array<string, string>
+     */
+    protected array $encrypted = [];
 
     /**
      * Constructor
@@ -186,6 +198,72 @@ class InfoObject extends AbstractObject
     }
 
     /**
+     * Run this object's literal string fields (title, author, subject,
+     * creator, producer, and the CreationDate/ModDate timestamps) through an
+     * encryption callback.
+     *
+     * Invoked from Compiler's encryption pass, alongside the StreamObject
+     * loop, since this object builds its literal PDF strings directly rather
+     * than going through StreamObject and so isn't covered by that pass.
+     * $encryptor receives each field's raw string value and must return its
+     * encrypted bytes; those bytes are then escaped for PDF literal-string
+     * syntax the same way an unencrypted value's reserved bytes would be.
+     *
+     * The CreationDate/ModDate defaults are resolved here (rather than left
+     * for __toString() to fill in lazily) so the value that gets encrypted
+     * is exactly the value __toString() later emits - otherwise a still-null
+     * date would be encrypted as an empty string here and then overwritten
+     * with a plaintext default in __toString(), leaving a date a decrypting
+     * reader would garble.
+     *
+     * @param  callable $encryptor
+     * @return InfoObject
+     */
+    public function encryptWith(callable $encryptor): InfoObject
+    {
+        $metadata = $this->getMetadata();
+
+        if ($metadata->getCreationDate() === null) {
+            $metadata->setCreationDate(date('D, M j, Y h:i A'));
+        }
+        if ($metadata->getModDate() === null) {
+            $metadata->setModDate(date('D, M j, Y h:i A'));
+        }
+
+        $fields = [
+            'title'         => $metadata->getTitle(),
+            'subject'       => $metadata->getSubject(),
+            'author'        => $metadata->getAuthor(),
+            'creator'       => $metadata->getCreator(),
+            'producer'      => $metadata->getProducer(),
+            'mod_date'      => $metadata->getModDate(),
+            'creation_date' => $metadata->getCreationDate(),
+        ];
+
+        foreach ($fields as $key => $value) {
+            if ($value !== null) {
+                // AES-encrypted bytes are arbitrary binary and, unlike a
+                // human-authored title/author string, routinely contain raw
+                // 0x0D/0x0A bytes among other reserved bytes. A compliant
+                // literal-string reader normalizes any *unescaped* raw CR
+                // (and CR/LF pairs) to a bare LF per ISO 32000-1 7.3.4.2,
+                // silently altering that byte - which corrupts not just that
+                // byte but the whole 16-byte AES-CBC block it's part of once
+                // decrypted. Text::escape() (already used everywhere else in
+                // this codebase that emits literal PDF strings) backslash-
+                // escapes CR/LF/tab/backspace/form-feed in addition to
+                // backslash/parens, which is what prevents that
+                // normalization from ever touching the byte in the first
+                // place - a plain backslash/parens-only escape (sufficient
+                // for ordinary text) is not enough here.
+                $this->encrypted[$key] = Text::escape($encryptor((string)$value));
+            }
+        }
+
+        return $this;
+    }
+
+    /**
      * Method to print the PDF info object.
      *
      * @return string
@@ -204,14 +282,27 @@ class InfoObject extends AbstractObject
             $this->metadata->setModDate(date('D, M j, Y h:i A'));
         }
 
+        // Encrypted (and already literal-string-escaped) overrides take
+        // precedence, field by field, over the raw metadata value - set by
+        // encryptWith() when the document has security configured, and
+        // empty otherwise, in which case behavior is unchanged from before
+        // encryption support existed.
+        $title        = $this->encrypted['title']         ?? (string)$this->metadata->getTitle();
+        $subject      = $this->encrypted['subject']        ?? (string)$this->metadata->getSubject();
+        $author       = $this->encrypted['author']         ?? (string)$this->metadata->getAuthor();
+        $creator      = $this->encrypted['creator']        ?? (string)$this->metadata->getCreator();
+        $producer     = $this->encrypted['producer']       ?? (string)$this->metadata->getProducer();
+        $modDate      = $this->encrypted['mod_date']       ?? (string)$this->metadata->getModDate();
+        $creationDate = $this->encrypted['creation_date']  ?? (string)$this->metadata->getCreationDate();
+
         return str_replace(
             [
                 '[{info_index}]', '[{title}]', '[{subject}]', '[{author}]',
                 '[{creator}]', '[{producer}]', '[{mod_date}]', '[{creation_date}]'
             ],
             [
-                (string)$this->index, (string)$this->metadata->getTitle(), (string)$this->metadata->getSubject(), (string)$this->metadata->getAuthor(),
-                (string)$this->metadata->getCreator(), (string)$this->metadata->getProducer(), (string)$this->metadata->getModDate(), (string)$this->metadata->getCreationDate()
+                (string)$this->index, $title, $subject, $author,
+                $creator, $producer, $modDate, $creationDate
             ],
             $this->data
         );

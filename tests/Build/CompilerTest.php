@@ -693,6 +693,23 @@ class CompilerTest extends TestCase
         $this->assertStringNotContainsString('(Hello World)Tj', $output);
     }
 
+    public function testFinalizeEncryptsInfoDictionaryStringsWhenSecurityIsSet()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123'));
+        $doc->setMetadata((new Document\Metadata())->setTitle('Top Secret Title'));
+
+        $page = new Page(Page::LETTER);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $this->assertStringNotContainsString('Top Secret Title', $output);
+    }
+
     public function testFinalizeThrowsExceptionForInvalidAlgorithm()
     {
         $this->expectException(\Pop\Pdf\Build\Security\Exception::class);

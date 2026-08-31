@@ -22,6 +22,7 @@ pop-pdf
 * [Documents](#documents)
     - [Compression](#compression)
     - [Page Origin](#page-origin)
+    - [Encryption & Password Protection](#encryption--password-protection)
 * [Pages](#pages)
 * [Fonts](#fonts)
     - [Standard](#standard)
@@ -408,6 +409,43 @@ use Pop\Pdf\Document;
 $document = new Document();
 $document->setOrigin(Document::ORIGIN_TOP_LEFT);
 ```
+
+[Top](#pop-pdf)
+
+### Encryption & Password Protection
+
+A document can be password-protected and encrypted with `Document\Security`, using either
+AES-128 or AES-256 (the default). Setting a `Document\Permissions` object on the security
+object restricts what a PDF reader/viewer will allow once the document is opened with the
+user password - printing, copying, form filling, and so on - each defaulting to allowed
+unless turned off.
+
+```php
+use Pop\Pdf\Document\Security;
+use Pop\Pdf\Document\Permissions;
+
+$security = new Security('open-me', 'admin123');
+$security->setPermissions((new Permissions())->allowPrinting(false)->allowCopying(false));
+
+$document->setSecurity($security);
+Pdf::writeToFile($document, 'protected.pdf');
+```
+
+The first constructor argument is the user (open) password, required to open the document at
+all; the second is the owner password, which grants full access regardless of the permissions
+above. Either may be omitted (`null`) - an owner password left unset is generated automatically
+so the permissions still can't be bypassed by leaving it blank.
+
+When a document has security set, `Pop\Pdf\Build\Compiler` encrypts everything a reader would
+otherwise be able to read without the password: page content streams, embedded images and
+fonts, and the `/Info` dictionary's title/author/subject/creator/producer/date strings.
+
+Two things this does **not** cover yet: annotation and form-field literal strings (a URL
+annotation's target, a form field's `/V` value, and similar) are not encrypted, since they
+aren't built through the same code path - avoid putting sensitive data there in an encrypted
+document for now. And *opening* an already-encrypted PDF - via `importFromFile()`,
+`importRawData()`, `merge()`, or text extraction - is a separate, not-yet-implemented feature;
+this component can currently only produce encrypted PDFs, not read them back in.
 
 [Top](#pop-pdf)
 
