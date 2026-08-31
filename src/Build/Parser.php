@@ -58,6 +58,12 @@ class Parser extends AbstractParser
     protected array $fonts = [];
 
     /**
+     * Password used to decrypt an encrypted source PDF, if any
+     * @var ?string
+     */
+    protected ?string $password = null;
+
+    /**
      * Get the object streams
      *
      * @return array
@@ -90,13 +96,15 @@ class Parser extends AbstractParser
     /**
      * Parse from file
      *
-     * @param  string $file
-     * @param  mixed  $pages
+     * @param  string  $file
+     * @param  mixed   $pages
+     * @param  ?string $password
      * @throws Exception
      * @return AbstractDocument
      */
-    public function parseFile(string $file, mixed $pages = null): AbstractDocument
+    public function parseFile(string $file, mixed $pages = null, ?string $password = null): AbstractDocument
     {
+        $this->password = $password;
         $this->initFile($file);
         return $this->parse($pages);
     }
@@ -104,13 +112,15 @@ class Parser extends AbstractParser
     /**
      * Parse from raw data stream
      *
-     * @param  string $data
-     * @param  mixed  $pages
+     * @param  string  $data
+     * @param  mixed   $pages
+     * @param  ?string $password
      * @throws Exception
      * @return AbstractDocument
      */
-    public function parseData(string $data, mixed $pages = null): AbstractDocument
+    public function parseData(string $data, mixed $pages = null, ?string $password = null): AbstractDocument
     {
+        $this->password = $password;
         $this->initData($data);
         return $this->parse($pages);
     }
@@ -125,7 +135,7 @@ class Parser extends AbstractParser
     public function parse(mixed $pages = null): AbstractDocument
     {
         try {
-            $extractDoc = new ExtractDocument($this->data);
+            $extractDoc = new ExtractDocument($this->data, $this->password);
             $graph      = Import\ObjectGraphReader::read($extractDoc, 0);
         } catch (\Pop\Pdf\Extract\Exception $e) {
             throw new Exception($e->getMessage(), $e->getCode(), $e);

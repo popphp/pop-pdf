@@ -223,4 +223,63 @@ class ParserTest extends TestCase
         $this->assertStringContainsString('MARKERQ', $output);
     }
 
+    public function testParseFileOpensAnEncryptedPdfGivenTheCorrectPassword()
+    {
+        $source    = __DIR__ . '/../tmp/test-extract.pdf';
+        $encrypted = tempnam(sys_get_temp_dir(), 'parser_enc_test_') . '.pdf';
+
+        exec(
+            'qpdf --encrypt open-me admin123 256 -- ' . escapeshellarg($source) . ' ' . escapeshellarg($encrypted) . ' 2>&1',
+            $out
+        );
+
+        if (!file_exists($encrypted) || (filesize($encrypted) === 0)) {
+            @unlink($encrypted);
+            $this->markTestSkipped('qpdf is not available: ' . implode("\n", $out));
+        }
+
+        // Wrong/missing password must not succeed - proves the fixture
+        // genuinely requires decryption to be read at all.
+        $parserNoPassword = new Parser();
+        try {
+            $parserNoPassword->parseFile($encrypted);
+            $this->fail('Expected an exception when parsing an encrypted PDF without a password.');
+        } catch (\Pop\Pdf\Build\Exception $e) {
+            // expected
+        }
+
+        $parser = new Parser();
+        $doc    = $parser->parseFile($encrypted, null, 'open-me');
+
+        unlink($encrypted);
+
+        $this->assertInstanceOf('Pop\Pdf\Document\AbstractDocument', $doc);
+        $this->assertGreaterThan(0, $doc->getNumberOfPages());
+    }
+
+    public function testParseDataOpensAnEncryptedPdfGivenTheCorrectPassword()
+    {
+        $source    = __DIR__ . '/../tmp/test-extract.pdf';
+        $encrypted = tempnam(sys_get_temp_dir(), 'parser_enc_test_') . '.pdf';
+
+        exec(
+            'qpdf --encrypt open-me admin123 256 -- ' . escapeshellarg($source) . ' ' . escapeshellarg($encrypted) . ' 2>&1',
+            $out
+        );
+
+        if (!file_exists($encrypted) || (filesize($encrypted) === 0)) {
+            @unlink($encrypted);
+            $this->markTestSkipped('qpdf is not available: ' . implode("\n", $out));
+        }
+
+        $data = file_get_contents($encrypted);
+        unlink($encrypted);
+
+        $parser = new Parser();
+        $doc    = $parser->parseData($data, null, 'open-me');
+
+        $this->assertInstanceOf('Pop\Pdf\Document\AbstractDocument', $doc);
+        $this->assertGreaterThan(0, $doc->getNumberOfPages());
+    }
+
 }
