@@ -2,6 +2,7 @@
 
 namespace Pop\Pdf\Test\Build\Security;
 
+use Pop\Pdf\Build\Security\Exception;
 use Pop\Pdf\Build\Security\ObjectCipher;
 use PHPUnit\Framework\TestCase;
 
@@ -44,5 +45,48 @@ class ObjectCipherTest extends TestCase
         $key2 = $method->invoke(null, $fileKey, 2, 0);
 
         $this->assertNotEquals($key1, $key2);
+    }
+
+    public function testDecryptAes256RecoversTheOriginalPlaintext()
+    {
+        $fileKey    = random_bytes(32);
+        $plaintext  = 'Round-trip me through AES-256-CBC.';
+        $ciphertext = ObjectCipher::encryptAes256($fileKey, $plaintext);
+
+        $this->assertEquals($plaintext, ObjectCipher::decryptAes256($fileKey, $ciphertext));
+    }
+
+    public function testDecryptAes128RecoversTheOriginalPlaintextForTheCorrectObject()
+    {
+        $fileKey    = random_bytes(16);
+        $plaintext  = str_repeat('A', 48);
+        $ciphertext = ObjectCipher::encryptAes128($fileKey, 7, 0, $plaintext);
+
+        $this->assertEquals($plaintext, ObjectCipher::decryptAes128($fileKey, 7, 0, $ciphertext));
+    }
+
+    public function testDecryptAes128FailsToRecoverPlaintextForTheWrongObjectNumber()
+    {
+        // Confirms decrypt genuinely uses the per-object key, not just the
+        // file key - decrypting under the wrong object's derived key must not
+        // silently produce the right plaintext. AES-CBC's PKCS#7 padding
+        // check almost always rejects a wrong-key decrypt outright (which
+        // ObjectCipher surfaces as an Exception); on the astronomically
+        // rare chance padding happens to validate anyway, the recovered
+        // bytes still must not equal the original plaintext. Either outcome
+        // proves the per-object key - not just the file key - was used;
+        // if decryption incorrectly ignored the object number and reused
+        // the same key as encryption, this would neither throw nor differ,
+        // and the assertion below would catch that.
+        $fileKey    = random_bytes(16);
+        $plaintext  = str_repeat('B', 48);
+        $ciphertext = ObjectCipher::encryptAes128($fileKey, 7, 0, $plaintext);
+
+        try {
+            $recovered = ObjectCipher::decryptAes128($fileKey, 8, 0, $ciphertext);
+            $this->assertNotEquals($plaintext, $recovered);
+        } catch (Exception $e) {
+            $this->assertStringContainsString('decryption failed', $e->getMessage());
+        }
     }
 }

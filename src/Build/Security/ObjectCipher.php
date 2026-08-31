@@ -76,6 +76,65 @@ class ObjectCipher
     }
 
     /**
+     * Decrypt a buffer for revision 6 (AES-256). Inverse of encryptAes256().
+     *
+     * @param  string $fileKey 32 raw bytes
+     * @param  string $data IV-prefixed ciphertext, as produced by encryptAes256()
+     * @throws Exception
+     * @return string
+     */
+    public static function decryptAes256(string $fileKey, string $data): string
+    {
+        if (strlen($fileKey) !== 32) {
+            throw new Exception('File key for AES-256 must be exactly 32 bytes');
+        }
+        if (strlen($data) < 16) {
+            throw new Exception('Encrypted data is too short to contain an IV');
+        }
+
+        $iv         = substr($data, 0, 16);
+        $ciphertext = substr($data, 16);
+        $plaintext  = openssl_decrypt($ciphertext, 'aes-256-cbc', $fileKey, OPENSSL_RAW_DATA, $iv);
+
+        if ($plaintext === false) {
+            throw new Exception('AES-256 decryption failed');
+        }
+
+        return $plaintext;
+    }
+
+    /**
+     * Decrypt a buffer for revision 4 (AES-128). Inverse of encryptAes128().
+     *
+     * @param  string $fileKey 16 raw bytes
+     * @param  int    $objectNumber
+     * @param  int    $generation
+     * @param  string $data IV-prefixed ciphertext, as produced by encryptAes128()
+     * @throws Exception
+     * @return string
+     */
+    public static function decryptAes128(string $fileKey, int $objectNumber, int $generation, string $data): string
+    {
+        if (strlen($fileKey) !== 16) {
+            throw new Exception('File key for AES-128 must be exactly 16 bytes');
+        }
+        if (strlen($data) < 16) {
+            throw new Exception('Encrypted data is too short to contain an IV');
+        }
+
+        $objectKey  = self::deriveObjectKey($fileKey, $objectNumber, $generation);
+        $iv         = substr($data, 0, 16);
+        $ciphertext = substr($data, 16);
+        $plaintext  = openssl_decrypt($ciphertext, 'aes-128-cbc', $objectKey, OPENSSL_RAW_DATA, $iv);
+
+        if ($plaintext === false) {
+            throw new Exception('AES-128 decryption failed');
+        }
+
+        return $plaintext;
+    }
+
+    /**
      * @param  string $fileKey
      * @param  int    $objectNumber
      * @param  int    $generation
