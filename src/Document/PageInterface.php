@@ -77,23 +77,23 @@ interface PageInterface
     /**
      * Add an image to the PDF page
      *
-     * @param  Page\Image $image
-     * @param  int|float  $x
-     * @param  int|float  $y
+     * @param  Page\Image|string $image
+     * @param  int|float         $x
+     * @param  int|float         $y
      * @return PageInterface
      */
-    public function addImage(Page\Image $image, int|float $x = 0, int|float $y = 0): PageInterface;
+    public function addImage(Page\Image|string $image, int|float $x = 0, int|float $y = 0): PageInterface;
 
     /**
      * Add text to the PDF page
      *
-     * @param  Page\Text $text
-     * @param  string    $fontStyle (can be either a reference to a font or a style)
-     * @param  int|float $x
-     * @param  int|float $y
+     * @param  Page\Text|string $text
+     * @param  string           $fontStyle (can be either a reference to a font or a style)
+     * @param  int|float        $x
+     * @param  int|float        $y
      * @return PageInterface
      */
-    public function addText(Page\Text $text, string $fontStyle, int|float $x = 0, int|float $y = 0): PageInterface;
+    public function addText(Page\Text|string $text, string $fontStyle, int|float $x = 0, int|float $y = 0): PageInterface;
 
     /**
      * Add an annotation to the PDF page
