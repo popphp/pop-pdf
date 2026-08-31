@@ -436,16 +436,24 @@ all; the second is the owner password, which grants full access regardless of th
 above. Either may be omitted (`null`) - an owner password left unset is generated automatically
 so the permissions still can't be bypassed by leaving it blank.
 
-When a document has security set, `Pop\Pdf\Build\Compiler` encrypts everything a reader would
-otherwise be able to read without the password: page content streams, embedded images and
-fonts, and the `/Info` dictionary's title/author/subject/creator/producer/date strings.
+When a document has security set, `Pop\Pdf\Build\Compiler` encrypts every *stream* in the
+document: page content streams, embedded images, and embedded font files. This works with or
+without `setCompression(true)` - compression runs first and encryption wraps whatever bytes the
+filter chain produced.
 
-Two things this does **not** cover yet: annotation and form-field literal strings (a URL
-annotation's target, a form field's `/V` value, and similar) are not encrypted, since they
-aren't built through the same code path - avoid putting sensitive data there in an encrypted
-document for now. And *opening* an already-encrypted PDF - via `importFromFile()`,
-`importRawData()`, `merge()`, or text extraction - is a separate, not-yet-implemented feature;
-this component can currently only produce encrypted PDFs, not read them back in.
+Two things this does **not** cover yet:
+
+- **Literal strings are not encrypted** - none of them, anywhere in the document. That includes
+  the `/Info` dictionary's title/author/subject/creator/producer/date strings, annotation
+  strings (a URL annotation's target and similar), form-field strings (`/T`, `/TU`, `/TM`,
+  `/DA`, `/V`), and an embedded font's `/CIDSystemInfo` entries. The `/Encrypt` dictionary
+  declares this honestly with `/StrF /Identity`, so readers leave them alone rather than
+  corrupting them - but it does mean a title, an author name, a form field's value, or an
+  annotation's URL is readable in an encrypted document without the password. Keep sensitive
+  data out of those for now, and rely on the encryption for page content, images, and fonts.
+- ***Opening* an already-encrypted PDF** - via `importFromFile()`, `importRawData()`,
+  `merge()`, or text extraction - is a separate, not-yet-implemented feature; this component
+  can currently only produce encrypted PDFs, not read them back in.
 
 [Top](#pop-pdf)
 

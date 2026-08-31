@@ -246,6 +246,21 @@ class StreamObject extends AbstractObject
             (!str_contains((string)$this->definition, ' /Image')) && (!str_contains((string)$this->definition, '/FlateDecode'))) {
             $this->stream   = "\n" . gzcompress($this->stream, 9) . "\n";
             $this->encoding = 'FlateDecode';
+
+            // The leading "\n" just added is the mandatory post-"stream"
+            // end-of-line marker (ISO 32000-1 7.3.8.1), not payload - zlib's
+            // own data starts at the byte after it. Recording that here (the
+            // same way parse() does for imported objects) is what lets
+            // Compiler's encryption pass strip it before encrypting: without
+            // it, the "\n" would be encrypted as if it were real deflate
+            // data, and Compiler would then splice a SECOND, uncounted "\n"
+            // in after the "stream" keyword - so a reader would decrypt and
+            // hand FlateDecode a payload with a stray leading 0x0A, failing
+            // with "incorrect header check". The TRAILING "\n" needs no such
+            // treatment: inflate stops at the end of the deflate stream and
+            // ignores trailing bytes, exactly as it already does on the
+            // unencrypted path.
+            $this->leadingEolLength = 1;
         }
     }
 

@@ -693,83 +693,37 @@ class CompilerTest extends TestCase
         $this->assertStringNotContainsString('(Hello World)Tj', $output);
     }
 
-    public function testFinalizeEncryptsInfoDictionaryStringsWhenSecurityIsSet()
-    {
-        $doc = new Document();
-        $doc->addFont(new Font('Arial'));
-        $doc->setSecurity(new Document\Security('open-me', 'admin123'));
-        $doc->setMetadata((new Document\Metadata())->setTitle('Top Secret Title'));
-
-        $page = new Page(Page::LETTER);
-        $doc->addPage($page);
-
-        $compiler = new Compiler();
-        $compiler->finalize($doc);
-        $output = $compiler->getOutput();
-
-        $this->assertStringNotContainsString('Top Secret Title', $output);
-    }
-
-    // Regression pin, integration level, for the CR/LF-normalization bug
-    // found while qpdf-verifying this feature: AES ciphertext is arbitrary
-    // binary and routinely contains raw 0x0D/0x0A bytes, and a compliant
-    // literal-string reader silently normalizes an *unescaped* one
-    // (ISO 32000-1 7.3.4.2), corrupting the AES-CBC block it belongs to on
-    // decrypt. The InfoObjectTest::testEncryptWithEscapesRawCrLfBytesInEncryptedOutput
-    // unit test already pins the escaping behavior deterministically; this
-    // test instead runs the real Compiler encryption pass, with real random
-    // AES output, many times over (both algorithms) and asserts directly on
-    // the compiled output that no raw CR/LF byte ever appears un-escaped
-    // inside the /Info object's literal string values - the actual
-    // ~1/256-odds-per-byte failure mode, rather than only its downstream
-    // symptom (a garbled date qpdf happens to show on one unlucky run).
-    public function testFinalizeNeverLeavesUnescapedCrOrLfInsideInfoDictionaryStringsAcrossManyRuns()
+    // Literal strings are deliberately NOT encrypted in this version -
+    // neither the /Info dictionary's title/author/etc., nor annotation
+    // /Contents, form-field /T, /TU, /TM, /DA, nor an embedded font's
+    // /CIDSystemInfo /Registry and /Ordering. The /Encrypt dictionary says
+    // so with /StrF /Identity (asserted below), which is what keeps the file
+    // internally consistent: encrypting only some string categories while
+    // declaring /StrF /StdCF would have a conforming reader "decrypt" the
+    // plaintext ones too, destroying them.
+    //
+    // InfoObject::encryptWith() is still present, correct, and unit-tested
+    // (tests/Build/PdfObject/InfoObjectTest.php) as infrastructure for a
+    // future change that encrypts every string category at once - it is just
+    // not invoked from the Compiler's encryption pass today.
+    public function testFinalizeLeavesLiteralStringsPlaintextAndDeclaresIdentityStringFilter()
     {
         foreach ([Document\Security::AES_128, Document\Security::AES_256] as $algorithm) {
-            for ($i = 0; $i < 40; $i++) {
-                $doc = new Document();
-                $doc->addFont(new Font('Arial'));
-                $doc->setSecurity(new Document\Security('open-me', 'admin123', null, $algorithm));
-                $doc->setMetadata((new Document\Metadata())
-                    ->setTitle('Top Secret Title')
-                    ->setAuthor('Covert Author')
-                    ->setSubject('Classified Subject')
-                    ->setCreator('Sneaky Creator')
-                    ->setProducer('Stealth Producer'));
+            $doc = new Document();
+            $doc->addFont(new Font('Arial'));
+            $doc->setSecurity(new Document\Security('open-me', 'admin123', null, $algorithm));
+            $doc->setMetadata((new Document\Metadata())->setTitle('A Plaintext Title'));
 
-                $page = new Page(Page::LETTER);
-                $doc->addPage($page);
+            $page = new Page(Page::LETTER);
+            $doc->addPage($page);
 
-                $compiler = new Compiler();
-                $compiler->finalize($doc);
+            $compiler = new Compiler();
+            $compiler->finalize($doc);
+            $output = $compiler->getOutput();
 
-                // Read the encrypted InfoObject's own rendered text directly,
-                // rather than slicing it out of the full compiled byte
-                // stream - the surrounding PDF structure has its own
-                // legitimate raw newlines (between objects, around the
-                // dictionary), and ciphertext can itself coincidentally
-                // contain a literal '>>'/'obj'/'endobj' byte run, so a
-                // text-based extraction from the whole file risks either
-                // false positives or a mis-bounded slice. The dictionary
-                // body - between the fixed, single-line "<<" and ">>" the
-                // template always emits - contains nothing but field names,
-                // punctuation, and the field values themselves, so any raw
-                // CR/LF found there can only have come from an
-                // under-escaped field value.
-                $infoText = (string) $compiler->getInfo();
-                $dictStart = strpos($infoText, '<<') + 2;
-                $dictEnd   = strrpos($infoText, '>>');
-                $dictBody  = substr($infoText, $dictStart, $dictEnd - $dictStart);
-
-                $this->assertStringNotContainsString(
-                    "\r", $dictBody,
-                    "Unescaped raw CR found in {$algorithm} Info dictionary on run {$i}: {$dictBody}"
-                );
-                $this->assertStringNotContainsString(
-                    "\n", $dictBody,
-                    "Unescaped raw LF found in {$algorithm} Info dictionary on run {$i}: {$dictBody}"
-                );
-            }
+            $this->assertStringContainsString('/StmF /StdCF /StrF /Identity', $output);
+            $this->assertStringNotContainsString('/StrF /StdCF', $output);
+            $this->assertStringContainsString('A Plaintext Title', $output);
         }
     }
 
@@ -865,6 +819,194 @@ class CompilerTest extends TestCase
         $compiler->finalize($doc);
 
         $this->assertPassesQpdfCheck($compiler->getOutput(), 'open-me');
+    }
+
+    // Compression and encryption interact: StreamObject::encode() prepends
+    // the mandatory post-"stream" EOL to the deflate output, and the
+    // encryption pass must strip exactly that one byte before encrypting
+    // (Compiler splices its own EOL back in after "stream" once /Length is
+    // computed from the untouched ciphertext). Get it wrong and a reader
+    // decrypts a payload with a stray leading 0x0A and inflate fails with
+    // "incorrect header check" - a failure NO non-qpdf test can see, since
+    // this library's own code never inflates what it just wrote. Every other
+    // encryption test in this file runs with compression off (the Document
+    // default), so these two exist specifically to cover the combination,
+    // alongside an image and an embedded font.
+    public function testFinalizeVerifiesWithQpdfWithCompressionAndEncryptionAes256()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $doc = new Document();
+        $doc->setCompression(true);
+        $doc->addFont(new Font('Arial'));
+        $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/times.ttf'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123', null, Document\Security::AES_256));
+
+        $page = new Page(Page::LETTER);
+        $page->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page->addText(new Page\Text('Hello Compressed World', 36), $doc->getCurrentFont(), 50, 400);
+        $page->addText(new Page\Text('Hello Compressed World', 12), 'Arial', 50, 350);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $decrypted = $this->assertPassesQpdfCheck($compiler->getOutput(), 'open-me');
+
+        // qpdf --check would still pass on a page whose content stream it
+        // could not inflate only if it never tried; asserting the recovered,
+        // inflated content stream back proves it really round-tripped.
+        $this->assertStringContainsString('Hello Compressed World', $decrypted);
+    }
+
+    public function testFinalizeVerifiesWithQpdfWithCompressionAndEncryptionAes128()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $doc = new Document();
+        $doc->setCompression(true);
+        $doc->addFont(new Font('Arial'));
+        $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/times.ttf'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123', null, Document\Security::AES_128));
+
+        $page = new Page(Page::LETTER);
+        $page->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page->addText(new Page\Text('Hello Compressed World', 36), $doc->getCurrentFont(), 50, 400);
+        $page->addText(new Page\Text('Hello Compressed World', 12), 'Arial', 50, 350);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $decrypted = $this->assertPassesQpdfCheck($compiler->getOutput(), 'open-me');
+        $this->assertStringContainsString('Hello Compressed World', $decrypted);
+    }
+
+    // The OWNER password must open the document too, not just the user
+    // password - it is the half of the /O // /U pair that the revision-4
+    // Algorithm 3/7 and revision-6 Algorithm 2.B/9 math is easiest to get
+    // subtly wrong on, since every other test here authenticates with the
+    // user password and would pass with a broken /O.
+    public function testFinalizeVerifiesWithQpdfUsingTheOwnerPasswordAes256()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123', null, Document\Security::AES_256));
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Owner Password World', 12), 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $decrypted = $this->assertPassesQpdfCheck($compiler->getOutput(), 'admin123');
+        $this->assertStringContainsString('Owner Password World', $decrypted);
+    }
+
+    public function testFinalizeVerifiesWithQpdfUsingTheOwnerPasswordAes128()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123', null, Document\Security::AES_128));
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Owner Password World', 12), 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $decrypted = $this->assertPassesQpdfCheck($compiler->getOutput(), 'admin123');
+        $this->assertStringContainsString('Owner Password World', $decrypted);
+    }
+
+    // An embedded font's /CIDSystemInfo carries literal strings
+    // ("(Adobe)"/"(Identity)"), which this version does not encrypt. With
+    // /StrF /Identity declared, a conforming reader leaves them alone and
+    // they survive a decrypt round-trip verbatim - which is exactly what
+    // /StrF /StdCF would have broken, since a reader would have consumed
+    // their first 16 bytes as an AES IV and emptied them out.
+    public function testFinalizeLeavesEmbeddedFontCidSystemInfoStringsIntactThroughQpdf()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        foreach ([Document\Security::AES_128, Document\Security::AES_256] as $algorithm) {
+            $doc = new Document();
+            $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/times.ttf'));
+            $doc->setSecurity(new Document\Security('open-me', 'admin123', null, $algorithm));
+
+            $page = new Page(Page::LETTER);
+            $page->addText(new Page\Text('Embedded Font World', 24), $doc->getCurrentFont(), 50, 600);
+            $doc->addPage($page);
+
+            $compiler = new Compiler();
+            $compiler->finalize($doc);
+            $output = $compiler->getOutput();
+
+            // Plaintext going in ...
+            $this->assertStringContainsString('/Registry (Adobe) /Ordering (Identity)', $output);
+
+            // ... and still readable, unmangled, coming back out of qpdf.
+            $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
+            $this->assertMatchesRegularExpression(
+                '#/Registry\s*\(Adobe\)#', $decrypted,
+                "{$algorithm}: /CIDSystemInfo /Registry was corrupted by the decrypt round-trip."
+            );
+            $this->assertMatchesRegularExpression(
+                '#/Ordering\s*\(Identity\)#', $decrypted,
+                "{$algorithm}: /CIDSystemInfo /Ordering was corrupted by the decrypt round-trip."
+            );
+        }
+    }
+
+    // Everything else here drives Compiler directly; this drives the public
+    // facade end to end, the way an application actually would.
+    public function testPdfWriteToFileProducesAQpdfCleanEncryptedFile()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $doc = new Document();
+        $doc->setCompression(true);
+        $doc->addFont(new Font('Arial'));
+        $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/times.ttf'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123', null, Document\Security::AES_256));
+
+        $page = new Page(Page::LETTER);
+        $page->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page->addText(new Page\Text('Facade World', 24), $doc->getCurrentFont(), 50, 400);
+        // A standard-font run too: embedded-font text is emitted as
+        // hex-encoded glyph ids, so only a standard-font run leaves the
+        // literal string in the content stream for the assertion below.
+        $page->addText(new Page\Text('Facade World', 12), 'Arial', 50, 350);
+        $doc->addPage($page);
+
+        $file = tempnam(sys_get_temp_dir(), 'pop_pdf_facade_test_') . '.pdf';
+        Pdf\Pdf::writeToFile($doc, $file);
+
+        $this->assertFileExists($file);
+        $written = (string)file_get_contents($file);
+        unlink($file);
+
+        $this->assertStringContainsString('/Encrypt', $written);
+        $decrypted = $this->assertPassesQpdfCheck($written, 'open-me');
+        $this->assertStringContainsString('Facade World', $decrypted);
     }
 
     // Build\Parser/Build\Merger deliberately leave a source PDF's declared
