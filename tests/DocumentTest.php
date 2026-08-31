@@ -7,6 +7,7 @@ use Pop\Pdf\Document\Page;
 use Pop\Pdf\Document\Font;
 use Pop\Pdf\Document\Style;
 use Pop\Pdf\Document\Form;
+use Pop\Pdf\Document\Security;
 use PHPUnit\Framework\TestCase;
 
 class DocumentTest extends TestCase
@@ -345,6 +346,21 @@ class DocumentTest extends TestCase
         } finally {
             unlink($fontFile);
         }
+    }
+
+    public function testSetAndGetSecurity()
+    {
+        $doc      = new Document();
+        $security = new Security('open-me');
+
+        $this->assertFalse($doc->hasSecurity());
+        $this->assertNull($doc->getSecurity());
+
+        $result = $doc->setSecurity($security);
+
+        $this->assertSame($doc, $result);
+        $this->assertTrue($doc->hasSecurity());
+        $this->assertSame($security, $doc->getSecurity());
     }
 
 }

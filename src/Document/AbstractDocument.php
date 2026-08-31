@@ -49,6 +49,12 @@ abstract class AbstractDocument implements DocumentInterface
     protected ?Metadata $metadata = null;
 
     /**
+     * Security
+     * @var ?Security
+     */
+    protected ?Security $security = null;
+
+    /**
      * Pages array
      * @var array
      */
@@ -121,6 +127,18 @@ abstract class AbstractDocument implements DocumentInterface
     }
 
     /**
+     * Set the document security/encryption configuration
+     *
+     * @param  Security $security
+     * @return AbstractDocument
+     */
+    public function setSecurity(Security $security): AbstractDocument
+    {
+        $this->security = $security;
+        return $this;
+    }
+
+    /**
      * Set the document origin
      *
      * @param  string $origin
@@ -162,6 +180,26 @@ abstract class AbstractDocument implements DocumentInterface
     public function getMetadata(): ?Metadata
     {
         return $this->metadata;
+    }
+
+    /**
+     * Get the document security/encryption configuration
+     *
+     * @return ?Security
+     */
+    public function getSecurity(): ?Security
+    {
+        return $this->security;
+    }
+
+    /**
+     * Determine whether the document has a security/encryption configuration
+     *
+     * @return bool
+     */
+    public function hasSecurity(): bool
+    {
+        return ($this->security !== null);
     }
 
     /**
