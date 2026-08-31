@@ -16,6 +16,7 @@ namespace Pop\Pdf\Build;
 
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Page\Text;
+use Pop\Pdf\Build\Security as PdfSecurity;
 
 /**
  * Pdf compiler class
@@ -184,19 +185,116 @@ class Compiler extends AbstractCompiler
 
         $this->output .= $rootString;
 
-        // Loop through the rest of the objects, calculate their size and length
-        // for the xref table and add their data to the output.
+        // Raw bytes of the file identifier - used both for the trailer's
+        // /ID (hex-encoded below) and, when the document is encrypted, as
+        // key-derivation/checksum input for AES-128/revision 4 (revision 6
+        // ignores it). Computed once so both uses agree on the same value.
+        $fileId = md5(uniqid((string)mt_rand(), true), true);
+
+        $fileKey     = null;
+        $encryptDict = null;
+        $algorithm   = null;
+
+        if ($document->hasSecurity()) {
+            $security  = $document->getSecurity();
+            $algorithm = $security->getAlgorithm();
+
+            if (($algorithm !== Document\Security::AES_128) && ($algorithm !== Document\Security::AES_256)) {
+                throw new PdfSecurity\Exception(
+                    "Error: Invalid encryption algorithm '{$algorithm}'. Expected '" .
+                    Document\Security::AES_128 . "' or '" . Document\Security::AES_256 . "'."
+                );
+            }
+
+            $built = ($algorithm === Document\Security::AES_128)
+                ? PdfSecurity\StandardSecurityHandler::buildRevision4($security, $fileId)
+                : PdfSecurity\StandardSecurityHandler::buildRevision6($security, $fileId);
+
+            $fileKey     = $built['fileKey'];
+            $encryptDict = $built['dict'];
+        }
+
+        // Per-object compression pass, run to completion before anything is
+        // encrypted - encryption wraps whatever bytes the filter chain
+        // actually produced, so it must never run before compression.
         foreach ($this->objects as $object) {
             if ($object->getIndex() != $this->root->getIndex()) {
                 if (($object instanceof PdfObject\StreamObject) && ($this->compression) && (!$object->isPalette()) &&
                     (!$object->isEncoded() && !$object->isImported() && (stripos((string)$object->getDefinition(), '/length') === false))) {
                     $object->encode();
                 }
+            }
+        }
+
+        // Encryption pass - runs only when the document has security
+        // configured, after compression, and before serialization, so every
+        // stream's on-disk bytes (already run through whatever /Filter chain
+        // applies) are what gets encrypted.
+        if ($fileKey !== null) {
+            foreach ($this->objects as $object) {
+                if (($object->getIndex() == $this->root->getIndex()) || (!($object instanceof PdfObject\StreamObject))) {
+                    continue;
+                }
+                $stream = $object->getStream();
+                if (($stream !== null) && ($stream !== '')) {
+                    $encrypted = ($algorithm === Document\Security::AES_128)
+                        ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $object->getIndex(), 0, $stream)
+                        : PdfSecurity\ObjectCipher::encryptAes256($fileKey, $stream);
+                    $object->setStream($encrypted);
+                }
+            }
+        }
+
+        // Loop through the rest of the objects, calculate their size and length
+        // for the xref table and add their data to the output.
+        foreach ($this->objects as $object) {
+            if ($object->getIndex() != $this->root->getIndex()) {
                 $objectString  = (string)$object;
+
+                // Encrypted stream content is opaque binary with no reason to
+                // start with the end-of-line marker ISO 32000-1 7.3.8.1
+                // requires immediately after the "stream" keyword - and
+                // unlike StreamObject::encode()'s own leading "\n" for
+                // FlateDecode's binary output, that EOL must NOT be part of
+                // what AES-CBC decrypts (an extra byte there desyncs the
+                // whole cipher, corrupting every block). So it is spliced in
+                // here, into the already-rendered string, after /Length has
+                // been computed from the untouched ciphertext - mirroring
+                // how the template's trailing "\nendstream\n" is likewise
+                // never counted in /Length.
+                if (($fileKey !== null) && ($object instanceof PdfObject\StreamObject)) {
+                    $streamContent = $object->getStream();
+                    if (($streamContent !== null) && ($streamContent !== '')) {
+                        $objectString = str_replace("stream" . $streamContent, "stream\n" . $streamContent, $objectString);
+                    }
+                }
+
                 $offsets[$object->getIndex()] = $this->byteLength;
                 $this->output     .= $objectString;
                 $this->byteLength += $this->calculateByteLength($objectString);
             }
+        }
+
+        // Build and append the /Encrypt dictionary object, if the document
+        // is encrypted, before the xref table is built below - it needs an
+        // xref row of its own like any other object, so it must land in
+        // $offsets (and bump the object count) ahead of that computation.
+        $encryptIndex = null;
+
+        if ($encryptDict !== null) {
+            // Built as a raw object string rather than via PdfObject\StreamObject:
+            // that class's __toString() unconditionally rewrites the first
+            // "/Length N" it finds in the definition into the stream's own
+            // byte length (there being no stream here, that clobbers the
+            // dictionary's genuine /Length - the encryption key size in bits -
+            // down to 0, which some readers reject outright for V4/AESV2).
+            $encryptIndex  = $this->lastIndex() + 1;
+            $encryptString = "{$encryptIndex} 0 obj\n" . self::buildEncryptDictBody($algorithm, $encryptDict) .
+                "\nendobj\n\n";
+
+            $offsets[$encryptIndex] = $this->byteLength;
+            $this->output          .= $encryptString;
+            $this->byteLength      += $this->calculateByteLength($encryptString);
         }
 
         $maxObjNum = max(array_keys($offsets));
@@ -210,13 +308,38 @@ class Compiler extends AbstractCompiler
         }
 
         // Finalize the trailer.
-        $id = bin2hex(md5(uniqid((string)mt_rand(), true), true));
+        $idHex      = bin2hex($fileId);
+        $encryptRef = ($encryptIndex !== null) ? "/Encrypt {$encryptIndex} 0 R" : '';
 
         $this->trailer .= "trailer\n<</Size {$numObjs}/Root " . $this->root->getIndex() . " 0 R/Info " .
-            $this->info->getIndex() . " 0 R/ID[<{$id}><{$id}>]>>\nstartxref\n" . ($this->byteLength) . "\n%%EOF";
+            $this->info->getIndex() . " 0 R/ID[<{$idHex}><{$idHex}>]{$encryptRef}>>\nstartxref\n" . ($this->byteLength) . "\n%%EOF";
 
         // Append the trailer to the final output.
         $this->output .= $this->trailer;
+    }
+
+    /**
+     * Build the /Encrypt dictionary body text from either revision's field
+     * array produced by StandardSecurityHandler::buildRevision4()/buildRevision6().
+     *
+     * @param  string $algorithm
+     * @param  array  $dict
+     * @return string
+     */
+    private static function buildEncryptDictBody(string $algorithm, array $dict): string
+    {
+        $hex = fn (string $s): string => '<' . bin2hex($s) . '>';
+
+        if ($algorithm === Document\Security::AES_128) {
+            return '<< /Filter /Standard /V 4 /R 4 /Length 128 ' .
+                '/CF << /StdCF << /CFM /AESV2 /AuthEvent /DocOpen /Length 16 >> >> /StmF /StdCF /StrF /StdCF ' .
+                "/O {$hex($dict['O'])} /U {$hex($dict['U'])} /P {$dict['P']} >>";
+        }
+
+        return '<< /Filter /Standard /V 5 /R 6 /Length 256 ' .
+            '/CF << /StdCF << /CFM /AESV3 /AuthEvent /DocOpen /Length 32 >> >> /StmF /StdCF /StrF /StdCF ' .
+            "/O {$hex($dict['O'])} /U {$hex($dict['U'])} /OE {$hex($dict['OE'])} /UE {$hex($dict['UE'])} " .
+            "/P {$dict['P']} /Perms {$hex($dict['Perms'])} >>";
     }
 
     /**

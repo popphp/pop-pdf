@@ -673,4 +673,82 @@ class CompilerTest extends TestCase
         $compiler->finalize($doc);
     }
 
+    public function testFinalizeEncryptsDocumentWhenSecurityIsSet()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123'));
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Hello World', 12), 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('/Encrypt', $output);
+        // The plaintext page content must not appear literally anymore - it's
+        // now inside an encrypted stream.
+        $this->assertStringNotContainsString('(Hello World)Tj', $output);
+    }
+
+    public function testFinalizeThrowsExceptionForInvalidAlgorithm()
+    {
+        $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
+
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+
+        $security = new Document\Security('open-me', 'admin123');
+        $security->setAlgorithm('BOGUS');
+        $doc->setSecurity($security);
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Hello World', 12), 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+    }
+
+    public function testFinalizeVerifiesWithQpdf()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123'));
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Hello World', 12), 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_encrypt_test_') . '.pdf';
+        file_put_contents($tmpFile, $compiler->getOutput());
+
+        // qpdf --check requires the password whenever a non-empty user
+        // password is set (as it is here) - without one it correctly (and
+        // always) reports "invalid password", even against a PDF qpdf
+        // itself encrypted, so the password must be supplied here too.
+        exec('qpdf --password=open-me --check ' . escapeshellarg($tmpFile) . ' 2>&1', $checkOutput, $checkStatus);
+        exec(
+            'qpdf --password=open-me --decrypt ' . escapeshellarg($tmpFile) . ' ' . escapeshellarg($tmpFile . '.dec') . ' 2>&1',
+            $decryptOutput, $decryptStatus
+        );
+
+        unlink($tmpFile);
+        if (file_exists($tmpFile . '.dec')) {
+            unlink($tmpFile . '.dec');
+        }
+
+        $this->assertEquals(0, $checkStatus, implode("\n", $checkOutput));
+        $this->assertEquals(0, $decryptStatus, implode("\n", $decryptOutput));
+    }
+
 }
