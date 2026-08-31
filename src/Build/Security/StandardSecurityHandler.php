@@ -222,6 +222,127 @@ class StandardSecurityHandler
     }
 
     /**
+     * Verify a candidate password against a revision 4 (AES-128) /Encrypt
+     * dictionary and recover the File Encryption Key. ISO 32000-1 Annex C,
+     * Algorithm 6 (the candidate tried as a USER password), falling back to
+     * Algorithm 7 (tried as an OWNER password) - the exact inverse of
+     * buildRevision4().
+     *
+     * The two paths differ only in how they arrive at the padded user
+     * password that Algorithm 2 consumes. As a user password the candidate
+     * IS that password, padded. As an owner password it is only the key that
+     * unlocks /O, which is where Algorithm 3 stored the padded user password;
+     * once recovered, the owner path is indistinguishable from the user path.
+     * That is the whole mechanism by which an owner password opens a
+     * document without being the user password.
+     *
+     * Only the FIRST 16 bytes of /U are compared. Algorithm 5 fixes /U at 32
+     * bytes but specifies only its first 16 - the remainder is arbitrary
+     * padding. buildRevision4() writes zeros there; qpdf writes random bytes;
+     * both are conforming. Comparing all 32 would pass every round-trip
+     * against this library's own output and then reject every file written by
+     * anyone else, so the truncation is load-bearing rather than cosmetic.
+     *
+     * Unlike openRevision6(), /O and /U are required to be exactly 32 bytes
+     * with no leniency. The over-long /U and /O this class tolerates for
+     * revision 6 are an artifact of the pre-standard Adobe extension level 3
+     * AES-256 revision, which postdates revision 4 entirely; no revision 4
+     * producer is known to pad them, and /O is fed WHOLE into Algorithm 2's
+     * digest, so silently accepting a wrong length would yield a wrong key
+     * and an "incorrect password" error pointing at the wrong problem.
+     *
+     * @param  array<string, string|int> $encryptDict must contain O, U, P (as built by buildRevision4())
+     * @param  string                    $fileId raw bytes of the PDF's first /ID element
+     * @param  string                    $candidatePassword
+     * @throws Exception
+     * @return string 16 raw bytes
+     */
+    public static function openRevision4(array $encryptDict, string $fileId, string $candidatePassword): string
+    {
+        $o = (string)($encryptDict['O'] ?? '');
+        $u = (string)($encryptDict['U'] ?? '');
+
+        if ((strlen($o) != 32) || (strlen($u) != 32) || !isset($encryptDict['P'])) {
+            throw new Exception(
+                'Error: The encryption dictionary is malformed - /O and /U must be 32 bytes and /P must be present.'
+            );
+        }
+
+        $p        = (int)$encryptDict['P'];
+        $expected = substr($u, 0, 16);
+
+        // Algorithm 6 - the candidate treated as the user password.
+        $fileKey = self::deriveRevision4FileKeyFromUserPassword($candidatePassword, $o, $p, $fileId);
+        if (hash_equals($expected, substr(self::computeURevision4($fileKey, $fileId), 0, 16))) {
+            return $fileKey;
+        }
+
+        // Algorithm 7 - the candidate treated as the owner password. Peel the
+        // padded user password out of /O, then re-run the user path on it.
+        $fileKey = self::deriveRevision4FileKey(
+            self::recoverPaddedUserPassword($candidatePassword, $o), $o, $p, $fileId
+        );
+        if (hash_equals($expected, substr(self::computeURevision4($fileKey, $fileId), 0, 16))) {
+            return $fileKey;
+        }
+
+        throw new Exception('Error: The password provided is incorrect for this encrypted PDF.');
+    }
+
+    /**
+     * ISO 32000-1 Annex C, Algorithm 7 - recover the padded USER password out
+     * of the stored /O value given a candidate owner password, by undoing
+     * Algorithm 3's chained RC4 passes.
+     *
+     * Steps (a)-(b) rebuild Algorithm 3's RC4 key from the owner password by
+     * exactly the same route computeORevision4() takes - note the 50-round
+     * loop re-hashes the FULL digest here, unlike Algorithm 2's, which
+     * truncates to the key length first. Step (c) then runs the 19 XOR'd-key
+     * rounds with the counter descending 19 to 1, followed by the unmodified
+     * key, which is how the spec words the reversal.
+     *
+     * That descending order is written out literally to match the spec, but
+     * it is not actually load-bearing, and it is worth recording why so nobody
+     * "fixes" it later. Rc4::crypt() rebuilds its state array from scratch on
+     * every call and its keystream is a pure function of (key, byte position)
+     * - nothing carries over between calls - so over these fixed 32 bytes
+     * Algorithm 3 collapses to
+     *
+     *     O = padded_user_password XOR ks(K) XOR ks(K^1) XOR ... XOR ks(K^19)
+     *
+     * and re-applying the same 20 keys to /O cancels every term, in whatever
+     * order. What IS load-bearing is the SET of round keys - all 20 of them,
+     * no more and no fewer - and that each round consumes the previous
+     * round's output so those keystreams accumulate at all.
+     *
+     * A wrong owner password does not fail here; it simply returns 32
+     * meaningless bytes. Deciding correctness is openRevision4()'s job, via
+     * the /U comparison.
+     *
+     * @param  string $ownerCandidate
+     * @param  string $oValue 32 raw bytes
+     * @param  int    $keyLength RC4 key length in bytes
+     * @return string exactly 32 bytes, the padded user password
+     */
+    protected static function recoverPaddedUserPassword(
+        string $ownerCandidate, string $oValue, int $keyLength = 16
+    ): string
+    {
+        $digest = md5(self::padPassword($ownerCandidate), true);
+        for ($i = 0; $i < self::KEY_ROUNDS; $i++) {
+            $digest = md5($digest, true);
+        }
+        $rc4Key = substr($digest, 0, $keyLength);
+
+        $decrypted = $oValue;
+        for ($round = self::RC4_ROUNDS; $round >= 1; $round--) {
+            $decrypted = Rc4::crypt(self::xorKey($rc4Key, $round), $decrypted);
+        }
+
+        return Rc4::crypt($rc4Key, $decrypted);
+    }
+
+    /**
      * The public entry point for the read path (and this plan's own
      * round-trip test): recover the file key from a candidate user
      * password given the already-computed /O, /P, and file /ID.

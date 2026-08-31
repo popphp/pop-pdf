@@ -869,4 +869,442 @@ class StandardSecurityHandlerTest extends TestCase
         $this->assertEquals(16, strlen($result['fileKey']));
     }
 
+    /**
+     * ISO 32000-1 Annex C, Algorithm 6: derive a candidate file key from the
+     * supplied password via Algorithm 2, re-run Algorithm 5, and compare
+     * against /U. Round-tripping buildRevision4()'s own output proves the
+     * open direction is the exact inverse of the build direction.
+     */
+    public function testOpenRevision4RecoversTheFileKeyWithTheUserPassword()
+    {
+        $security = new Security('open-me', 'admin123');
+        $fileId   = random_bytes(16);
+        $built    = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        $recovered = StandardSecurityHandler::openRevision4($built['dict'], $fileId, 'open-me');
+
+        $this->assertEquals($built['fileKey'], $recovered);
+    }
+
+    /**
+     * ISO 32000-1 Annex C, Algorithm 7: the owner password does not derive
+     * the file key directly - it decrypts /O back to the padded USER
+     * password, which then feeds Algorithm 2. Deleting the owner fallback
+     * from openRevision4() fails this test and nothing else in this file.
+     */
+    public function testOpenRevision4RecoversTheFileKeyWithTheOwnerPassword()
+    {
+        $security = new Security('open-me', 'admin123');
+        $fileId   = random_bytes(16);
+        $built    = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        $recovered = StandardSecurityHandler::openRevision4($built['dict'], $fileId, 'admin123');
+
+        $this->assertEquals($built['fileKey'], $recovered);
+    }
+
+    public function testOpenRevision4ThrowsForAnIncorrectPassword()
+    {
+        $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
+
+        $security = new Security('open-me', 'admin123');
+        $fileId   = random_bytes(16);
+        $built    = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        StandardSecurityHandler::openRevision4($built['dict'], $fileId, 'wrong-password');
+    }
+
+    /**
+     * Algorithm 2 is a pure function of its inputs and will happily return a
+     * 16-byte key for ANY password - the /U comparison is the only thing that
+     * distinguishes right from wrong. An implementation that returned the
+     * derived key without comparing would pass both round-trip tests above
+     * and hand every caller a garbage key for a mistyped password, so pin
+     * that the rejected key is not merely "an error" but specifically not the
+     * real file key.
+     */
+    public function testOpenRevision4RejectsRatherThanReturningAWrongKey()
+    {
+        $security = new Security('open-me', 'admin123');
+        $fileId   = random_bytes(16);
+        $built    = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        $wrongKey = StandardSecurityHandler::deriveRevision4FileKeyFromUserPassword(
+            'wrong-password', $built['dict']['O'], $built['dict']['P'], $fileId
+        );
+
+        $this->assertEquals(16, strlen($wrongKey));
+        $this->assertNotEquals($built['fileKey'], $wrongKey);
+
+        try {
+            StandardSecurityHandler::openRevision4($built['dict'], $fileId, 'wrong-password');
+            $this->fail('openRevision4() accepted an incorrect password');
+        } catch (\Pop\Pdf\Build\Security\Exception $e) {
+            $this->assertStringContainsString('incorrect', $e->getMessage());
+        }
+    }
+
+    /**
+     * ISO 32000-1 Algorithm 5 specifies only the FIRST 16 bytes of /U; the
+     * remaining 16 are arbitrary padding brought along to reach the fixed
+     * 32-byte width. buildRevision4() writes zeros there, but qpdf writes
+     * random bytes and both are conforming - so openRevision4() must compare
+     * 16 bytes, not 32.
+     *
+     * This is the one revision 4 read-path mistake that self-consistency can
+     * never catch: comparing all 32 bytes round-trips perfectly against this
+     * library's own output and rejects every file anyone else wrote. Here the
+     * tail is deliberately overwritten with non-zero bytes, which a 32-byte
+     * comparison would reject and a 16-byte comparison ignores.
+     */
+    public function testOpenRevision4ComparesOnlyTheFirstSixteenBytesOfU()
+    {
+        $security = new Security('open-me', 'admin123');
+        $fileId   = random_bytes(16);
+        $built    = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        $dict = $built['dict'];
+        $this->assertEquals(str_repeat("\x00", 16), substr($dict['U'], 16, 16));
+        $dict['U'] = substr($dict['U'], 0, 16) . random_bytes(16);
+        $this->assertEquals(32, strlen($dict['U']));
+
+        $this->assertEquals($built['fileKey'], StandardSecurityHandler::openRevision4($dict, $fileId, 'open-me'));
+        $this->assertEquals($built['fileKey'], StandardSecurityHandler::openRevision4($dict, $fileId, 'admin123'));
+    }
+
+    /**
+     * A malformed /Encrypt dictionary is a read-path input coming straight
+     * off disk. It must produce a clear exception rather than a silent
+     * "incorrect password", which would send a caller hunting for the wrong
+     * problem entirely - /O in particular is fed WHOLE into Algorithm 2's
+     * digest, so a wrong-length /O yields a wrong key with no other symptom.
+     *
+     * Note revision 4 gets none of the over-long /U and /O leniency
+     * openRevision6() allows: that padding quirk belongs to the pre-standard
+     * Adobe extension level 3 AES-256 revision, which postdates revision 4.
+     */
+    public function testOpenRevision4ThrowsForAMalformedEncryptDictionary()
+    {
+        $fileId = random_bytes(16);
+
+        $cases = [
+            'short /O'   => ['O' => random_bytes(20), 'U' => random_bytes(32), 'P' => -1],
+            'long /O'    => ['O' => random_bytes(48), 'U' => random_bytes(32), 'P' => -1],
+            'short /U'   => ['O' => random_bytes(32), 'U' => random_bytes(16), 'P' => -1],
+            'long /U'    => ['O' => random_bytes(32), 'U' => random_bytes(48), 'P' => -1],
+            'missing /P' => ['O' => random_bytes(32), 'U' => random_bytes(32)],
+        ];
+
+        foreach ($cases as $label => $dict) {
+            try {
+                StandardSecurityHandler::openRevision4($dict, $fileId, 'open-me');
+                $this->fail('openRevision4() accepted a malformed dictionary: ' . $label);
+            } catch (\Pop\Pdf\Build\Security\Exception $e) {
+                $this->assertStringContainsString('malformed', $e->getMessage(), $label);
+            }
+        }
+    }
+
+    /**
+     * An absent user password means the document opens with the EMPTY
+     * password - the case every reader hits first on an owner-password-only
+     * document, and the one an implementation that treated '' as "no password
+     * supplied" would get wrong.
+     */
+    public function testOpenRevision4OpensAnOwnerOnlyDocumentWithTheEmptyPassword()
+    {
+        $security = new Security(null, 'admin123');
+        $fileId   = random_bytes(16);
+        $built    = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        $this->assertEquals($built['fileKey'], StandardSecurityHandler::openRevision4($built['dict'], $fileId, ''));
+        $this->assertEquals(
+            $built['fileKey'], StandardSecurityHandler::openRevision4($built['dict'], $fileId, 'admin123')
+        );
+    }
+
+    /**
+     * ISO 32000-1 Algorithm 2 step (a): revision 4 passwords are padded or
+     * TRUNCATED to exactly 32 bytes. openRevision4() must apply the identical
+     * truncation on both paths or a password longer than 32 bytes could never
+     * reopen a document this library had just written.
+     *
+     * The tail past byte 32 is deliberately distinct from the repeated prefix
+     * so that "only the first 32 bytes count" is the explicit subject rather
+     * than an accident of a uniform password.
+     */
+    public function testOpenRevision4TruncatesBothPasswordsTo32Bytes()
+    {
+        $longUser  = str_repeat('u', 40) . 'USER-TAIL';
+        $longOwner = str_repeat('o', 40) . 'OWNER-TAIL';
+        $security  = new Security($longUser, $longOwner);
+        $fileId    = random_bytes(16);
+        $built     = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        $this->assertEquals($built['fileKey'], StandardSecurityHandler::openRevision4($built['dict'], $fileId, $longUser));
+        $this->assertEquals($built['fileKey'], StandardSecurityHandler::openRevision4($built['dict'], $fileId, $longOwner));
+
+        // ...and anything sharing those first 32 bytes opens it too, which is
+        // what truncation MEANS - on the owner path as much as the user one.
+        $this->assertEquals(
+            $built['fileKey'],
+            StandardSecurityHandler::openRevision4($built['dict'], $fileId, str_repeat('u', 32) . 'DIFFERENT')
+        );
+        $this->assertEquals(
+            $built['fileKey'],
+            StandardSecurityHandler::openRevision4($built['dict'], $fileId, str_repeat('o', 32) . 'DIFFERENT')
+        );
+    }
+
+    /**
+     * The file key is bound to /P and the file /ID (Algorithm 2) and to the
+     * document /ID again through /U (Algorithm 5). Opening with a /P or /ID
+     * that is not the one the file was built with must therefore FAIL rather
+     * than quietly return a plausible 16 bytes - which is exactly what would
+     * happen if openRevision4() skipped the /U comparison.
+     */
+    public function testOpenRevision4FailsWhenPOrTheFileIdDoesNotMatch()
+    {
+        $security = new Security('open-me', 'admin123');
+        $fileId   = random_bytes(16);
+        $built    = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        $tamperedP       = $built['dict'];
+        $tamperedP['P']  = -4000;
+
+        foreach ([[$tamperedP, $fileId], [$built['dict'], random_bytes(16)]] as [$dict, $id]) {
+            foreach (['open-me', 'admin123'] as $password) {
+                try {
+                    StandardSecurityHandler::openRevision4($dict, $id, $password);
+                    $this->fail('openRevision4() accepted a mismatched /P or /ID');
+                } catch (\Pop\Pdf\Build\Security\Exception $e) {
+                    $this->assertStringContainsString('incorrect', $e->getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * An independent replay of Algorithm 7, deliberately running the 19
+     * XOR'd-key rounds in ASCENDING order while recoverPaddedUserPassword()
+     * runs them descending as the spec words it. Both must land on the padded
+     * user password, which is what makes the order genuinely irrelevant
+     * rather than merely asserted in a docblock: Rc4::crypt() rebuilds its
+     * state per call, so the chain is a commutative XOR of 20 keystreams.
+     *
+     * The second half then pins that openRevision4()'s owner path really does
+     * route through that recovered password - the key it returns is exactly
+     * the one Algorithm 2 produces from these recovered bytes.
+     */
+    public function testOpenRevision4OwnerPathRoutesThroughTheRecoveredPaddedUserPassword()
+    {
+        $security = new Security('open-me', 'admin123');
+        $fileId   = random_bytes(16);
+        $built    = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        $rc4Key    = $this->oRc4Key('admin123');
+        $recovered = Rc4::crypt($rc4Key, $built['dict']['O']);
+        for ($round = 1; $round <= 19; $round++) {
+            $recovered = Rc4::crypt($this->xorKey($rc4Key, $round), $recovered);
+        }
+
+        $this->assertEquals($this->pad('open-me'), $recovered);
+
+        // Algorithm 2 over the recovered padded password is the file key the
+        // owner path must return.
+        $digest = md5($recovered . $built['dict']['O'] . pack('V', $built['dict']['P'] & 0xFFFFFFFF) . $fileId, true);
+        for ($i = 0; $i < 50; $i++) {
+            $digest = md5(substr($digest, 0, 16), true);
+        }
+
+        $this->assertEquals(
+            substr($digest, 0, 16),
+            StandardSecurityHandler::openRevision4($built['dict'], $fileId, 'admin123')
+        );
+    }
+
+    /**
+     * The interoperability test that actually matters: open an AES-128 /
+     * revision 4 file that qpdf - an entirely independent implementation -
+     * encrypted, and which this library never wrote a byte of. Self-
+     * consistency with buildRevision4() cannot catch a shared misreading of
+     * Algorithms 2/3/5 (a mis-ordered digest input, big-endian /P, the wrong
+     * 50-round truncation rule, a full-32-byte /U comparison); this can.
+     *
+     * And it does not stop at "both passwords produced the same 16 bytes" -
+     * two identically-wrong paths would satisfy that. The recovered key is
+     * used to actually decrypt the page content stream (Algorithm 1's
+     * per-object key, then AES-128-CBC with the leading 16 bytes as the IV,
+     * then Flate) and the result is checked for real PDF text-showing
+     * operators. Nothing but the true file encryption key produces those.
+     */
+    public function testOpenRevision4RecoversTheFileKeyFromAQpdfEncryptedFile()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        // Not tempnam(): tempnam() creates a file AT the path it returns, so
+        // appending '.pdf' to it leaves that original file orphaned in the
+        // temp dir on every run. The try/finally guarantees both are removed
+        // even when an assertion below throws.
+        $source = sys_get_temp_dir() . '/pop_pdf_r4_src_' . uniqid() . '.pdf';
+        $target = sys_get_temp_dir() . '/pop_pdf_r4_enc_' . uniqid() . '.pdf';
+
+        try {
+            copy(__DIR__ . '/../../tmp/test-extract.pdf', $source);
+
+            // --use-aes=y is required, not decorative: without it qpdf 12
+            // would emit RC4 (/CFM /V2) for a 128-bit key, and refuses to
+            // write that at all without --allow-weak-crypto.
+            exec(
+                'qpdf --encrypt open-me admin123 128 --use-aes=y -- ' . escapeshellarg($source) . ' ' .
+                escapeshellarg($target) . ' 2>&1',
+                $output, $status
+            );
+            $this->assertEquals(0, $status, implode("\n", $output));
+
+            $pdfData = (string)file_get_contents($target);
+        } finally {
+            foreach ([$source, $target] as $file) {
+                if (file_exists($file)) {
+                    unlink($file);
+                }
+            }
+        }
+
+        $dict   = $this->extractR4EncryptDict($pdfData);
+        $fileId = $this->extractFirstFileId($pdfData);
+
+        $fromUser  = StandardSecurityHandler::openRevision4($dict, $fileId, 'open-me');
+        $fromOwner = StandardSecurityHandler::openRevision4($dict, $fileId, 'admin123');
+
+        $this->assertEquals(16, strlen($fromUser));
+        $this->assertEquals($fromUser, $fromOwner);
+
+        // qpdf fills /U's trailing 16 bytes with non-zero data where this
+        // library writes zeros. That is what makes the 16-byte comparison in
+        // openRevision4() load-bearing, so assert the fixture really does
+        // exercise it rather than trusting that it happens to.
+        $this->assertNotEquals(str_repeat("\x00", 16), substr((string)$dict['U'], 16, 16));
+
+        // Decrypt object 6, the page content stream, with the recovered key.
+        $decrypted = $this->decryptAesV2Stream($pdfData, 6, $fromUser);
+        $this->assertNotFalse($decrypted, 'AES-128-CBC decryption of the content stream failed');
+
+        $content = @gzuncompress((string)$decrypted);
+        $this->assertNotFalse($content, 'the decrypted content stream did not inflate');
+        $this->assertStringContainsString('BT', (string)$content);
+        $this->assertStringContainsString('Tf', (string)$content);
+        $this->assertStringContainsString('re', (string)$content);
+
+        // The negative control: a near-miss key must NOT produce readable
+        // content, or the assertions above would prove nothing.
+        $wrongKey = $fromUser;
+        $wrongKey[0] = chr(ord($wrongKey[0]) ^ 0xFF);
+        $this->assertFalse(@gzuncompress((string)$this->decryptAesV2Stream($pdfData, 6, $wrongKey)));
+
+        $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
+        StandardSecurityHandler::openRevision4($dict, $fileId, 'not-the-password');
+    }
+
+    /**
+     * Pull /O, /U and /P out of a raw PDF's Standard security handler
+     * dictionary, asserting on the way that the file really is revision 4 /
+     * AES-128 - otherwise a change in qpdf's defaults could silently downgrade
+     * the fixture to RC4 or revision 3 and the test above would still pass
+     * while checking something else.
+     *
+     * Deliberately a small hand-rolled scan rather than anything from src/:
+     * the point of the fixture test is to depend on as little of this library
+     * as possible. The dictionary is located by following the trailer's
+     * /Encrypt reference rather than by scanning forward from /Filter
+     * /Standard, because qpdf sorts the keys and /CF therefore lands BEFORE
+     * /Filter - a forward-only window would miss the very /CFM this method
+     * exists to check.
+     *
+     * @param  string $pdfData
+     * @return array<string, string|int>
+     */
+    protected function extractR4EncryptDict(string $pdfData): array
+    {
+        $this->assertEquals(1, preg_match('#/Encrypt\s+(\d+)\s+0\s+R#', $pdfData, $ref), 'no /Encrypt in trailer');
+        $this->assertEquals(
+            1,
+            preg_match('#[\r\n]' . $ref[1] . '\s+0\s+obj\s*(<<.*?>>)\s*endobj#s', $pdfData, $m),
+            'the /Encrypt object was not found'
+        );
+        $encrypt = $m[1];
+        $this->assertStringContainsString('/Filter /Standard', $encrypt);
+
+        $dict = [];
+        foreach (['O', 'U'] as $key) {
+            $this->assertEquals(
+                1, preg_match('#/' . $key . '\s*<([0-9A-Fa-f]+)>#', $encrypt, $found), "no /{$key} in /Encrypt"
+            );
+            $dict[$key] = (string)hex2bin($found[1]);
+            $this->assertEquals(32, strlen((string)$dict[$key]), "/{$key} is not 32 bytes");
+        }
+
+        $this->assertEquals(1, preg_match('#/P\s+(-?\d+)#', $encrypt, $p), 'no /P in /Encrypt');
+        $dict['P'] = (int)$p[1];
+
+        $this->assertEquals(1, preg_match('#/R\s+(\d+)#', $encrypt, $r), 'no /R in /Encrypt');
+        $this->assertEquals(4, (int)$r[1], 'fixture is not revision 4');
+        $this->assertEquals(1, preg_match('#/V\s+(\d+)#', $encrypt, $v), 'no /V in /Encrypt');
+        $this->assertEquals(4, (int)$v[1], 'fixture is not /V 4');
+        $this->assertStringContainsString('/CFM /AESV2', $encrypt, 'fixture is not AES-128');
+
+        // Algorithm 2 step (f) appends 0xFFFFFFFF when metadata is left
+        // unencrypted, which this handler does not implement. Assert the
+        // fixture does not quietly wander into that case.
+        $this->assertStringNotContainsString('/EncryptMetadata false', $encrypt);
+
+        return $dict;
+    }
+
+    /**
+     * The first element of the trailer's /ID array, which Algorithm 2 mixes
+     * into the file key and Algorithm 5 into /U.
+     */
+    protected function extractFirstFileId(string $pdfData): string
+    {
+        $this->assertEquals(1, preg_match('#/ID\s*\[\s*<([0-9A-Fa-f]+)>#', $pdfData, $m), 'no /ID in trailer');
+
+        return (string)hex2bin($m[1]);
+    }
+
+    /**
+     * Decrypt one top-level stream object out of a raw AESV2-encrypted PDF,
+     * given the file encryption key.
+     *
+     * ISO 32000-1 Algorithm 1: the per-object key is MD5 of the file key,
+     * the object number as three low-order-first bytes, the generation number
+     * as two, and - for AES only - the four extra bytes 0x73 0x41 0x6C 0x54
+     * ("sAlT"), truncated to min(keyLength + 5, 16) bytes, which is 16 here.
+     * The stream's leading 16 bytes are the CBC initialization vector.
+     *
+     * @return string|false
+     */
+    protected function decryptAesV2Stream(string $pdfData, int $objectNumber, string $fileKey)
+    {
+        $pattern = '#[\r\n]' . $objectNumber . '\s+0\s+obj\s*(<<.*?>>)\s*stream\r?\n#s';
+        $this->assertEquals(1, preg_match($pattern, $pdfData, $m, PREG_OFFSET_CAPTURE), 'stream object not found');
+        $this->assertEquals(1, preg_match('#/Length\s+(\d+)#', $m[1][0], $length), 'stream has no /Length');
+        $this->assertStringContainsString('/FlateDecode', $m[1][0]);
+
+        $raw = substr($pdfData, $m[0][1] + strlen($m[0][0]), (int)$length[1]);
+        $this->assertEquals((int)$length[1], strlen($raw));
+
+        $objectKey = substr(
+            md5(
+                $fileKey . substr(pack('V', $objectNumber), 0, 3) . substr(pack('V', 0), 0, 2) . "\x73\x41\x6C\x54",
+                true
+            ),
+            0, 16
+        );
+
+        return openssl_decrypt(substr($raw, 16), 'aes-128-cbc', $objectKey, OPENSSL_RAW_DATA, substr($raw, 0, 16));
+    }
+
 }
