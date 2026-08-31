@@ -4,6 +4,7 @@ namespace Pop\Pdf\Test\Build\PdfObject;
 
 use Pop\Pdf\Build\PdfObject\InfoObject;
 use Pop\Pdf\Document\Metadata;
+use Pop\Pdf\Document\Page\Text;
 use PHPUnit\Framework\TestCase;
 
 class InfoObjectTest extends TestCase
@@ -77,6 +78,42 @@ class InfoObjectTest extends TestCase
         $this->assertStringContainsString('/Author(Pop PDF)', $result);
         $this->assertStringContainsString('/Subject(Pop PDF)', $result);
         $this->assertStringContainsString('/Producer(Pop PDF)', $result);
+    }
+
+    public function testEncryptWithEscapesRawCrLfBytesInEncryptedOutput()
+    {
+        // Regression pin for the bug found while qpdf-verifying Task 10:
+        // AES ciphertext is arbitrary binary and routinely contains raw
+        // 0x0D/0x0A bytes. A compliant literal-string reader normalizes an
+        // *unescaped* CR (or CR/LF pair) to a bare LF (ISO 32000-1 7.3.4.2),
+        // silently altering the byte and corrupting the whole AES-CBC block
+        // it belongs to once decrypted. This test uses a deterministic fake
+        // "encryptor" (rather than real, randomized AES output) so it pins
+        // the escaping behavior itself, not a ~1/256-per-byte chance of the
+        // real cipher happening to emit a CR/LF in a given run.
+        $rawCipherBytes = "\\(\r\n)";
+
+        $info = new InfoObject(3, (new Metadata())->setTitle('T'));
+        $info->encryptWith(function (string $data) use ($rawCipherBytes): string {
+            // Raw bytes a real cipher could plausibly emit: backslash,
+            // parens, CR, and LF, none of them escaped by the encryptor
+            // itself - escaping is InfoObject::encryptWith()'s job.
+            return $rawCipherBytes;
+        });
+
+        $result = (string) $info;
+
+        // The unescaped raw ciphertext must never appear as-is inside the
+        // literal string - that's exactly the shape that would trigger a
+        // reader's CR/LF normalization and corrupt the decrypted bytes.
+        $this->assertStringNotContainsString('/Title(' . $rawCipherBytes . ')', $result);
+
+        // What must appear instead is the ciphertext run through the same
+        // escaping Text::escape() already applies everywhere else in this
+        // codebase that emits a literal PDF string - tying InfoObject's
+        // actual wiring to that shared convention, not a private,
+        // independently-maintained (and, as found here, incomplete) one.
+        $this->assertStringContainsString('/Title(' . Text::escape($rawCipherBytes) . ')', $result);
     }
 
 }

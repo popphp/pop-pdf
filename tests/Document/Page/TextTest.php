@@ -234,6 +234,25 @@ class TextTest extends TestCase
         $this->assertEquals('Before \b After', Text::escape('Before ' . chr(8) . ' After'));
     }
 
+    public function testEscapeConvertsRawCarriageReturnAndLineFeedBytes()
+    {
+        // Regression pin: Build\PdfObject\InfoObject::encryptWith() relies on
+        // this method to keep raw CR (0x0D) and LF (0x0A) bytes out of an
+        // encrypted literal PDF string - ciphertext is arbitrary binary and
+        // routinely contains both. A compliant reader normalizes an
+        // *unescaped* CR (or CR/LF pair) in a literal string to a bare LF
+        // per ISO 32000-1 7.3.4.2, silently altering the byte and, for an
+        // encrypted string, corrupting the whole AES-CBC block it belongs
+        // to. If either mapping below were ever dropped from the search/
+        // replace list, that corruption would return with roughly 1/256
+        // odds per encrypted byte - low enough to pass ordinary testing by
+        // chance, which is exactly why this needs its own explicit pin
+        // rather than relying on a symptom-level test to catch it.
+        $this->assertEquals('Before \r After', Text::escape("Before \r After"));
+        $this->assertEquals('Before \n After', Text::escape("Before \n After"));
+        $this->assertEquals('\r\n', Text::escape("\r\n"));
+    }
+
     public function testSetStringsConvertsMultibyteStringsAndTextObjects()
     {
         // Both branches of setStrings()'s array_map() closure convert a

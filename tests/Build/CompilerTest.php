@@ -710,6 +710,69 @@ class CompilerTest extends TestCase
         $this->assertStringNotContainsString('Top Secret Title', $output);
     }
 
+    // Regression pin, integration level, for the CR/LF-normalization bug
+    // found while qpdf-verifying this feature: AES ciphertext is arbitrary
+    // binary and routinely contains raw 0x0D/0x0A bytes, and a compliant
+    // literal-string reader silently normalizes an *unescaped* one
+    // (ISO 32000-1 7.3.4.2), corrupting the AES-CBC block it belongs to on
+    // decrypt. The InfoObjectTest::testEncryptWithEscapesRawCrLfBytesInEncryptedOutput
+    // unit test already pins the escaping behavior deterministically; this
+    // test instead runs the real Compiler encryption pass, with real random
+    // AES output, many times over (both algorithms) and asserts directly on
+    // the compiled output that no raw CR/LF byte ever appears un-escaped
+    // inside the /Info object's literal string values - the actual
+    // ~1/256-odds-per-byte failure mode, rather than only its downstream
+    // symptom (a garbled date qpdf happens to show on one unlucky run).
+    public function testFinalizeNeverLeavesUnescapedCrOrLfInsideInfoDictionaryStringsAcrossManyRuns()
+    {
+        foreach ([Document\Security::AES_128, Document\Security::AES_256] as $algorithm) {
+            for ($i = 0; $i < 40; $i++) {
+                $doc = new Document();
+                $doc->addFont(new Font('Arial'));
+                $doc->setSecurity(new Document\Security('open-me', 'admin123', null, $algorithm));
+                $doc->setMetadata((new Document\Metadata())
+                    ->setTitle('Top Secret Title')
+                    ->setAuthor('Covert Author')
+                    ->setSubject('Classified Subject')
+                    ->setCreator('Sneaky Creator')
+                    ->setProducer('Stealth Producer'));
+
+                $page = new Page(Page::LETTER);
+                $doc->addPage($page);
+
+                $compiler = new Compiler();
+                $compiler->finalize($doc);
+
+                // Read the encrypted InfoObject's own rendered text directly,
+                // rather than slicing it out of the full compiled byte
+                // stream - the surrounding PDF structure has its own
+                // legitimate raw newlines (between objects, around the
+                // dictionary), and ciphertext can itself coincidentally
+                // contain a literal '>>'/'obj'/'endobj' byte run, so a
+                // text-based extraction from the whole file risks either
+                // false positives or a mis-bounded slice. The dictionary
+                // body - between the fixed, single-line "<<" and ">>" the
+                // template always emits - contains nothing but field names,
+                // punctuation, and the field values themselves, so any raw
+                // CR/LF found there can only have come from an
+                // under-escaped field value.
+                $infoText = (string) $compiler->getInfo();
+                $dictStart = strpos($infoText, '<<') + 2;
+                $dictEnd   = strrpos($infoText, '>>');
+                $dictBody  = substr($infoText, $dictStart, $dictEnd - $dictStart);
+
+                $this->assertStringNotContainsString(
+                    "\r", $dictBody,
+                    "Unescaped raw CR found in {$algorithm} Info dictionary on run {$i}: {$dictBody}"
+                );
+                $this->assertStringNotContainsString(
+                    "\n", $dictBody,
+                    "Unescaped raw LF found in {$algorithm} Info dictionary on run {$i}: {$dictBody}"
+                );
+            }
+        }
+    }
+
     public function testFinalizeThrowsExceptionForInvalidAlgorithm()
     {
         $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
