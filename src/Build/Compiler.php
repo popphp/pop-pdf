@@ -237,10 +237,50 @@ class Compiler extends AbstractCompiler
                 }
                 $stream = $object->getStream();
                 if (($stream !== null) && ($stream !== '')) {
+                    $definition = (string)$object->getDefinition();
+
+                    // Objects built via StreamObject::parse() (images,
+                    // embedded font files, palettes, and anything else with
+                    // a pre-existing literal /Length) retain, as part of
+                    // their stored stream, the leading end-of-line marker
+                    // captured from the original "stream\n<data>" text
+                    // alongside the real payload (see parse()'s
+                    // $leadingEolLength handling) - a structural artifact of
+                    // round-tripping, not real content. Only the declared
+                    // /Length worth of TRAILING bytes is genuine payload;
+                    // encrypting the leading byte(s) too would return them,
+                    // scrambled, as part of what a reader decrypts and then
+                    // feeds to DCTDecode/FlateDecode/etc. as if they were
+                    // real data. Ordinary content-stream objects (built via
+                    // direct appendStream() calls, never parse()) have no
+                    // declared /Length yet at this point in finalize(), so
+                    // they fall through unchanged - their whole $stream is
+                    // genuine content.
+                    $payload = $stream;
+                    if ((preg_match('/\/Length\s+(\d+)/', $definition, $lengthMatch) === 1) &&
+                        ((int)$lengthMatch[1] < strlen($stream))) {
+                        $payload = substr($stream, -(int)$lengthMatch[1]);
+                    }
+
                     $encrypted = ($algorithm === Document\Security::AES_128)
-                        ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $object->getIndex(), 0, $stream)
-                        : PdfSecurity\ObjectCipher::encryptAes256($fileKey, $stream);
+                        ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $object->getIndex(), 0, $payload)
+                        : PdfSecurity\ObjectCipher::encryptAes256($fileKey, $payload);
                     $object->setStream($encrypted);
+
+                    // StreamObject::__toString() deliberately leaves /Length
+                    // untouched for Image and Length1 (embedded font file)
+                    // objects, since those declare it explicitly rather than
+                    // having it recomputed from the stream. Encryption
+                    // always changes the on-disk byte count (16-byte IV +
+                    // PKCS#7 padding), so those object types need their
+                    // declared /Length corrected here explicitly - otherwise
+                    // a reader is handed a stale, too-short length and a
+                    // non-block-aligned ciphertext buffer.
+                    if (preg_match('/\/Length\s+\d+/', $definition) === 1) {
+                        $object->setDefinition(
+                            preg_replace('/\/Length\s+\d+/', '/Length ' . strlen($encrypted), $definition, 1)
+                        );
+                    }
                 }
             }
         }

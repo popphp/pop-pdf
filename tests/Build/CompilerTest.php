@@ -729,16 +729,88 @@ class CompilerTest extends TestCase
         $compiler = new Compiler();
         $compiler->finalize($doc);
 
-        $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_encrypt_test_') . '.pdf';
-        file_put_contents($tmpFile, $compiler->getOutput());
+        $this->assertPassesQpdfCheck($compiler->getOutput(), 'open-me');
+    }
 
-        // qpdf --check requires the password whenever a non-empty user
-        // password is set (as it is here) - without one it correctly (and
-        // always) reports "invalid password", even against a PDF qpdf
-        // itself encrypted, so the password must be supplied here too.
-        exec('qpdf --password=open-me --check ' . escapeshellarg($tmpFile) . ' 2>&1', $checkOutput, $checkStatus);
+    // Image XObjects and embedded font files are built via
+    // PdfObject\StreamObject::parse() rather than direct appendStream()
+    // calls, and (unlike ordinary text-content streams) declare a literal
+    // /Length up front. That shape was the one the encryption pass initially
+    // got wrong - a text-only document never exercises it, so this test
+    // deliberately embeds a TrueType font and a JPEG image alongside text,
+    // for both AES-128/revision 4 and AES-256/revision 6, and verifies with
+    // real qpdf rather than only round-tripping through this library's own
+    // code.
+    public function testFinalizeVerifiesWithQpdfIncludingImageAndEmbeddedFontAes256()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/times.ttf'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123', null, Document\Security::AES_256));
+
+        $page = new Page(Page::LETTER);
+        $page->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page->addText(new Page\Text('Hello World', 36), $doc->getCurrentFont(), 50, 400);
+        $page->addText(new Page\Text('Hello World', 12), 'Arial', 50, 350);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertPassesQpdfCheck($compiler->getOutput(), 'open-me');
+    }
+
+    public function testFinalizeVerifiesWithQpdfIncludingImageAndEmbeddedFontAes128()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/times.ttf'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123', null, Document\Security::AES_128));
+
+        $page = new Page(Page::LETTER);
+        $page->addImage(Page\Image::createImageFromFile(__DIR__ . '/../tmp/images/logo-rgb.jpg'), 50, 600);
+        $page->addText(new Page\Text('Hello World', 36), $doc->getCurrentFont(), 50, 400);
+        $page->addText(new Page\Text('Hello World', 12), 'Arial', 50, 350);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+
+        $this->assertPassesQpdfCheck($compiler->getOutput(), 'open-me');
+    }
+
+    /**
+     * Write $pdfData to a temp file and assert both `qpdf --check` and
+     * `qpdf --decrypt` succeed against it with the given user password.
+     * qpdf --check requires the password whenever a non-empty user password
+     * is set (as it is here) - without one it correctly (and always) reports
+     * "invalid password", even against a PDF qpdf itself encrypted, so the
+     * password is supplied to both invocations.
+     *
+     * @param  string $pdfData
+     * @param  string $password
+     * @return void
+     */
+    protected function assertPassesQpdfCheck(string $pdfData, string $password): void
+    {
+        $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_encrypt_test_') . '.pdf';
+        file_put_contents($tmpFile, $pdfData);
+
         exec(
-            'qpdf --password=open-me --decrypt ' . escapeshellarg($tmpFile) . ' ' . escapeshellarg($tmpFile . '.dec') . ' 2>&1',
+            'qpdf --password=' . escapeshellarg($password) . ' --check ' . escapeshellarg($tmpFile) . ' 2>&1',
+            $checkOutput, $checkStatus
+        );
+        exec(
+            'qpdf --password=' . escapeshellarg($password) . ' --decrypt ' . escapeshellarg($tmpFile) . ' ' .
+            escapeshellarg($tmpFile . '.dec') . ' 2>&1',
             $decryptOutput, $decryptStatus
         );
 
