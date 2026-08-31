@@ -121,24 +121,35 @@ class Parser
      *
      * Instantiate the HTML parser object
      *
-     * @param Document $document
+     * @param Document          $document
+     * @param string|array|null $pageSize
      */
-    public function __construct(Document $document = new Document())
+    public function __construct(Document $document = new Document(), string|array|null $pageSize = null)
     {
         $this->setDocument($document);
         $this->createDefaultStyles();
+        if ($pageSize !== null) {
+            if (is_array($pageSize) && (count($pageSize) == 2)) {
+                $this->setPageSize($pageSize[0], $pageSize[1]);
+            } else {
+                $this->setPageSize($pageSize);
+            }
+        }
     }
 
     /**
      * Parse HTML string
      *
-     * @param  string   $htmlString
-     * @param  Document $document
+     * @param  string            $htmlString
+     * @param  Document          $document
+     * @param  string|array|null $pageSize
      * @return Parser
      */
-    public static function parseString(string $htmlString, Document $document = new Document()): Parser
+    public static function parseString(
+        string $htmlString, Document $document = new Document(), string|array|null $pageSize = null
+    ): Parser
     {
-        $html = new self($document);
+        $html = new self($document, $pageSize);
         $html->parseHtml($htmlString);
 
         return $html;
@@ -147,14 +158,17 @@ class Parser
     /**
      * Parse $html from file
      *
-     * @param  string   $htmlFile
-     * @param  Document $document
+     * @param  string            $htmlFile
+     * @param  Document          $document
+     * @param  string|array|null $pageSize
      * @throws Exception
      * @return Parser
      */
-    public static function parseFile(string $htmlFile, Document $document = new Document()): Parser
+    public static function parseFile(
+        string $htmlFile, Document $document = new Document(), string|array|null $pageSize = null
+    ): Parser
     {
-        $html = new self($document);
+        $html = new self($document, $pageSize);
         $html->parseHtmlFile($htmlFile);
 
         return $html;
@@ -163,13 +177,16 @@ class Parser
     /**
      * Parse $html from URI
      *
-     * @param string   $htmlUri
-     * @param Document $document
+     * @param string            $htmlUri
+     * @param Document          $document
+     * @param string|array|null $pageSize
      * @return Parser
      */
-    public static function parseUri(string $htmlUri, Document $document = new Document()): Parser
+    public static function parseUri(
+        string $htmlUri, Document $document = new Document(), string|array|null $pageSize = null
+    ): Parser
     {
-        $html = new self($document);
+        $html = new self($document, $pageSize);
         $html->parseHtmlUri($htmlUri);
 
         return $html;

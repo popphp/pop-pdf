@@ -17,6 +17,40 @@ class ParserTest extends TestCase
         $this->assertInstanceOf('Pop\Pdf\Build\Html\Parser', $html);
     }
 
+    public function testConstructorDefaultsPageSizeToLetter()
+    {
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = new Parser($doc);
+        $this->assertEquals('LETTER', $html->getPageSize());
+    }
+
+    public function testConstructorAcceptsPageSizeString()
+    {
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseString('<h1>Hello World</h1>', $doc, 'A4');
+        $html->process();
+
+        $this->assertEquals('A4', $html->getPageSize());
+        $page = $html->getDocument()->getPage(1);
+        $this->assertEquals(595, $page->getWidth());
+        $this->assertEquals(842, $page->getHeight());
+    }
+
+    public function testConstructorAcceptsPageSizeArrayOfWidthAndHeight()
+    {
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseString('<h1>Hello World</h1>', $doc, [400, 600]);
+        $html->process();
+
+        $this->assertEquals(['width' => 400, 'height' => 600], $html->getPageSize());
+        $page = $html->getDocument()->getPage(1);
+        $this->assertEquals(400, $page->getWidth());
+        $this->assertEquals(600, $page->getHeight());
+    }
+
     public function testParseString()
     {
         $doc = new Document();
@@ -160,6 +194,22 @@ class ParserTest extends TestCase
         $html = new Parser($doc);
         $html->parseHtmlUri(__DIR__ . '/../../tmp/test.html');
         $this->assertNotNull($html->getHtml());
+    }
+
+    public function testParseFileAcceptsPageSize()
+    {
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseFile(__DIR__ . '/../../tmp/test.html', $doc, 'A4');
+        $this->assertEquals('A4', $html->getPageSize());
+    }
+
+    public function testParseUriAcceptsPageSize()
+    {
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = Parser::parseUri(__DIR__ . '/../../tmp/test.html', $doc, 'A4');
+        $this->assertEquals('A4', $html->getPageSize());
     }
 
     public function testParseCssCalledTwiceAccumulatesOnTheSameCssObject()

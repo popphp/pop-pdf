@@ -77,13 +77,16 @@ class Pdf
     /**
      * Import from an HTML string
      *
-     * @param  string   $html
-     * @param  Document $document
+     * @param  string            $html
+     * @param  Document          $document
+     * @param  string|array|null $pageSize
      * @return AbstractDocument
      */
-    public static function importFromHtml(string $html, Document $document = new Document()): AbstractDocument
+    public static function importFromHtml(
+        string $html, Document $document = new Document(), string|array|null $pageSize = null
+    ): AbstractDocument
     {
-        $parser = new Build\Html\Parser($document);
+        $parser = new Build\Html\Parser($document, $pageSize);
         $parser->parseHtml($html)->process();
 
         return $parser->document();
@@ -92,14 +95,35 @@ class Pdf
     /**
      * Import from an HTML file
      *
-     * @param  string   $htmlFile
-     * @param  Document $document
+     * @param  string            $htmlFile
+     * @param  Document          $document
+     * @param  string|array|null $pageSize
      * @return AbstractDocument
      */
-    public static function importFromHtmlFile(string $htmlFile, Document $document = new Document()): AbstractDocument
+    public static function importFromHtmlFile(
+        string $htmlFile, Document $document = new Document(), string|array|null $pageSize = null
+    ): AbstractDocument
     {
-        $parser = new Build\Html\Parser($document);
+        $parser = new Build\Html\Parser($document, $pageSize);
         $parser->parseHtmlFile($htmlFile)->process();
+
+        return $parser->document();
+    }
+
+    /**
+     * Import from an HTML URI
+     *
+     * @param  string            $htmlUri
+     * @param  Document          $document
+     * @param  string|array|null $pageSize
+     * @return AbstractDocument
+     */
+    public static function importFromHtmlUri(
+        string $htmlUri, Document $document = new Document(), string|array|null $pageSize = null
+    ): AbstractDocument
+    {
+        $parser = new Build\Html\Parser($document, $pageSize);
+        $parser->parseHtmlUri($htmlUri)->process();
 
         return $parser->document();
     }

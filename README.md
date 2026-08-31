@@ -1158,6 +1158,26 @@ of the HTML within the PDF pages, there are limitations in attempting to constra
 fluidly with in a browser window to the boundaries of a PDF page. Support is broadest for the patterns shown below.
 Less common CSS properties and nested block markup may not be fully supported yet.
 
+### Choosing a page size
+
+Pages created while parsing HTML default to `LETTER`. To use a different size, pass it as the third
+constructor argument - either one of the `Page` size constants, or a `[width, height]` array for a
+custom size:
+
+```php
+use Pop\Pdf\Document;
+use Pop\Pdf\Document\Page;
+use Pop\Pdf\Build\Html\Parser;
+
+$parser = new Parser(new Document(), Page::A4);
+// or a custom size:
+$parser = new Parser(new Document(), [400, 600]);
+```
+
+The `parseString()`, `parseFile()` and `parseUri()` static methods, as well as `Pdf::importFromHtml()`,
+`Pdf::importFromHtmlFile()` and `Pdf::importFromHtmlUri()`, all accept the same page size as an optional
+third argument.
+
 ### Parsing HTML from a file:
 
 If you have an HTML file, it will parse all of the HTML in it, as well as any linked CSS and images:

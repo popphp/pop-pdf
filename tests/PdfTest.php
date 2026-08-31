@@ -66,6 +66,52 @@ class PdfTest extends TestCase
         $doc = Pdf\Pdf::importFromHtmlFile(__DIR__ . '/tmp/bad.html');
     }
 
+    public function testImportFromHtmlUri()
+    {
+        // file_get_contents() doesn't distinguish a URI scheme from a plain
+        // local path, so a local file path exercises importFromHtmlUri()
+        // without any real network I/O.
+        $doc = Pdf\Pdf::importFromHtmlUri(__DIR__ . '/tmp/test.html');
+        $this->assertInstanceOf('Pop\Pdf\Document', $doc);
+        $this->assertTrue($doc->hasPages());
+        $this->assertTrue($doc->getPage(1)->hasTextStreams());
+    }
+
+    public function testImportFromHtmlDefaultsToLetterPageSize()
+    {
+        $doc = Pdf\Pdf::importFromHtml('<h1>Hello World</h1>');
+        $this->assertEquals(612, $doc->getPage(1)->getWidth());
+        $this->assertEquals(792, $doc->getPage(1)->getHeight());
+    }
+
+    public function testImportFromHtmlAcceptsPageSize()
+    {
+        $doc = Pdf\Pdf::importFromHtml('<h1>Hello World</h1>', new Document(), 'A4');
+        $this->assertEquals(595, $doc->getPage(1)->getWidth());
+        $this->assertEquals(842, $doc->getPage(1)->getHeight());
+    }
+
+    public function testImportFromHtmlFileAcceptsPageSize()
+    {
+        $doc = Pdf\Pdf::importFromHtmlFile(__DIR__ . '/tmp/test.html', new Document(), 'A4');
+        $this->assertEquals(595, $doc->getPage(1)->getWidth());
+        $this->assertEquals(842, $doc->getPage(1)->getHeight());
+    }
+
+    public function testImportFromHtmlUriAcceptsPageSize()
+    {
+        $doc = Pdf\Pdf::importFromHtmlUri(__DIR__ . '/tmp/test.html', new Document(), 'A4');
+        $this->assertEquals(595, $doc->getPage(1)->getWidth());
+        $this->assertEquals(842, $doc->getPage(1)->getHeight());
+    }
+
+    public function testImportFromHtmlAcceptsPageSizeAsWidthAndHeightArray()
+    {
+        $doc = Pdf\Pdf::importFromHtml('<h1>Hello World</h1>', new Document(), [400, 600]);
+        $this->assertEquals(400, $doc->getPage(1)->getWidth());
+        $this->assertEquals(600, $doc->getPage(1)->getHeight());
+    }
+
     public function testImportFromHtmlUsesProvidedDocument()
     {
         $doc = new Document();
