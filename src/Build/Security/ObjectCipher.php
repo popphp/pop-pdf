@@ -37,8 +37,15 @@ class ObjectCipher
      */
     public static function encryptAes256(string $fileKey, string $data): string
     {
+        if (strlen($fileKey) !== 32) {
+            throw new Exception('File key for AES-256 must be exactly 32 bytes');
+        }
         $iv = random_bytes(16);
-        return $iv . openssl_encrypt($data, 'aes-256-cbc', $fileKey, OPENSSL_RAW_DATA, $iv);
+        $ciphertext = openssl_encrypt($data, 'aes-256-cbc', $fileKey, OPENSSL_RAW_DATA, $iv);
+        if ($ciphertext === false) {
+            throw new Exception('AES-256 encryption failed');
+        }
+        return $iv . $ciphertext;
     }
 
     /**
@@ -56,9 +63,16 @@ class ObjectCipher
      */
     public static function encryptAes128(string $fileKey, int $objectNumber, int $generation, string $data): string
     {
+        if (strlen($fileKey) !== 16) {
+            throw new Exception('File key for AES-128 must be exactly 16 bytes');
+        }
         $objectKey = self::deriveObjectKey($fileKey, $objectNumber, $generation);
         $iv        = random_bytes(16);
-        return $iv . openssl_encrypt($data, 'aes-128-cbc', $objectKey, OPENSSL_RAW_DATA, $iv);
+        $ciphertext = openssl_encrypt($data, 'aes-128-cbc', $objectKey, OPENSSL_RAW_DATA, $iv);
+        if ($ciphertext === false) {
+            throw new Exception('AES-128 encryption failed');
+        }
+        return $iv . $ciphertext;
     }
 
     /**

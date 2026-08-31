@@ -30,19 +30,19 @@ class ObjectCipherTest extends TestCase
         $this->assertNotEquals($a, $b);
     }
 
-    public function testEncryptAes128DifferentObjectNumbersProduceDifferentPerObjectKeys()
+    public function testDeriveObjectKeyDiffersByObjectNumber()
     {
-        // Confirmed indirectly: encrypting identical plaintext under the
-        // same file key but different object numbers must not be
-        // reversible by simply reusing one object's key for another -
-        // decrypting object 2's ciphertext with object 1's derived key
-        // must not recover the plaintext.
-        $fileKey   = random_bytes(16);
-        $plaintext = str_repeat('A', 32); // multiple of the AES block size
+        // Directly test that deriveObjectKey produces different output for
+        // different object numbers, independent of IV randomness in the
+        // encryption methods. This uses reflection to test the protected
+        // deriveObjectKey method.
+        $fileKey = random_bytes(16);
+        $method  = new \ReflectionMethod(ObjectCipher::class, 'deriveObjectKey');
+        $method->setAccessible(true);
 
-        $obj1Cipher = ObjectCipher::encryptAes128($fileKey, 1, 0, $plaintext);
-        $obj2Cipher = ObjectCipher::encryptAes128($fileKey, 2, 0, $plaintext);
+        $key1 = $method->invoke(null, $fileKey, 1, 0);
+        $key2 = $method->invoke(null, $fileKey, 2, 0);
 
-        $this->assertNotEquals($obj1Cipher, $obj2Cipher);
+        $this->assertNotEquals($key1, $key2);
     }
 }
