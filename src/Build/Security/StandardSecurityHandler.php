@@ -15,10 +15,15 @@ use Pop\Pdf\Document\Security;
 
 /**
  * PDF Standard Security Handler - password and key derivation for the
- * /Encrypt dictionary. This class holds the build (write) direction only:
- * it turns a Document\Security into the /O, /U, /OE, /UE, /P and /Perms
- * values a conforming reader validates a password against, plus the File
- * Encryption Key those values wrap.
+ * /Encrypt dictionary.
+ *
+ * The build (write) direction turns a Document\Security into the /O, /U,
+ * /OE, /UE, /P and /Perms values a conforming reader validates a password
+ * against, plus the File Encryption Key those values wrap.
+ *
+ * The open (read) direction runs the same primitives backwards: given an
+ * /Encrypt dictionary read off disk and a candidate password, it verifies
+ * the password and recovers that File Encryption Key.
  *
  * @category   Pop
  * @package    Pop\Pdf
@@ -114,6 +119,67 @@ class StandardSecurityHandler
             'fileKey' => $fileKey,
             'dict'    => ['O' => $o, 'U' => $u, 'OE' => $oe, 'UE' => $ue, 'P' => $p, 'Perms' => $perms],
         ];
+    }
+
+    /**
+     * Verify a candidate password against a revision 6 (AES-256) /Encrypt
+     * dictionary and recover the File Encryption Key. ISO 32000-2 Annex C,
+     * Algorithm 2.A, by way of Algorithms 11 (user) and 12 (owner) - the
+     * exact inverse of buildRevision6().
+     *
+     * Each of /U and /O is a 48-byte string laid out by Algorithms 8 and 9
+     * as hash (bytes 0-31), validation salt (32-39), key salt (40-47). The
+     * validation salt proves the password; the key salt then derives the
+     * key that unwraps the file key out of /UE or /OE. Note the two salts
+     * are NOT interchangeable - using the validation salt to unwrap would
+     * still yield 32 plausible bytes and no error at all, just an unusable
+     * key, so the offsets are load-bearing.
+     *
+     * Both owner hashes additionally take the full 48-byte /U string as
+     * input (that is what binds /O to /U); the user hashes take an empty
+     * string there.
+     *
+     * The user password is tried first and the owner password second.
+     * Algorithm 2.A states the opposite order, which matters only for a
+     * reader deciding WHICH permission level was unlocked - /UE and /OE
+     * wrap one and the same file key, so the recovered key, and hence this
+     * method's result, is identical either way.
+     *
+     * @param  array<string, string|int> $encryptDict must contain O, U, OE, UE (as built by buildRevision6())
+     * @param  string                    $candidatePassword
+     * @throws Exception
+     * @return string 32 raw bytes
+     */
+    public static function openRevision6(array $encryptDict, string $candidatePassword): string
+    {
+        // Truncated to 48 bytes: the spec fixes /U and /O at exactly that
+        // length, but some producers pad them out to 127 (a leftover of the
+        // pre-standard Adobe extension level 3 revision), and every reader
+        // worth interoperating with ignores the excess.
+        $u  = substr((string)($encryptDict['U'] ?? ''), 0, 48);
+        $o  = substr((string)($encryptDict['O'] ?? ''), 0, 48);
+        $ue = (string)($encryptDict['UE'] ?? '');
+        $oe = (string)($encryptDict['OE'] ?? '');
+
+        if ((strlen($u) != 48) || (strlen($o) != 48) || (strlen($ue) != 32) || (strlen($oe) != 32)) {
+            throw new Exception(
+                'Error: The encryption dictionary is malformed - /U and /O must be 48 bytes and /UE and /OE 32 bytes.'
+            );
+        }
+
+        $password = self::preparePassword($candidatePassword);
+
+        // Algorithm 11 - the user password.
+        if (hash_equals(substr($u, 0, 32), self::hash2B($password, substr($u, 32, 8), ''))) {
+            return self::unwrapFileKey(self::hash2B($password, substr($u, 40, 8), ''), $ue);
+        }
+
+        // Algorithm 12 - the owner password.
+        if (hash_equals(substr($o, 0, 32), self::hash2B($password, substr($o, 32, 8), $u))) {
+            return self::unwrapFileKey(self::hash2B($password, substr($o, 40, 8), $u), $oe);
+        }
+
+        throw new Exception('Error: The password provided is incorrect for this encrypted PDF.');
     }
 
     /**
@@ -421,6 +487,34 @@ class StandardSecurityHandler
         }
 
         return $wrapped;
+    }
+
+    /**
+     * The inverse of wrapFileKey(): AES-256-CBC, no padding, zero IV, per
+     * ISO 32000-2 Algorithm 2.A steps (f) and (g). Unwraps the File
+     * Encryption Key out of /UE or /OE.
+     *
+     * This step cannot itself tell a right key from a wrong one - AES-CBC
+     * with no padding decrypts any 32 bytes to some other 32 bytes - which
+     * is precisely why the validation-salt hash comparison has to happen
+     * first. /Perms (Algorithm 13) is what independently confirms the
+     * recovered key afterwards, should a caller want that.
+     *
+     * @param  string $key  32 raw bytes, the hash of password + key salt
+     * @param  string $data 32 raw bytes, the wrapped file key from /UE or /OE
+     * @throws Exception
+     * @return string 32 raw bytes
+     */
+    protected static function unwrapFileKey(string $key, string $data): string
+    {
+        $fileKey = openssl_decrypt(
+            $data, 'aes-256-cbc', $key, OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, str_repeat("\x00", 16)
+        );
+        if ($fileKey === false) {
+            throw new Exception('File encryption key unwrapping failed');
+        }
+
+        return $fileKey;
     }
 
     /**

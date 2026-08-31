@@ -271,6 +271,167 @@ class StandardSecurityHandlerTest extends TestCase
     }
 
     /**
+     * ISO 32000-2 Annex C, Algorithm 11 + 2.A steps (e)/(f): a reader handed
+     * the USER password validates it against /U and then unwraps /UE back to
+     * the file encryption key. Round-tripping buildRevision6()'s own output
+     * proves the open direction is the exact inverse of the build direction.
+     */
+    public function testOpenRevision6RecoversTheFileKeyWithTheUserPassword()
+    {
+        $security = new Security('open-me', 'admin123');
+        $built    = StandardSecurityHandler::buildRevision6($security, random_bytes(16));
+
+        $recovered = StandardSecurityHandler::openRevision6($built['dict'], 'open-me');
+
+        $this->assertEquals($built['fileKey'], $recovered);
+    }
+
+    /**
+     * ISO 32000-2 Annex C, Algorithm 12 + 2.A step (g): the OWNER password
+     * follows the parallel path through /O and /OE - and, critically, both
+     * owner hashes additionally take the full 48-byte /U string as input.
+     * Omitting that /U argument would still yield 32 well-formed bytes and
+     * would still be self-consistent with a build direction that omitted it
+     * too, so this only bites in combination with the qpdf fixture test
+     * below (and with buildRevision6, which does pass /U).
+     */
+    public function testOpenRevision6RecoversTheFileKeyWithTheOwnerPassword()
+    {
+        $security = new Security('open-me', 'admin123');
+        $built    = StandardSecurityHandler::buildRevision6($security, random_bytes(16));
+
+        $recovered = StandardSecurityHandler::openRevision6($built['dict'], 'admin123');
+
+        $this->assertEquals($built['fileKey'], $recovered);
+    }
+
+    public function testOpenRevision6ThrowsForAnIncorrectPassword()
+    {
+        $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
+
+        $security = new Security('open-me', 'admin123');
+        $built    = StandardSecurityHandler::buildRevision6($security, random_bytes(16));
+
+        StandardSecurityHandler::openRevision6($built['dict'], 'wrong-password');
+    }
+
+    /**
+     * An absent user password means the document opens with the EMPTY
+     * password - the case every reader hits first when it encounters an
+     * owner-password-only document, and the one an implementation that
+     * treated '' as "no password supplied" would get wrong.
+     */
+    public function testOpenRevision6OpensAnOwnerOnlyDocumentWithTheEmptyPassword()
+    {
+        $security = new Security(null, 'admin123');
+        $built    = StandardSecurityHandler::buildRevision6($security, random_bytes(16));
+
+        $this->assertEquals($built['fileKey'], StandardSecurityHandler::openRevision6($built['dict'], ''));
+        $this->assertEquals($built['fileKey'], StandardSecurityHandler::openRevision6($built['dict'], 'admin123'));
+    }
+
+    /**
+     * A truncated or otherwise malformed /Encrypt dictionary is a read-path
+     * input coming straight off disk, so it must produce a clear exception
+     * rather than a silent "incorrect password" (which would send a caller
+     * hunting for the wrong problem entirely).
+     */
+    public function testOpenRevision6ThrowsForAMalformedEncryptDictionary()
+    {
+        $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
+        $this->expectExceptionMessage('malformed');
+
+        StandardSecurityHandler::openRevision6(
+            ['U' => random_bytes(20), 'O' => random_bytes(48), 'UE' => random_bytes(32), 'OE' => random_bytes(32)],
+            'open-me'
+        );
+    }
+
+    /**
+     * The interoperability test that actually matters: open an AES-256 file
+     * that qpdf - an entirely independent implementation - encrypted, which
+     * this library never wrote a byte of. Self-consistency with
+     * buildRevision6() cannot catch a shared misreading of Algorithm 2.B
+     * (wrong salt offsets, a missing /U argument on the owner path, a
+     * mis-ordered hash input); this can, because qpdf's /U, /O, /UE and /OE
+     * were produced by someone else's reading of the same spec.
+     *
+     * /Perms is the independent oracle for the recovered key itself: per
+     * Algorithm 13 it decrypts under the FEK - and under nothing else - to a
+     * block carrying the literal marker "adb" at bytes 9-11. Without that
+     * check, "both passwords gave the same 32 bytes" would still pass if
+     * both paths were wrong in the same way.
+     */
+    public function testOpenRevision6RecoversTheFileKeyFromAQpdfEncryptedFile()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $source = tempnam(sys_get_temp_dir(), 'pop_pdf_r6_src_') . '.pdf';
+        $target = tempnam(sys_get_temp_dir(), 'pop_pdf_r6_enc_') . '.pdf';
+        copy(__DIR__ . '/../../tmp/test-extract.pdf', $source);
+
+        exec(
+            'qpdf --encrypt open-me admin123 256 -- ' . escapeshellarg($source) . ' ' .
+            escapeshellarg($target) . ' 2>&1',
+            $output, $status
+        );
+        $this->assertEquals(0, $status, implode("\n", $output));
+
+        $dict = $this->extractR6EncryptDict((string)file_get_contents($target));
+
+        unlink($source);
+        unlink($target);
+
+        $fromUser  = StandardSecurityHandler::openRevision6($dict, 'open-me');
+        $fromOwner = StandardSecurityHandler::openRevision6($dict, 'admin123');
+
+        $this->assertEquals(32, strlen($fromUser));
+        $this->assertEquals($fromUser, $fromOwner);
+
+        // Algorithm 13 - the recovered key is really THE file encryption key.
+        $block = openssl_decrypt(
+            (string)$dict['Perms'], 'aes-256-ecb', $fromUser, OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING
+        );
+        $this->assertEquals('adb', substr((string)$block, 9, 3));
+        $this->assertEquals(pack('V', ((int)$dict['P']) & 0xFFFFFFFF), substr((string)$block, 0, 4));
+
+        $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
+        StandardSecurityHandler::openRevision6($dict, 'not-the-password');
+    }
+
+    /**
+     * Pull /O, /U, /OE, /UE, /P and /Perms out of a raw PDF's Standard
+     * security handler dictionary. Deliberately a small hand-rolled scan
+     * rather than anything from src/ - the point of the fixture test above
+     * is to depend on as little of this library as possible.
+     *
+     * @param  string $pdfData
+     * @return array<string, string|int>
+     */
+    protected function extractR6EncryptDict(string $pdfData): array
+    {
+        $this->assertEquals(1, preg_match('#/Filter\s*/Standard.{0,1200}#s', $pdfData, $m), 'no /Standard dict');
+        $encrypt = $m[0];
+
+        $dict = [];
+        foreach (['O', 'U', 'OE', 'UE', 'Perms'] as $key) {
+            $this->assertEquals(
+                1, preg_match('#/' . $key . '\s*<([0-9A-Fa-f]+)>#', $encrypt, $found), "no /{$key} in /Encrypt"
+            );
+            $dict[$key] = (string)hex2bin($found[1]);
+        }
+        $this->assertEquals(1, preg_match('#/P\s+(-?\d+)#', $encrypt, $p), 'no /P in /Encrypt');
+        $dict['P'] = (int)$p[1];
+
+        $this->assertEquals(48, strlen((string)$dict['U']));
+        $this->assertEquals(48, strlen((string)$dict['O']));
+
+        return $dict;
+    }
+
+    /**
      * The 32-byte password padding string of ISO 32000-1 Algorithm 2 step (a),
      * replicated here so the test suite does not have to reach into the
      * class under test for the constant it is supposed to be checking.
