@@ -39,6 +39,35 @@ class StandardSecurityHandler
     const MAX_PASSWORD_LENGTH = 127;
 
     /**
+     * The 32-byte password padding string of ISO 32000-1 Annex C, Algorithm 2
+     * step (a). Revision 2-4 passwords are padded out to exactly 32 bytes
+     * with the leading bytes of this string (or truncated to 32 bytes if
+     * longer), so that an empty password is still a full 32-byte input.
+     *
+     * This scheme belongs to revisions 2-4 only. Revision 6 does not pad at
+     * all - it takes the raw UTF-8 password bytes truncated to 127 - so
+     * nothing here is shared with buildRevision6()'s preparePassword().
+     * @var string
+     */
+    const PADDING =
+        "\x28\xBF\x4E\x5E\x4E\x75\x8A\x41\x64\x00\x4E\x56\xFF\xFA\x01\x08" .
+        "\x2E\x2E\x00\xB6\xD0\x68\x3E\x80\x2F\x0C\xA9\xFE\x64\x53\x69\x7A";
+
+    /**
+     * Number of key-strengthening rounds performed by revision 3+ of
+     * Algorithms 2 and 3.
+     * @var int
+     */
+    const KEY_ROUNDS = 50;
+
+    /**
+     * Number of XOR'd-key RC4 re-encryption rounds performed by revision 3+
+     * of Algorithms 3 and 5, with the counter running 1 to 19 inclusive.
+     * @var int
+     */
+    const RC4_ROUNDS = 19;
+
+    /**
      * Build the /Encrypt dictionary fields and File Encryption Key for
      * revision 6 (AES-256, PDF 2.0). ISO 32000-2 Annex C, Algorithms 2.A,
      * 2.B, 8, 9, 10.
@@ -85,6 +114,219 @@ class StandardSecurityHandler
             'fileKey' => $fileKey,
             'dict'    => ['O' => $o, 'U' => $u, 'OE' => $oe, 'UE' => $ue, 'P' => $p, 'Perms' => $perms],
         ];
+    }
+
+    /**
+     * Build the /Encrypt dictionary fields and File Encryption Key for
+     * revision 4 (AES-128, PDF 1.6/1.7). ISO 32000-1 Annex C, Algorithms
+     * 2, 3 and 5. Algorithms 3/5 are specified in terms of RC4 regardless
+     * of the content cipher - RC4 here never touches page/stream content.
+     *
+     * Unlike revision 6, the file key is not random: it is derived from the
+     * user password, /O, /P and the document /ID, so every one of those has
+     * to be settled before the key exists. That forces a strict order -
+     * /O first (it feeds the key), then the key, then /U (it is the key,
+     * obfuscated). Producing them in any other order cannot work.
+     *
+     * The owner password never encrypts anything directly. /O is the padded
+     * USER password encrypted under a key derived from the owner password,
+     * so a reader given the owner password peels /O back to the user
+     * password and then follows the ordinary user path from there.
+     *
+     * @param  Security $security
+     * @param  string   $fileId raw bytes of the PDF's first /ID element
+     * @return array{fileKey: string, dict: array<string, string|int>}
+     */
+    public static function buildRevision4(Security $security, string $fileId): array
+    {
+        $userPassword  = (string)$security->getUserPassword();
+        $ownerPassword = $security->getEffectiveOwnerPassword();
+        $p             = $security->getPermissions()->toPValue();
+
+        $o       = self::computeORevision4($ownerPassword, $userPassword);
+        $fileKey = self::deriveRevision4FileKey(self::padPassword($userPassword), $o, $p, $fileId);
+        $u       = self::computeURevision4($fileKey, $fileId);
+
+        return ['fileKey' => $fileKey, 'dict' => ['O' => $o, 'U' => $u, 'P' => $p]];
+    }
+
+    /**
+     * The public entry point for the read path (and this plan's own
+     * round-trip test): recover the file key from a candidate user
+     * password given the already-computed /O, /P, and file /ID.
+     *
+     * ISO 32000-1 Annex C, Algorithm 2. Note this always returns a key -
+     * a wrong password yields a wrong key rather than an error. Deciding
+     * whether the password was correct is Algorithm 6's job: re-run
+     * Algorithm 5 with the recovered key and compare against /U.
+     *
+     * @param  string $userPassword
+     * @param  string $oValue 32 raw bytes
+     * @param  int    $p
+     * @param  string $fileId raw bytes of the PDF's first /ID element
+     * @return string 16 raw bytes
+     */
+    public static function deriveRevision4FileKeyFromUserPassword(
+        string $userPassword, string $oValue, int $p, string $fileId
+    ): string
+    {
+        return self::deriveRevision4FileKey(self::padPassword($userPassword), $oValue, $p, $fileId);
+    }
+
+    /**
+     * ISO 32000-1 Annex C, Algorithm 2 - the File Encryption Key itself.
+     *
+     * The MD5 is fed, in this exact order, the padded user password, the
+     * whole 32-byte /O string, /P as four bytes low-order first (it is a
+     * signed 32-bit value, so it is masked to unsigned before packing), and
+     * the first element of the document /ID. Every one of those is public
+     * except the password, which is what makes the key password-derived.
+     *
+     * The 50-round loop then re-hashes only the first $keyLength bytes of
+     * each digest. That truncation is deliberate and is the one thing
+     * separating this loop from the superficially identical one in
+     * Algorithm 3, which re-hashes the full 16-byte digest. For a 128-bit
+     * key the two happen to coincide (16 bytes is the whole digest); for a
+     * 40-bit key they do not, so the distinction is kept explicit here.
+     *
+     * EncryptMetadata is always true for documents this component writes
+     * (see spec Non-goals), so Algorithm 2's optional step (f) - appending
+     * 0xFFFFFFFF for unencrypted metadata - is never applicable.
+     *
+     * @param  string $paddedUserPassword exactly 32 bytes
+     * @param  string $oValue 32 raw bytes
+     * @param  int    $p
+     * @param  string $fileId raw bytes of the PDF's first /ID element
+     * @param  int    $keyLength file key length in bytes
+     * @return string $keyLength raw bytes
+     */
+    protected static function deriveRevision4FileKey(
+        string $paddedUserPassword, string $oValue, int $p, string $fileId, int $keyLength = 16
+    ): string
+    {
+        $hash = hash_init('md5');
+        hash_update($hash, $paddedUserPassword);
+        hash_update($hash, $oValue);
+        hash_update($hash, pack('V', $p & 0xFFFFFFFF));
+        hash_update($hash, $fileId);
+        $digest = hash_final($hash, true);
+
+        for ($i = 0; $i < self::KEY_ROUNDS; $i++) {
+            $digest = md5(substr($digest, 0, $keyLength), true);
+        }
+
+        return substr($digest, 0, $keyLength);
+    }
+
+    /**
+     * ISO 32000-1 Annex C, Algorithm 2 step (a): pad the password out to
+     * exactly 32 bytes with the leading bytes of the fixed padding string,
+     * or truncate it to 32 bytes if it is longer.
+     *
+     * @param  string $password
+     * @return string exactly 32 bytes
+     */
+    protected static function padPassword(string $password): string
+    {
+        $password = substr($password, 0, 32);
+
+        return $password . substr(self::PADDING, 0, 32 - strlen($password));
+    }
+
+    /**
+     * ISO 32000-1 Annex C, Algorithm 3 - the /O entry.
+     *
+     * Steps (a)-(d) turn the owner password into an RC4 key: pad it, MD5 it,
+     * then re-hash the digest 50 more times (revision 3+ only). Unlike
+     * Algorithm 2's loop this one feeds the FULL previous digest back in,
+     * not a truncated copy.
+     *
+     * Steps (e)-(g) then encrypt the padded USER password with that key,
+     * and re-encrypt the result 19 more times with the key XOR'd against
+     * the round counter, 1 through 19, each round applied to the previous
+     * round's ciphertext. A reader holding the owner password undoes this
+     * by running the chain backwards - key XOR 19 first, then 18, down to
+     * 1, then the unmodified key - and recovers the padded user password
+     * (Algorithm 7), from which it proceeds down the ordinary user path.
+     *
+     * Worth recording, since it is easy to assume otherwise: with RC4 the
+     * ORDER of these rounds has no effect on the result. RC4's keystream
+     * depends only on the key and the requested length, and every round
+     * here processes the same 32 bytes, so the chain collapses to
+     * padded_password XOR ks(K) XOR ks(K^1) XOR ... XOR ks(K^19), and XOR
+     * is commutative. What is load-bearing is the SET of round keys - all
+     * 20 of them, no more and no fewer - and the chaining, which is what
+     * makes those keystreams accumulate at all. An implementation that fed
+     * every round the original first-pass ciphertext instead of the running
+     * one would emit 32 equally plausible bytes that no reader could open.
+     *
+     * @param  string $ownerPassword the effective owner password
+     * @param  string $userPassword
+     * @param  int    $keyLength RC4 key length in bytes
+     * @return string exactly 32 bytes
+     */
+    protected static function computeORevision4(
+        string $ownerPassword, string $userPassword, int $keyLength = 16
+    ): string
+    {
+        $digest = md5(self::padPassword($ownerPassword), true);
+        for ($i = 0; $i < self::KEY_ROUNDS; $i++) {
+            $digest = md5($digest, true);
+        }
+        $rc4Key = substr($digest, 0, $keyLength);
+
+        $encrypted = Rc4::crypt($rc4Key, self::padPassword($userPassword));
+        for ($round = 1; $round <= self::RC4_ROUNDS; $round++) {
+            $encrypted = Rc4::crypt(self::xorKey($rc4Key, $round), $encrypted);
+        }
+
+        return $encrypted;
+    }
+
+    /**
+     * ISO 32000-1 Annex C, Algorithm 5 - the /U entry for revision 3+.
+     *
+     * /U is a checksum on the file key: MD5 of the padding string followed
+     * by the document /ID, encrypted with the file key and put through the
+     * same 19 chained XOR'd-key rounds as Algorithm 3. Note the hash input
+     * is the bare padding string, NOT the padded user password - the
+     * password's contribution arrives only through the file key.
+     *
+     * A reader validates a user password by deriving a candidate file key
+     * (Algorithm 2), re-running this, and comparing the first 16 bytes
+     * against /U. The trailing 16 bytes are arbitrary per the spec, purely
+     * to bring the entry to the fixed 32-byte width; zeros are used here.
+     *
+     * @param  string $fileKey 16 raw bytes
+     * @param  string $fileId raw bytes of the PDF's first /ID element
+     * @return string exactly 32 bytes
+     */
+    protected static function computeURevision4(string $fileKey, string $fileId): string
+    {
+        $encrypted = Rc4::crypt($fileKey, md5(self::PADDING . $fileId, true));
+        for ($round = 1; $round <= self::RC4_ROUNDS; $round++) {
+            $encrypted = Rc4::crypt(self::xorKey($fileKey, $round), $encrypted);
+        }
+
+        return $encrypted . str_repeat("\x00", 16);
+    }
+
+    /**
+     * XOR every byte of an RC4 key against a single-byte round counter, per
+     * step (g) of Algorithm 3 and step (e) of Algorithm 5.
+     *
+     * @param  string $key
+     * @param  int    $round 1-19
+     * @return string same length as $key
+     */
+    protected static function xorKey(string $key, int $round): string
+    {
+        $result = '';
+        for ($i = 0, $len = strlen($key); $i < $len; $i++) {
+            $result .= chr(ord($key[$i]) ^ $round);
+        }
+
+        return $result;
     }
 
     /**
