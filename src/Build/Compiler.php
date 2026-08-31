@@ -210,8 +210,10 @@ class Compiler extends AbstractCompiler
         }
 
         // Finalize the trailer.
+        $id = bin2hex(md5(uniqid((string)mt_rand(), true), true));
+
         $this->trailer .= "trailer\n<</Size {$numObjs}/Root " . $this->root->getIndex() . " 0 R/Info " .
-            $this->info->getIndex() . " 0 R>>\nstartxref\n" . ($this->byteLength) . "\n%%EOF";
+            $this->info->getIndex() . " 0 R/ID[<{$id}><{$id}>]>>\nstartxref\n" . ($this->byteLength) . "\n%%EOF";
 
         // Append the trailer to the final output.
         $this->output .= $this->trailer;

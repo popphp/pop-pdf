@@ -67,6 +67,21 @@ class CompilerTest extends TestCase
         $this->assertStringContainsString('%PDF', $compiler->getOutput());
     }
 
+    public function testFinalizeAddsAnIdArrayToTheTrailer()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Hello World', 12), 'Arial', 50, 700);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $this->assertMatchesRegularExpression('/\/ID\s*\[\s*<[0-9A-Fa-f]{32}>\s*<[0-9A-Fa-f]{32}>\s*\]/', $output);
+    }
+
     public function testFinalizeXrefOffsetsPointToObjects()
     {
         $doc = new Document();
