@@ -26,8 +26,11 @@ jobs:
         php-version: ${{ matrix.php-versions }}
         extensions: gd, iconv, imagick, mbstring, zlib
 
-    - name: Install poppler-utils and ghostscript
-      run: sudo apt-get update && sudo apt-get install -y poppler-utils ghostscript
+    - name: Install poppler-utils, ghostscript and qpdf
+      # qpdf is the external correctness oracle for the encryption tests -
+      # without it installed, every qpdf-based test self-skips and CI gives
+      # zero regression protection for the encrypted write path.
+      run: sudo apt-get update && sudo apt-get install -y poppler-utils ghostscript qpdf
 
     - name: Allow ImageMagick to read PDFs
       # Ubuntu's ImageMagick ships a security policy that blocks the PDF
