@@ -14,6 +14,8 @@ declare(strict_types=1);
  */
 namespace Pop\Pdf\Document;
 
+use Pop\Color\Color\ColorInterface;
+
 /**
  * Pdf style class
  *
@@ -46,15 +48,24 @@ class Style
     protected int|float|null $size = null;
 
     /**
+     * Style color
+     * @var ?ColorInterface
+     */
+    protected ?ColorInterface $color = null;
+
+    /**
      * Constructor
      *
      * Instantiate a PDF style.
      *
-     * @param string         $name
-     * @param ?string        $font
-     * @param int|float|null $size
+     * @param string          $name
+     * @param ?string         $font
+     * @param int|float|null  $size
+     * @param ?ColorInterface $color
      */
-    public function __construct(string $name, ?string $font = null, int|float|null $size = null)
+    public function __construct(
+        string $name, ?string $font = null, int|float|null $size = null, ?ColorInterface $color = null
+    )
     {
         $this->setName($name);
         if ($font !== null) {
@@ -63,19 +74,25 @@ class Style
         if ($size !== null) {
             $this->setSize($size);
         }
+        if ($color !== null) {
+            $this->setColor($color);
+        }
     }
 
     /**
      * Create style object
      *
-     * @param string         $name
-     * @param ?string        $font
-     * @param int|float|null $size
+     * @param string          $name
+     * @param ?string         $font
+     * @param int|float|null  $size
+     * @param ?ColorInterface $color
      * @return Style
      */
-    public static function create(string $name, ?string $font = null, int|float|null $size = null): Style
+    public static function create(
+        string $name, ?string $font = null, int|float|null $size = null, ?ColorInterface $color = null
+    ): Style
     {
-        return new self($name, $font, $size);
+        return new self($name, $font, $size, $color);
     }
 
     /**
@@ -172,6 +189,38 @@ class Style
     public function hasSize(): bool
     {
         return ($this->size !== null);
+    }
+
+    /**
+     * Set color
+     *
+     * @param  ColorInterface $color
+     * @return Style
+     */
+    public function setColor(ColorInterface $color): Style
+    {
+        $this->color = $color;
+        return $this;
+    }
+
+    /**
+     * Get color
+     *
+     * @return ?ColorInterface
+     */
+    public function getColor(): ?ColorInterface
+    {
+        return $this->color;
+    }
+
+    /**
+     * Has color
+     *
+     * @return bool
+     */
+    public function hasColor(): bool
+    {
+        return ($this->color !== null);
     }
 
 }

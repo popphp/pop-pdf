@@ -294,6 +294,41 @@ class CompilerTest extends TestCase
         $this->assertStringContainsString('%PDF', $compiler->getOutput());
     }
 
+    public function testPrepareTextWrapsStyleColorInGraphicsStateAndDoesNotLeakToLaterText()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->addStyle(Document\Style::create('heading', Font::ARIAL, 24, new Color\Rgb(0, 255, 0)));
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Styled', 12), 'heading', 50, 700);
+        $page->addText(new Page\Text('Plain', 12), 'Arial', 50, 650);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $colorOperator = '0 1 0 rg';
+        $this->assertStringContainsString($colorOperator, $output);
+
+        // The style color must be bracketed by its own q/Q graphics-state
+        // save/restore, and that Q must close before the later, unstyled
+        // 'Plain' text is rendered - otherwise the green fill would leak
+        // forward and tint text that never asked for it.
+        $colorPosition = strpos($output, $colorOperator);
+        $openPosition  = strrpos(substr($output, 0, $colorPosition), 'q');
+        $closePosition = strpos($output, 'Q', $colorPosition);
+        $plainPosition = strpos($output, '(Plain)Tj');
+
+        $this->assertNotFalse($openPosition);
+        $this->assertNotFalse($closePosition);
+        $this->assertNotFalse($plainPosition);
+        $this->assertGreaterThan($openPosition, $colorPosition);
+        $this->assertGreaterThan($colorPosition, $closePosition);
+        $this->assertGreaterThan($closePosition, $plainPosition);
+    }
+
     public function testPrepareTextThrowsWhenFontNotAdded()
     {
         $this->expectException(Exception::class);

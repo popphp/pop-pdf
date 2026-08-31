@@ -347,6 +347,8 @@ class Compiler extends AbstractCompiler
         $pageObject->addContentIndex($contentObject->getIndex());
 
         foreach ($text as $txt) {
+            $styleColor = null;
+
             if ($this->document->hasStyle($txt['font'])) {
                 $style = $this->document->getStyle($txt['font']);
                 if ($style->hasSize()) {
@@ -354,6 +356,10 @@ class Compiler extends AbstractCompiler
                 }
                 if ($style->hasFont()) {
                     $txt['font'] = $style->getFont();
+                }
+                if ($style->hasColor()) {
+                    $styleColor = $style->getColor();
+                    $txt['text']->setFillColor($styleColor);
                 }
             }
             if (!isset($this->fontReferences[$txt['font']])) {
@@ -366,14 +372,14 @@ class Compiler extends AbstractCompiler
             }
 
             $coordinates = $this->getCoordinates($txt['x'], $txt['y'], $pageObject);
+            $itemStream  = '';
 
             // Auto-wrap text by character length
             if ($txt['text']->hasCharWrap()) {
-                $font    = $this->fontReferences[$txt['font']];
-                $stream  = $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
-                $stream .= $txt['text']->getPartialStream($font);
-                $stream .= $txt['text']->endStream();
-                $contentObject->appendStream($stream);
+                $font        = $this->fontReferences[$txt['font']];
+                $itemStream .= $txt['text']->startStream($font, $coordinates['x'], $coordinates['y']);
+                $itemStream .= $txt['text']->getPartialStream($font);
+                $itemStream .= $txt['text']->endStream();
             // Left/right/center align text
             } else if ($txt['text']->hasAlignment()) {
                 $strings = $txt['text']->getAlignment()->getStrings($txt['text'], $fontObject, $coordinates['y']);
@@ -382,32 +388,39 @@ class Compiler extends AbstractCompiler
                     if ($fontObject instanceof \Pop\Pdf\Document\Font) {
                         $textString->setFont($fontObject);
                     }
-                    $contentObject->appendStream(
-                        $textString->getStream($this->fontReferences[$txt['font']], $string['x'], $string['y'])
-                    );
+                    if ($styleColor !== null) {
+                        $textString->setFillColor($styleColor);
+                    }
+                    $itemStream .= $textString->getStream($this->fontReferences[$txt['font']], $string['x'], $string['y']);
                 }
             // Left/right wrap text around box boundary
             } else if ($txt['text']->hasWrap()) {
-                $strings = $txt['text']->getWrap()->getStrings($txt['text'], $fontObject, $coordinates['y']);
-                $stream  = $txt['text']->getColorStream();
-                if (!empty($stream)) {
-                    $contentObject->appendStream($stream);
+                $strings     = $txt['text']->getWrap()->getStrings($txt['text'], $fontObject, $coordinates['y']);
+                $colorStream = $txt['text']->getColorStream();
+                if (!empty($colorStream)) {
+                    $itemStream .= $colorStream;
                 }
                 foreach ($strings as $string) {
                     $textString = new Text($string['string'], $txt['text']->getSize());
                     if ($fontObject instanceof \Pop\Pdf\Document\Font) {
                         $textString->setFont($fontObject);
                     }
-                    $contentObject->appendStream(
-                        $textString->getStream($this->fontReferences[$txt['font']], $string['x'], $string['y'])
-                    );
+                    $itemStream .= $textString->getStream($this->fontReferences[$txt['font']], $string['x'], $string['y']);
                 }
             // Else, just append the text stream
             } else {
-                $contentObject->appendStream(
-                    $txt['text']->getStream($this->fontReferences[$txt['font']], $coordinates['x'], $coordinates['y'])
-                );
+                $itemStream .= $txt['text']->getStream($this->fontReferences[$txt['font']], $coordinates['x'], $coordinates['y']);
             }
+
+            // A style color is only meant to apply to this one piece of text -
+            // bracket it in its own graphics-state save/restore so it can't
+            // leak forward and tint whatever renders after it, the same way
+            // Path::openLayer()/closeLayer() isolate a path's own state.
+            if ($styleColor !== null) {
+                $itemStream = "\nq\n" . $itemStream . "\nQ\n";
+            }
+
+            $contentObject->appendStream($itemStream);
         }
     }
 

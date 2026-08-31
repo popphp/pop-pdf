@@ -688,6 +688,18 @@ $page->addText($text, 'normal', 50, 742); // The second parameter can either be 
 So any text added to any page referencing the same style can easily be changed across the entire document by only
 changing the style object.
 
+A style can also carry a color, applied as the fill color for any text rendered with it:
+
+```php
+use Pop\Color\Color;
+use Pop\Pdf\Document\Style;
+
+$document->addStyle(Style::create('heading', Font::ARIAL, 24, new Color\Rgb(0, 102, 204)));
+```
+
+The style's color only affects the text it's applied to at render time - it does not change the fill color used
+by any text or paths that come after it on the page.
+
 [Top](#pop-pdf)
 
 ### Alignment
