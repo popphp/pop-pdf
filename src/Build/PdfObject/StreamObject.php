@@ -64,6 +64,21 @@ class StreamObject extends AbstractObject
     protected bool $isXObject = false;
 
     /**
+     * Number of leading bytes in $stream that are the mandatory end-of-line
+     * marker (ISO 32000-1 7.3.8.1) after the "stream" keyword, rather than
+     * real payload - non-zero only for objects built via parse() (or an
+     * equivalent importer, e.g. ObjectGraphReader::translateGeneric()) that
+     * retain a declared /Length verbatim (literal or indirect) and so keep
+     * that EOL as part of $stream instead of having it added dynamically at
+     * render time. Consulted by Compiler's encryption pass to strip exactly
+     * this many leading bytes before encrypting, independent of whatever
+     * /Length happens to say (a literal integer, an indirect reference, or
+     * nothing at all).
+     * @var int
+     */
+    protected int $leadingEolLength = 0;
+
+    /**
      * Constructor
      *
      * Instantiate a PDF stream object.
@@ -96,6 +111,17 @@ class StreamObject extends AbstractObject
             $str = substr($s, (strpos($s, 'stream') + 6));
             $str = substr($str, 0, strpos($str, 'endstream'));
 
+            // The stream keyword is always followed by a mandatory
+            // end-of-line marker (ISO 32000-1 7.3.8.1) that is not part of
+            // the real payload. Captured once up front - independent of
+            // whether /Length below turns out to be a literal integer, an
+            // indirect reference, or absent entirely - so callers (e.g.
+            // Compiler's encryption pass, via getLeadingEolLength()) can
+            // strip exactly this many leading bytes to recover the real
+            // payload regardless of which branch below executes.
+            $leadingEolLength = str_starts_with($str, "\r\n")
+                ? 2 : ((str_starts_with($str, "\n") || str_starts_with($str, "\r")) ? 1 : 0);
+
             // __toString() always re-adds the EOL before 'endstream' itself, so
             // an EOL captured here from the original string would otherwise be
             // duplicated, making the declared and actual stream lengths disagree.
@@ -108,7 +134,6 @@ class StreamObject extends AbstractObject
             // identical to one atomic "\r\n" separator, and stripping both
             // would silently drop a real trailing \r of data).
             if (preg_match('/\/Length\s+(\d+)\b(?!\s+\d+\s+R\b)/', $def, $lengthMatch)) {
-                $leadingEolLength = str_starts_with($str, "\r\n") ? 2 : 1;
                 $str = substr($str, 0, $leadingEolLength + (int)$lengthMatch[1]);
             } else if (str_ends_with($str, "\r\n")) {
                 $str = substr($str, 0, -2);
@@ -118,6 +143,7 @@ class StreamObject extends AbstractObject
 
             $object->setDefinition($def);
             $object->appendStream($str);
+            $object->setLeadingEolLength($leadingEolLength);
         } else {
             $object->setDefinition($s);
         }
@@ -277,6 +303,30 @@ class StreamObject extends AbstractObject
     public function isPalette(): bool
     {
         return $this->isPalette;
+    }
+
+    /**
+     * Set the number of leading bytes in the stream that are the mandatory
+     * post-"stream"-keyword end-of-line marker rather than real payload
+     *
+     * @param  int $length
+     * @return StreamObject
+     */
+    public function setLeadingEolLength(int $length): StreamObject
+    {
+        $this->leadingEolLength = $length;
+        return $this;
+    }
+
+    /**
+     * Get the number of leading bytes in the stream that are the mandatory
+     * post-"stream"-keyword end-of-line marker rather than real payload
+     *
+     * @return int
+     */
+    public function getLeadingEolLength(): int
+    {
+        return $this->leadingEolLength;
     }
 
     /**

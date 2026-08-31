@@ -397,6 +397,15 @@ class ObjectGraphReader
         if ($rewritten instanceof Value\Stream) {
             $object->setDefinition(ObjectSerializer::serializeDict($rewritten->dict));
             $object->appendStream("\n" . $rewritten->raw);
+
+            // The leading "\n" just prepended is the mandatory
+            // post-"stream"-keyword end-of-line marker (ISO 32000-1
+            // 7.3.8.1), not real payload - mirrors StreamObject::parse()'s
+            // own $leadingEolLength tracking, so Compiler's encryption pass
+            // can strip exactly this many leading bytes before encrypting
+            // regardless of whether $rewritten->dict['Length'] is a literal
+            // integer or an (already-renumbered) indirect reference.
+            $object->setLeadingEolLength(1);
         } else {
             // A top-level indirect object can be any PDF value, not just a
             // dict - most notably a plain array (e.g. a colorspace array

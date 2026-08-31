@@ -237,30 +237,29 @@ class Compiler extends AbstractCompiler
                 }
                 $stream = $object->getStream();
                 if (($stream !== null) && ($stream !== '')) {
-                    $definition = (string)$object->getDefinition();
-
                     // Objects built via StreamObject::parse() (images,
                     // embedded font files, palettes, and anything else with
-                    // a pre-existing literal /Length) retain, as part of
+                    // a pre-existing declared /Length) retain, as part of
                     // their stored stream, the leading end-of-line marker
                     // captured from the original "stream\n<data>" text
-                    // alongside the real payload (see parse()'s
-                    // $leadingEolLength handling) - a structural artifact of
-                    // round-tripping, not real content. Only the declared
-                    // /Length worth of TRAILING bytes is genuine payload;
-                    // encrypting the leading byte(s) too would return them,
-                    // scrambled, as part of what a reader decrypts and then
-                    // feeds to DCTDecode/FlateDecode/etc. as if they were
-                    // real data. Ordinary content-stream objects (built via
-                    // direct appendStream() calls, never parse()) have no
-                    // declared /Length yet at this point in finalize(), so
-                    // they fall through unchanged - their whole $stream is
-                    // genuine content.
-                    $payload = $stream;
-                    if ((preg_match('/\/Length\s+(\d+)/', $definition, $lengthMatch) === 1) &&
-                        ((int)$lengthMatch[1] < strlen($stream))) {
-                        $payload = substr($stream, -(int)$lengthMatch[1]);
-                    }
+                    // alongside the real payload - a structural artifact of
+                    // round-tripping, not real content. The object itself
+                    // tracks exactly how many such bytes it is (regardless
+                    // of whether /Length is a literal integer, an indirect
+                    // reference, or absent - inferring it from the /Length
+                    // text here would mis-measure indirect references, whose
+                    // digits are an unrelated object number, not a byte
+                    // count). Only the bytes after that leading padding are
+                    // genuine payload; encrypting the padding too would
+                    // return it, scrambled, as part of what a reader
+                    // decrypts and then feeds to DCTDecode/FlateDecode/etc.
+                    // as if it were real data. Ordinary content-stream
+                    // objects (built via direct appendStream() calls, never
+                    // parse()) report 0 here, so they fall through
+                    // unchanged - their whole $stream is genuine content.
+                    $leadingPadding = $object->getLeadingEolLength();
+                    $payload        = (($leadingPadding > 0) && ($leadingPadding < strlen($stream)))
+                        ? substr($stream, $leadingPadding) : $stream;
 
                     $encrypted = ($algorithm === Document\Security::AES_128)
                         ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $object->getIndex(), 0, $payload)
@@ -268,17 +267,25 @@ class Compiler extends AbstractCompiler
                     $object->setStream($encrypted);
 
                     // StreamObject::__toString() deliberately leaves /Length
-                    // untouched for Image and Length1 (embedded font file)
-                    // objects, since those declare it explicitly rather than
-                    // having it recomputed from the stream. Encryption
-                    // always changes the on-disk byte count (16-byte IV +
-                    // PKCS#7 padding), so those object types need their
-                    // declared /Length corrected here explicitly - otherwise
-                    // a reader is handed a stale, too-short length and a
-                    // non-block-aligned ciphertext buffer.
-                    if (preg_match('/\/Length\s+\d+/', $definition) === 1) {
+                    // untouched for every object type here (Image and
+                    // Length1/embedded-font-file objects specifically),
+                    // since those declare it explicitly rather than having
+                    // it recomputed from the stream. Encryption always
+                    // changes the on-disk byte count (16-byte IV + PKCS#7
+                    // padding), so a literal declared /Length needs
+                    // correcting here explicitly - otherwise a reader is
+                    // handed a stale, too-short length and a non-block-
+                    // aligned ciphertext buffer. An indirect /Length (e.g.
+                    // "6 0 R", common in imported/merged PDFs) is left
+                    // untouched: the digits there are another object's
+                    // number, not a byte count, so rewriting them the same
+                    // way would emit invalid syntax ("/Length <n> 0 R" with
+                    // a nonsense object number).
+                    $definition = (string)$object->getDefinition();
+                    if (preg_match('/\/Length\s+\d+\b(?!\s+\d+\s+R\b)/', $definition) === 1) {
                         $object->setDefinition(
-                            preg_replace('/\/Length\s+\d+/', '/Length ' . strlen($encrypted), $definition, 1)
+                            preg_replace('/\/Length\s+\d+\b(?!\s+\d+\s+R\b)/', '/Length ' . strlen($encrypted), $definition, 1)
+                            ?? $definition
                         );
                     }
                 }

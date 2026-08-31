@@ -787,6 +787,109 @@ class CompilerTest extends TestCase
         $this->assertPassesQpdfCheck($compiler->getOutput(), 'open-me');
     }
 
+    // Build\Parser/Build\Merger deliberately leave a source PDF's declared
+    // /Length untouched when it is an indirect reference (e.g. "6 0 R"),
+    // which is common in PDFs produced by other tools - so an imported or
+    // merged document's content stream can reach the encryption pass with
+    // an indirect /Length intact. That is exactly the shape a regex that
+    // infers "how many bytes to keep" from the /Length text itself gets
+    // wrong (it would capture "6", an unrelated object number, not a byte
+    // count) - StreamObject::getLeadingEolLength() sidesteps that by having
+    // parse()/translateGeneric() record the padding directly instead.
+    public function testFinalizeEncryptsImportedDocumentWithIndirectLengthContentStream()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $content = "BT /F1 12 Tf 50 700 Td (Hello Indirect Length) Tj ET";
+        $pdfData = $this->buildIndirectLengthContentPdf($content);
+
+        $doc = Pdf\Pdf::importRawData($pdfData);
+        $doc->setSecurity(new Document\Security('open-me', 'admin123'));
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('/Encrypt', $output);
+        $this->assertStringNotContainsString($content, $output);
+
+        $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
+        $this->assertStringContainsString($content, $decrypted);
+    }
+
+    public function testFinalizeEncryptsMergedDocumentWithIndirectLengthContentStream()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        $content  = "BT /F1 12 Tf 50 700 Td (Hello Merged Indirect Length) Tj ET";
+        $content2 = "BT /F1 12 Tf 50 650 Td (Second Merged Source) Tj ET";
+
+        // Merging requires at least 2 source documents - both built with an
+        // indirect-length content stream, so the shape under test survives
+        // the merge's own object-graph rewriting from more than one source.
+        $doc = Pdf\Pdf::mergeRawData(
+            [$this->buildIndirectLengthContentPdf($content), $this->buildIndirectLengthContentPdf($content2)],
+            new Document()
+        );
+        $doc->setSecurity(new Document\Security('open-me', 'admin123', null, Document\Security::AES_128));
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('/Encrypt', $output);
+        $this->assertStringNotContainsString($content, $output);
+        $this->assertStringNotContainsString($content2, $output);
+
+        $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
+        $this->assertStringContainsString($content, $decrypted);
+        $this->assertStringContainsString($content2, $decrypted);
+    }
+
+    /**
+     * Build a minimal single-page raw PDF whose content stream declares an
+     * INDIRECT /Length (e.g. "/Length 6 0 R", pointing at a separate object
+     * holding the plain integer) rather than a literal one - the shape that
+     * regressed the encryption pass's leading-padding stripping logic.
+     *
+     * @param  string $content
+     * @return string
+     */
+    protected function buildIndirectLengthContentPdf(string $content): string
+    {
+        $objs = [];
+        $objs[1] = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+        $objs[2] = "2 0 obj\n<< /Type /Pages /Kids [4 0 R] /Count 1 >>\nendobj\n";
+        $objs[3] = "3 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
+        $objs[4] = "4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " .
+            "/Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>\nendobj\n";
+        $objs[5] = "5 0 obj\n<< /Length 6 0 R >>\nstream\n{$content}\nendstream\nendobj\n";
+        $objs[6] = "6 0 obj\n" . strlen($content) . "\nendobj\n";
+        ksort($objs);
+
+        $header  = "%PDF-1.4\n";
+        $offsets = [];
+        $cur     = $header;
+        foreach ($objs as $n => $o) {
+            $offsets[$n] = strlen($cur);
+            $cur .= $o;
+        }
+        $body    = implode('', $objs);
+        $xrefPos = strlen($header . $body);
+        $maxObj  = max(array_keys($objs));
+        $xref    = "xref\n0 " . ($maxObj + 1) . "\n0000000000 65535 f \n";
+        for ($i = 1; $i <= $maxObj; $i++) {
+            $xref .= isset($offsets[$i]) ? sprintf("%010d 00000 n \n", $offsets[$i]) : "0000000000 65535 f \n";
+        }
+        $xref .= "trailer\n<< /Size " . ($maxObj + 1) . " /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
+
+        return $header . $body . $xref;
+    }
+
     /**
      * Write $pdfData to a temp file and assert both `qpdf --check` and
      * `qpdf --decrypt` succeed against it with the given user password.
@@ -795,11 +898,14 @@ class CompilerTest extends TestCase
      * "invalid password", even against a PDF qpdf itself encrypted, so the
      * password is supplied to both invocations.
      *
+     * Returns the decrypted file's contents, so callers can additionally
+     * assert on the recovered plaintext (e.g. exact content-stream bytes).
+     *
      * @param  string $pdfData
      * @param  string $password
-     * @return void
+     * @return string
      */
-    protected function assertPassesQpdfCheck(string $pdfData, string $password): void
+    protected function assertPassesQpdfCheck(string $pdfData, string $password): string
     {
         $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_encrypt_test_') . '.pdf';
         file_put_contents($tmpFile, $pdfData);
@@ -808,11 +914,17 @@ class CompilerTest extends TestCase
             'qpdf --password=' . escapeshellarg($password) . ' --check ' . escapeshellarg($tmpFile) . ' 2>&1',
             $checkOutput, $checkStatus
         );
+        // --decode-level=generalized --compress-streams=n keeps the
+        // decrypted output's streams uncompressed, so a caller asserting on
+        // the recovered plaintext (e.g. an exact content-stream string) sees
+        // it directly rather than qpdf's own re-flate-compressed bytes.
         exec(
-            'qpdf --password=' . escapeshellarg($password) . ' --decrypt ' . escapeshellarg($tmpFile) . ' ' .
-            escapeshellarg($tmpFile . '.dec') . ' 2>&1',
+            'qpdf --password=' . escapeshellarg($password) . ' --decrypt --decode-level=generalized ' .
+            '--compress-streams=n ' . escapeshellarg($tmpFile) . ' ' . escapeshellarg($tmpFile . '.dec') . ' 2>&1',
             $decryptOutput, $decryptStatus
         );
+
+        $decrypted = file_exists($tmpFile . '.dec') ? (string)file_get_contents($tmpFile . '.dec') : '';
 
         unlink($tmpFile);
         if (file_exists($tmpFile . '.dec')) {
@@ -821,6 +933,8 @@ class CompilerTest extends TestCase
 
         $this->assertEquals(0, $checkStatus, implode("\n", $checkOutput));
         $this->assertEquals(0, $decryptStatus, implode("\n", $decryptOutput));
+
+        return $decrypted;
     }
 
 }
