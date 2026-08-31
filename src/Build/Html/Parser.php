@@ -1019,11 +1019,9 @@ class Parser
         $a['color'] = new Color\Rgb(0, 0, 255);
 
         $strong = new Css\Selector('strong');
-        $strong['font-size']   = '10px';
         $strong['font-weight'] = 'bold';
 
         $em = new Css\Selector('em');
-        $em['font-size']  = '10px';
         $em['font-style'] = 'italic';
 
         $this->css = new Css\Css();

@@ -549,6 +549,27 @@ class ParserTest extends TestCase
         $this->assertEquals([0, 0, 255], $styles['color']);
     }
 
+    public function testStrongAndEmInheritParentFontSizeWhenNoExplicitCssSet()
+    {
+        // Regression test: enabling tag-level font-size application (needed
+        // so user-authored tag CSS like "div { font-size: ... }" actually
+        // works) reactivated a long-dormant hardcoded font-size: 10px on the
+        // default 'strong'/'em' selectors (createDefaultStyles()) that had
+        // never taken effect before, since tag-level font-size application
+        // used to be a no-op. <strong>/<em> must inherit the surrounding
+        // element's font size, not force 10px regardless of context.
+        $doc = new Document();
+        $doc->addFont(new Document\Font('Arial'));
+        $html = new Parser($doc);
+
+        $paragraphStyles = $html->prepareNodeStyles('p', []);
+        $headingStyles   = $html->prepareNodeStyles('h2', []);
+
+        $this->assertEquals($paragraphStyles['fontSize'], $html->prepareNodeStyles('strong', [], $paragraphStyles)['fontSize']);
+        $this->assertEquals($paragraphStyles['fontSize'], $html->prepareNodeStyles('em', [], $paragraphStyles)['fontSize']);
+        $this->assertEquals($headingStyles['fontSize'], $html->prepareNodeStyles('strong', [], $headingStyles)['fontSize']);
+    }
+
     public function testStyleBlockInHeadIsParsedAsCss()
     {
         // Regression test: <style> blocks were never read at all - prepare()
