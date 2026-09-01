@@ -215,4 +215,133 @@ class FieldTest extends TestCase
         $this->assertStringContainsString('/FT /Ch', $field->getStream(10, 2, null, 20, 200));
     }
 
+    public function testTextEncryptWithReplacesNameAndValueWithEncryptedEscapedBytes()
+    {
+        $field = new Field\Text('secret-field-name', 'Arial', 12);
+        $field->setWidth(200);
+        $field->setHeight(24);
+        $field->setValue('secret-value');
+        // strrev() is used as a stand-in "encryptor" precisely because it
+        // transforms the bytes - unlike a mere "ENC[...]" wrapper, the
+        // transformed output can never contain the original plaintext as a
+        // substring, so assertStringNotContainsString() below is meaningful.
+        $field->encryptWith(fn (string $data) => strrev($data));
+
+        $stream = $field->getStream(5, 3, null, 10, 20);
+
+        $this->assertStringNotContainsString('secret-field-name', $stream);
+        $this->assertStringNotContainsString('secret-value', $stream);
+        $this->assertStringContainsString(strrev('secret-field-name'), $stream);
+        $this->assertStringContainsString(strrev('secret-value'), $stream);
+    }
+
+    public function testTextEncryptWithEncryptsTheComputedDaStringNotAPlaceholder()
+    {
+        // /DA's content depends on the font reference passed into getStream(),
+        // not known at encryptWith() call time - this proves the encryptor is
+        // applied to the REAL, fully-computed DA string, not something stale.
+        $field = new Field\Text('name', 'Arial', 12);
+        $field->setWidth(200);
+        $field->setHeight(24);
+        $seen  = [];
+        $field->encryptWith(function (string $data) use (&$seen) {
+            $seen[] = $data;
+            return "ENC[{$data}]";
+        });
+
+        $stream = $field->getStream(5, 3, 'MF1 1 0 R', 10, 20);
+
+        $this->assertStringContainsString('MF1 12 Tf', $seen[0] ?? '');
+        $this->assertStringContainsString('ENC[', $stream);
+    }
+
+    public function testTextGetStreamUsesPlainValuesWhenNotEncrypted()
+    {
+        $field = new Field\Text('plain-name', 'Arial', 12);
+        $field->setWidth(200);
+        $field->setHeight(24);
+        $stream = $field->getStream(5, 3, null, 10, 20);
+        $this->assertStringContainsString('plain-name', $stream);
+    }
+
+    // /T, /TU, and /TM never escaped their value at all before
+    // EncryptsFieldStrings::encryptLiteral() centralized escaping for every
+    // literal string this class emits - a disclosed side effect of this
+    // change. This confirms that gap is now closed even in the unencrypted
+    // case (no encryptWith() call at all).
+    public function testTextNameIsEscapedEvenWhenNotEncrypted()
+    {
+        $field = new Field\Text('Name (With) \\Parens', 'Arial', 12);
+        $field->setWidth(200);
+        $field->setHeight(24);
+
+        $stream = $field->getStream(5, 3, null, 10, 20);
+
+        $this->assertStringContainsString('/T(Name \(With\) \\\\Parens)', $stream);
+        $this->assertStringContainsString('/TU(Name \(With\) \\\\Parens)', $stream);
+        $this->assertStringContainsString('/TM(Name \(With\) \\\\Parens)', $stream);
+    }
+
+    public function testChoiceEncryptWithEncryptsNameAndOptionsButNotValue()
+    {
+        $field = new Field\Choice('choice-name');
+        $field->setWidth(200);
+        $field->setHeight(24);
+        $field->addOption('secret-option');
+        $field->setValue('/PlainNameValue');
+        $field->encryptWith(fn (string $data) => strrev($data));
+
+        $stream = $field->getStream(5, 3, 'MF1 1 0 R', 10, 20);
+
+        $this->assertStringNotContainsString('choice-name', $stream);
+        $this->assertStringNotContainsString('secret-option', $stream);
+        $this->assertStringContainsString(strrev('choice-name'), $stream);
+        $this->assertStringContainsString(strrev('secret-option'), $stream);
+        // /V is a bare PDF Name here, not a string literal - must never be
+        // routed through encryptLiteral().
+        $this->assertStringContainsString('/V /PlainNameValue', $stream);
+    }
+
+    public function testChoiceNameIsEscapedEvenWhenNotEncrypted()
+    {
+        $field = new Field\Choice('Name (With) \\Parens');
+        $field->setWidth(200);
+        $field->setHeight(24);
+
+        $stream = $field->getStream(5, 3, null, 10, 20);
+
+        $this->assertStringContainsString('/T(Name \(With\) \\\\Parens)', $stream);
+    }
+
+    public function testButtonEncryptWithEncryptsNameAndOptionsButNotValue()
+    {
+        $field = new Field\Button('button-name');
+        $field->setWidth(200);
+        $field->setHeight(24);
+        $field->addOption('secret-option');
+        $field->setValue('/PlainNameValue');
+        $field->encryptWith(fn (string $data) => strrev($data));
+
+        $stream = $field->getStream(5, 3, 'MF1 1 0 R', 10, 20);
+
+        $this->assertStringNotContainsString('button-name', $stream);
+        $this->assertStringNotContainsString('secret-option', $stream);
+        $this->assertStringContainsString(strrev('button-name'), $stream);
+        $this->assertStringContainsString(strrev('secret-option'), $stream);
+        // /V is a bare PDF Name here, not a string literal - must never be
+        // routed through encryptLiteral().
+        $this->assertStringContainsString('/V /PlainNameValue', $stream);
+    }
+
+    public function testButtonNameIsEscapedEvenWhenNotEncrypted()
+    {
+        $field = new Field\Button('Name (With) \\Parens');
+        $field->setWidth(200);
+        $field->setHeight(24);
+
+        $stream = $field->getStream(5, 3, null, 10, 20);
+
+        $this->assertStringContainsString('/T(Name \(With\) \\\\Parens)', $stream);
+    }
+
 }

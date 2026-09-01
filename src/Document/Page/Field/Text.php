@@ -29,6 +29,8 @@ use Pop\Color\Color;
 class Text extends AbstractField
 {
 
+    use EncryptsFieldStrings;
+
     /**
      * Set multiline
      *
@@ -165,15 +167,16 @@ class Text extends AbstractField
 
         if ($fontReference !== null) {
             $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
-            $text          = '    /DA(' . $fontReference . ' ' . $this->size . ' Tf ' . $color . ')';
+            $text          = '    /DA(' . $this->encryptLiteral($fontReference . ' ' . $this->size . ' Tf ' . $color) . ')';
         } else {
             $text = null;
         }
 
-        $name    = ($this->name !== null) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')/TM(' . $this->name . ')' : '';
+        $name    = ($this->name !== null) ? '    /T(' . $this->encryptLiteral($this->name) . ')/TU(' . $this->encryptLiteral($this->name) .
+            ')/TM(' . $this->encryptLiteral($this->name) . ')' : '';
         $flags   = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
-        $value   = ($this->value !== null) ? "\n    /V (" . \Pop\Pdf\Document\Page\Text::escape($this->value) . ")\n" : null;
-        $default = ($this->defaultValue !== null) ? "\n    /DV (" . \Pop\Pdf\Document\Page\Text::escape($this->defaultValue) . ")\n" : null;
+        $value   = ($this->value !== null) ? "\n    /V (" . $this->encryptLiteral($this->value) . ")\n" : null;
+        $default = ($this->defaultValue !== null) ? "\n    /DV (" . $this->encryptLiteral($this->defaultValue) . ")\n" : null;
 
         // Return the stream
         return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Tx\n    /Rect [{$x} {$y} " .

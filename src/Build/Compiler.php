@@ -172,7 +172,7 @@ class Compiler extends AbstractCompiler
             }
             // Prepare field objects
             if ($page->hasFields()) {
-                $this->prepareFields($page->getFields(), $pageObject);
+                $this->prepareFields($page->getFields(), $pageObject, $fileKey, $algorithm);
             }
 
             $pageObjects[$pageObject->getIndex()] = $pageObject;
@@ -733,12 +733,16 @@ class Compiler extends AbstractCompiler
     /**
      * Prepare the field objects
      *
-     * @param  array $fields
+     * @param  array    $fields
      * @param  PdfObject\PageObject $pageObject
+     * @param  ?string  $fileKey
+     * @param  ?string  $algorithm
      * @throws Exception
      * @return void
      */
-    protected function prepareFields(array $fields, PdfObject\PageObject $pageObject): void
+    protected function prepareFields(
+        array $fields, PdfObject\PageObject $pageObject, ?string $fileKey = null, ?string $algorithm = null
+    ): void
     {
         foreach ($fields as $field) {
             if ($this->document->getForm($field['form']) !== null) {
@@ -753,6 +757,9 @@ class Compiler extends AbstractCompiler
                 $pageObject->addAnnotIndex($i);
                 $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
                 $this->document->getForm($field['form'])->addFieldIndex($i);
+                if ($fileKey !== null) {
+                    $field['field']->encryptWith($this->stringEncryptor($fileKey, $algorithm, $i));
+                }
                 $this->addObject($i, PdfObject\StreamObject::parse(
                     $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'])
                 ));

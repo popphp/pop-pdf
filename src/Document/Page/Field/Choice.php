@@ -29,6 +29,8 @@ use Pop\Color\Color;
 class Choice extends AbstractField
 {
 
+    use EncryptsFieldStrings;
+
     /**
      * Field options
      * @var array
@@ -183,18 +185,21 @@ class Choice extends AbstractField
 
         if ($fontReference !== null) {
             $fontReference = substr($fontReference, 0, strpos($fontReference, ' '));
-            $text          = '    /DA(' . $fontReference . ' ' . $this->size . ' Tf ' . $color . ')';
+            $text          = '    /DA(' . $this->encryptLiteral($fontReference . ' ' . $this->size . ' Tf ' . $color) . ')';
         }
 
-        $name    = ($this->name !== null) ? '    /T(' . $this->name . ')/TU(' . $this->name . ')/TM(' . $this->name . ')' : '';
+        $name    = ($this->name !== null) ? '    /T(' . $this->encryptLiteral($this->name) . ')/TU(' . $this->encryptLiteral($this->name) .
+            ')/TM(' . $this->encryptLiteral($this->name) . ')' : '';
         $flags   = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
+        // /V and /DV are bare PDF Names here (no parens/escaping), not
+        // string literals - left untouched by encryptLiteral() on purpose.
         $value   = ($this->value !== null) ? "\n    /V " . $this->value . "\n" : null;
         $default = ($this->defaultValue !== null) ? "\n    /DV " . $this->defaultValue . "\n" : null;
 
         if (count($this->options) > 0) {
             $options = "    /Opt [ ";
             foreach ($this->options as $option) {
-                $options .= '(' . $option . ') ';
+                $options .= '(' . $this->encryptLiteral($option) . ') ';
             }
             $options .= "]\n";
         }

@@ -813,6 +813,73 @@ class CompilerTest extends TestCase
         }
     }
 
+    // Form-field /T, /TU, /TM, /V, /DV, and /Opt strings are literal PDF
+    // strings too, so once /StrF /StdCF is declared they must actually be
+    // encrypted, the same way Annotation\Url's /URI is above - verified with
+    // real qpdf AND poppler for the same reason: poppler's stricter parser
+    // catches "declared encrypted but not actually encrypted" corruption
+    // that qpdf alone cannot.
+    public function testFinalizeEncryptsFormFieldStrings()
+    {
+        if ((shell_exec('which qpdf') === null) || (shell_exec('which pdftotext') === null)
+            || (shell_exec('which pdfinfo') === null)) {
+            $this->markTestSkipped('qpdf and poppler-utils are required for this test.');
+        }
+
+        foreach ([Document\Security::AES_128, Document\Security::AES_256] as $algorithm) {
+            $doc = new Document();
+            $doc->addFont(new Font('Arial'));
+            $doc->setSecurity(new Document\Security('open-me', 'admin123', null, $algorithm));
+            $doc->addForm(new Form('contact_form'));
+
+            $page = new Page(Page::LETTER);
+
+            $textField = new Page\Field\Text('secret-field-name', 'Arial', 10);
+            $textField->setValue('secret-field-value');
+            $textField->setWidth(200);
+            $textField->setHeight(24);
+            $page->addField($textField, 'contact_form', 50, 200);
+
+            $choiceField = new Page\Field\Choice('secret-choice-name', 'Arial', 10);
+            $choiceField->setWidth(200);
+            $choiceField->setHeight(24);
+            $choiceField->addOption('secret-choice-option');
+            $page->addField($choiceField, 'contact_form', 50, 150);
+
+            $doc->addPage($page);
+
+            $compiler = new Compiler();
+            $compiler->finalize($doc);
+            $output = $compiler->getOutput();
+
+            $this->assertStringNotContainsString('secret-field-name', $output);
+            $this->assertStringNotContainsString('secret-field-value', $output);
+            $this->assertStringNotContainsString('secret-choice-name', $output);
+            $this->assertStringNotContainsString('secret-choice-option', $output);
+
+            $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
+            $this->assertStringContainsString('secret-field-name', $decrypted);
+            $this->assertStringContainsString('secret-field-value', $decrypted);
+            $this->assertStringContainsString('secret-choice-name', $decrypted);
+            $this->assertStringContainsString('secret-choice-option', $decrypted);
+
+            $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_field_compiler_test_') . '.pdf';
+            file_put_contents($tmpFile, $output);
+
+            $info = shell_exec('pdfinfo -upw open-me ' . escapeshellarg($tmpFile) . ' 2>&1');
+            $textOutput = [];
+            exec('pdftotext -upw open-me ' . escapeshellarg($tmpFile) . ' - 2>&1', $textOutput, $textStatus);
+
+            unlink($tmpFile);
+
+            $this->assertStringNotContainsString('algorithm:RC4', $info);
+            $this->assertEquals(0, $textStatus, implode("\n", $textOutput));
+            foreach ($textOutput as $line) {
+                $this->assertStringNotContainsString('Syntax Error', $line);
+            }
+        }
+    }
+
     public function testFinalizeThrowsExceptionForInvalidAlgorithm()
     {
         $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
