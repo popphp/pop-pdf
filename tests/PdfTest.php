@@ -835,4 +835,187 @@ class PdfTest extends TestCase
         $this->assertStringContainsString('Hello World from times', $text);
     }
 
+    /**
+     * Encrypt a fixture PDF with qpdf, returning the path to a temp
+     * encrypted file - or marking the calling test skipped (and returning
+     * an empty string, never reached by the caller) if qpdf isn't
+     * available. Caller is responsible for unlink()-ing the returned path.
+     *
+     * 256-bit encryption forces AES automatically. qpdf 11+ refuses a bare
+     * 128-bit request (it defaults to RC4 and rejects that outright), so
+     * this deliberately sticks to 256 throughout rather than juggling a
+     * --use-aes=y flag for a key length these tests don't otherwise care
+     * about.
+     *
+     * @param  string $source
+     * @param  string $userPassword
+     * @param  string $ownerPassword
+     * @return string
+     */
+    private function encryptFixture(
+        string $source, string $userPassword = 'open-me', string $ownerPassword = 'admin123'
+    ): string
+    {
+        $encrypted = tempnam(sys_get_temp_dir(), 'pop_pdf_enc_test_') . '.pdf';
+
+        exec(
+            'qpdf --encrypt ' . escapeshellarg($userPassword) . ' ' . escapeshellarg($ownerPassword) . ' 256 -- ' .
+            escapeshellarg($source) . ' ' . escapeshellarg($encrypted) . ' 2>&1',
+            $output,
+            $status
+        );
+
+        // qpdf exits 3 on warnings, so only a missing/empty output file
+        // reliably means qpdf itself is unavailable.
+        if (!file_exists($encrypted) || (filesize($encrypted) === 0)) {
+            @unlink($encrypted);
+            $this->markTestSkipped('qpdf is not available to produce an encrypted fixture: ' . implode("\n", $output));
+        }
+
+        return $encrypted;
+    }
+
+    public function testImportFromFileOpensAnEncryptedPdfGivenTheCorrectPassword()
+    {
+        $encrypted = $this->encryptFixture(__DIR__ . '/tmp/test-extract.pdf');
+
+        $doc = Pdf\Pdf::importFromFile($encrypted, null, 'open-me');
+        unlink($encrypted);
+
+        $this->assertInstanceOf('Pop\Pdf\Document', $doc);
+        $this->assertGreaterThan(0, $doc->getNumberOfPages());
+    }
+
+    public function testImportFromFileThrowsForAnEncryptedPdfWithNoPassword()
+    {
+        $encrypted = $this->encryptFixture(__DIR__ . '/tmp/test-extract.pdf');
+
+        $this->expectException('Pop\Pdf\Build\Exception');
+        $this->expectExceptionMessage('a password is required');
+
+        try {
+            Pdf\Pdf::importFromFile($encrypted);
+        } finally {
+            unlink($encrypted);
+        }
+    }
+
+    public function testImportRawDataOpensAnEncryptedPdfGivenTheCorrectPassword()
+    {
+        $encrypted     = $this->encryptFixture(__DIR__ . '/tmp/test-extract.pdf');
+        $encryptedData = file_get_contents($encrypted);
+        unlink($encrypted);
+
+        $doc = Pdf\Pdf::importRawData($encryptedData, null, 'open-me');
+
+        $this->assertInstanceOf('Pop\Pdf\Document', $doc);
+        $this->assertGreaterThan(0, $doc->getNumberOfPages());
+    }
+
+    public function testImportRawDataThrowsForAnEncryptedPdfWithNoPassword()
+    {
+        $encrypted     = $this->encryptFixture(__DIR__ . '/tmp/test-extract.pdf');
+        $encryptedData = file_get_contents($encrypted);
+        unlink($encrypted);
+
+        $this->expectException('Pop\Pdf\Build\Exception');
+        $this->expectExceptionMessage('a password is required');
+
+        Pdf\Pdf::importRawData($encryptedData);
+    }
+
+    public function testExtractTextFromFileRecoversTextFromAnEncryptedPdf()
+    {
+        $unencrypted = __DIR__ . '/tmp/test-extract.pdf';
+        $encrypted   = $this->encryptFixture($unencrypted);
+
+        $plainText     = Pdf\Pdf::extractTextFromFile($unencrypted);
+        $decryptedText = Pdf\Pdf::extractTextFromFile($encrypted, null, null, 'open-me');
+        unlink($encrypted);
+
+        $this->assertNotEmpty(trim($plainText));
+        $this->assertEquals($plainText, $decryptedText);
+    }
+
+    public function testExtractTextFromFileThrowsForAnEncryptedPdfWithNoPassword()
+    {
+        $encrypted = $this->encryptFixture(__DIR__ . '/tmp/test-extract.pdf');
+
+        $this->expectException(\Pop\Pdf\Extract\Exception::class);
+        $this->expectExceptionMessage('a password is required');
+
+        try {
+            Pdf\Pdf::extractTextFromFile($encrypted);
+        } finally {
+            unlink($encrypted);
+        }
+    }
+
+    public function testExtractTextFromDataRecoversTextFromAnEncryptedPdf()
+    {
+        $unencrypted   = __DIR__ . '/tmp/test-extract.pdf';
+        $encrypted     = $this->encryptFixture($unencrypted);
+        $encryptedData = file_get_contents($encrypted);
+        unlink($encrypted);
+
+        $plainText     = Pdf\Pdf::extractTextFromData(file_get_contents($unencrypted));
+        $decryptedText = Pdf\Pdf::extractTextFromData($encryptedData, null, null, 'open-me');
+
+        $this->assertNotEmpty(trim($plainText));
+        $this->assertEquals($plainText, $decryptedText);
+    }
+
+    public function testExtractTextFromDataThrowsForAnEncryptedPdfWithNoPassword()
+    {
+        $encrypted     = $this->encryptFixture(__DIR__ . '/tmp/test-extract.pdf');
+        $encryptedData = file_get_contents($encrypted);
+        unlink($encrypted);
+
+        $this->expectException(\Pop\Pdf\Extract\Exception::class);
+        $this->expectExceptionMessage('a password is required');
+
+        Pdf\Pdf::extractTextFromData($encryptedData);
+    }
+
+    public function testMergeCombinesAnEncryptedFileGivenItsPassword()
+    {
+        $encrypted = $this->encryptFixture(__DIR__ . '/tmp/test-extract.pdf');
+
+        $doc = Pdf\Pdf::merge([__DIR__ . '/tmp/doc.pdf', $encrypted], new Document(), [1 => 'open-me']);
+        unlink($encrypted);
+
+        $this->assertInstanceOf('Pop\Pdf\Document', $doc);
+        $this->assertGreaterThan(1, $doc->getNumberOfPages());
+    }
+
+    public function testMergeThrowsForAnEncryptedFileWithNoPassword()
+    {
+        $encrypted = $this->encryptFixture(__DIR__ . '/tmp/test-extract.pdf');
+
+        $this->expectException('Pop\Pdf\Build\Exception');
+        $this->expectExceptionMessage('a password is required');
+
+        try {
+            Pdf\Pdf::merge([__DIR__ . '/tmp/doc.pdf', $encrypted]);
+        } finally {
+            unlink($encrypted);
+        }
+    }
+
+    public function testMergeRawDataCombinesEncryptedDataGivenItsPassword()
+    {
+        $encrypted     = $this->encryptFixture(__DIR__ . '/tmp/test-extract.pdf');
+        $encryptedData = file_get_contents($encrypted);
+        unlink($encrypted);
+
+        $doc = Pdf\Pdf::mergeRawData(
+            [file_get_contents(__DIR__ . '/tmp/doc.pdf'), $encryptedData],
+            new Document(),
+            [1 => 'open-me']
+        );
+
+        $this->assertInstanceOf('Pop\Pdf\Document', $doc);
+        $this->assertGreaterThan(1, $doc->getNumberOfPages());
+    }
+
 }

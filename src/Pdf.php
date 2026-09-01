@@ -131,27 +131,29 @@ class Pdf
     /**
      * Import from an existing PDF file
      *
-     * @param  string $file
-     * @param  mixed  $pages
+     * @param  string  $file
+     * @param  mixed   $pages
+     * @param  ?string $password
      * @return AbstractDocument
      */
-    public static function importFromFile(string $file, mixed $pages = null): AbstractDocument
+    public static function importFromFile(string $file, mixed $pages = null, ?string $password = null): AbstractDocument
     {
         $parser = new Build\Parser();
-        return $parser->parseFile($file, $pages);
+        return $parser->parseFile($file, $pages, $password);
     }
 
     /**
      * Import from raw data stream
      *
-     * @param  string $data
-     * @param  mixed  $pages
+     * @param  string  $data
+     * @param  mixed   $pages
+     * @param  ?string $password
      * @return AbstractDocument
      */
-    public static function importRawData(string $data, mixed $pages = null): AbstractDocument
+    public static function importRawData(string $data, mixed $pages = null, ?string $password = null): AbstractDocument
     {
         $parser = new Build\Parser();
-        return $parser->parseData($data, $pages);
+        return $parser->parseData($data, $pages, $password);
     }
 
     /**
@@ -159,12 +161,15 @@ class Pdf
      *
      * @param  array    $files
      * @param  Document $document
+     * @param  array    $passwords per-source decryption passwords, keyed the same way as $files
+     *                             (e.g. [1 => 'secret'] to supply a password only for $files[1]);
+     *                             a source with no entry (or a null entry) is opened with no password.
      * @return AbstractDocument
      */
-    public static function merge(array $files, Document $document = new Document()): AbstractDocument
+    public static function merge(array $files, Document $document = new Document(), array $passwords = []): AbstractDocument
     {
         $merger = new Build\Merger();
-        return $merger->mergeFiles($files, $document);
+        return $merger->mergeFiles($files, $document, $passwords);
     }
 
     /**
@@ -172,12 +177,15 @@ class Pdf
      *
      * @param  array    $data
      * @param  Document $document
+     * @param  array    $passwords per-source decryption passwords, keyed the same way as $data
+     *                             (e.g. [1 => 'secret'] to supply a password only for $data[1]);
+     *                             a source with no entry (or a null entry) is opened with no password.
      * @return AbstractDocument
      */
-    public static function mergeRawData(array $data, Document $document = new Document()): AbstractDocument
+    public static function mergeRawData(array $data, Document $document = new Document(), array $passwords = []): AbstractDocument
     {
         $merger = new Build\Merger();
-        return $merger->mergeData($data, $document);
+        return $merger->mergeData($data, $document, $passwords);
     }
 
     /**
@@ -235,28 +243,34 @@ class Pdf
     /**
      * Extract text from file
      *
-     * @param  string $file
-     * @param  mixed  $pages
-     * @param  ?int   $pageLimit
+     * @param  string  $file
+     * @param  mixed   $pages
+     * @param  ?int    $pageLimit
+     * @param  ?string $password
      * @return string
      */
-    public static function extractTextFromFile(string $file, mixed $pages = null, ?int $pageLimit = null): string
+    public static function extractTextFromFile(
+        string $file, mixed $pages = null, ?int $pageLimit = null, ?string $password = null
+    ): string
     {
-        $doc = Extract\Document::fromFile($file);
+        $doc = Extract\Document::fromFile($file, $password);
         return self::extractTextFromDocument($doc, $pages, $pageLimit);
     }
 
     /**
      * Extract text from raw data stream
      *
-     * @param  string $data
-     * @param  mixed  $pages
-     * @param  ?int   $pageLimit
+     * @param  string  $data
+     * @param  mixed   $pages
+     * @param  ?int    $pageLimit
+     * @param  ?string $password
      * @return string
      */
-    public static function extractTextFromData(string $data, mixed $pages = null, ?int $pageLimit = null): string
+    public static function extractTextFromData(
+        string $data, mixed $pages = null, ?int $pageLimit = null, ?string $password = null
+    ): string
     {
-        $doc = new Extract\Document($data);
+        $doc = new Extract\Document($data, $password);
         return self::extractTextFromDocument($doc, $pages, $pageLimit);
     }
 
