@@ -342,11 +342,14 @@ class ParserTest extends TestCase
         $this->assertEquals('Pop PDF', $encDoc->getMetadata()->getTitle());
     }
 
-    public function testParseKeepsInfoStringsForADocumentWrittenWithStrFIdentity()
+    public function testParseFallsBackToDefaultMetadataForADocumentWrittenWithStrFStdCf()
     {
-        // This library's own encrypted output declares /StrF /Identity, so its
-        // strings ARE readable and must still be copied through - the skip
-        // above keys off the source's actual /StrF, not merely on "encrypted".
+        // This library's own encrypted output now declares /StrF /StdCF (like
+        // a third-party encryptor) and really does encrypt its /Info strings
+        // to match - see Build\Compiler's buildEncryptDictBody() docblock.
+        // Parser has no string-decryption layer, so re-reading its own
+        // encrypted output falls back to default Metadata exactly like the
+        // third-party case above, rather than recovering the original title.
         $document = new \Pop\Pdf\Document();
         $document->addFont(new \Pop\Pdf\Document\Font('Arial'));
         $document->setSecurity(new \Pop\Pdf\Document\Security('open-me', 'admin123'));
@@ -361,7 +364,7 @@ class ParserTest extends TestCase
 
         $reread = (new Parser())->parseFile($path, null, 'open-me');
 
-        $this->assertEquals('Readable Title', $reread->getMetadata()->getTitle());
+        $this->assertEquals('Pop PDF', $reread->getMetadata()->getTitle());
     }
 
     public function testAnImportedEncryptedPdfWritesBackOutAsAStructurallyValidPdf()

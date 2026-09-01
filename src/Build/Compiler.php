@@ -297,27 +297,19 @@ class Compiler extends AbstractCompiler
                 }
             }
 
-            // NOTE: no literal STRING in the document is encrypted - not the
-            // /Info dictionary's title/author/etc., not annotation /Contents,
-            // not form-field /T, /TU, /TM, /DA, and not an embedded font's
-            // /CIDSystemInfo /Registry and /Ordering. That is deliberate and
-            // is what /StrF /Identity in buildEncryptDictBody() declares: a
-            // conforming reader decrypts strings only if the crypt filter
-            // named by /StrF says to, so declaring /Identity there and
-            // leaving every string plaintext is internally consistent.
-            //
-            // Declaring /StrF /StdCF while encrypting only *some* string
-            // categories is not: a reader would dutifully "decrypt" the
-            // untouched ones too, destroying them (short strings collapse to
-            // empty, since their first 16 bytes are consumed as an IV;
-            // longer ones become garbage). Every embedded font carries
-            // /CIDSystemInfo strings, so that would corrupt essentially
-            // every encrypted document with an embedded font.
-            //
-            // InfoObject::encryptWith() is intentionally left in place,
-            // correct and unit-tested, as ready-to-use infrastructure for a
-            // future change that encrypts ALL string categories consistently
-            // and can then restore /StrF /StdCF.
+            // /Info dictionary strings (title/author/subject/creator/
+            // producer/dates) are encrypted here to match /StrF /StdCF -
+            // see buildEncryptDictBody()'s docblock for why every literal
+            // string must actually be encrypted once that's declared.
+            // Annotation URLs, form-field strings, and embedded-font
+            // /CIDSystemInfo strings are handled in their own dedicated
+            // passes (prepareAnnotations()/prepareFields()/the
+            // encryptEmbeddedFontStrings() pass added later in this file).
+            $this->info->encryptWith(function (string $data) use ($algorithm, $fileKey): string {
+                return ($algorithm === Document\Security::AES_128)
+                    ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $this->info->getIndex(), 0, $data)
+                    : PdfSecurity\ObjectCipher::encryptAes256($fileKey, $data);
+            });
         }
 
         // Loop through the rest of the objects, calculate their size and length
@@ -397,16 +389,17 @@ class Compiler extends AbstractCompiler
      * Build the /Encrypt dictionary body text from either revision's field
      * array produced by StandardSecurityHandler::buildRevision4()/buildRevision6().
      *
-     * /StmF names the crypt filter for STREAMS (/StdCF - every stream really
-     * is AES ciphertext) and /StrF the one for literal STRINGS. Strings are
-     * /Identity, i.e. not encrypted, because this component does not
-     * currently encrypt any of them: /Info title/author, annotation
-     * /Contents, form-field /T, /TU, /TM, /DA, and an embedded font's
-     * /CIDSystemInfo /Registry and /Ordering are all emitted as plaintext.
-     * Declaring /StdCF there instead would tell a conforming reader to
-     * "decrypt" those plaintext strings, destroying them - and since
-     * /CIDSystemInfo is universal to embedded fonts, that would break almost
-     * every encrypted document carrying one.
+     * /StmF names the crypt filter for STREAMS and /StrF the one for literal
+     * STRINGS - both /StdCF here, since every literal string this library
+     * emits (Info metadata, annotation URLs, form-field strings, an embedded
+     * font's /CIDSystemInfo) is actually encrypted to match. Declaring
+     * /StdCF for strings while leaving any of them plaintext causes a
+     * conforming reader to "decrypt" that plaintext anyway, corrupting it -
+     * this dictionary must never be changed to /StrF /Identity (or have
+     * /StrF omitted, which is spec-equivalent to /Identity) without also
+     * removing every encryptWith() call site this plan added, or real-world
+     * readers (confirmed: poppler-based Linux viewers, Chrome) will
+     * misdetect the cipher entirely and fail to open the document at all.
      *
      * @param  string $algorithm
      * @param  array  $dict
@@ -418,12 +411,12 @@ class Compiler extends AbstractCompiler
 
         if ($algorithm === Document\Security::AES_128) {
             return '<< /Filter /Standard /V 4 /R 4 /Length 128 ' .
-                '/CF << /StdCF << /CFM /AESV2 /AuthEvent /DocOpen /Length 16 >> >> /StmF /StdCF /StrF /Identity ' .
+                '/CF << /StdCF << /CFM /AESV2 /AuthEvent /DocOpen /Length 16 >> >> /StmF /StdCF /StrF /StdCF ' .
                 "/O {$hex($dict['O'])} /U {$hex($dict['U'])} /P {$dict['P']} >>";
         }
 
         return '<< /Filter /Standard /V 5 /R 6 /Length 256 ' .
-            '/CF << /StdCF << /CFM /AESV3 /AuthEvent /DocOpen /Length 32 >> >> /StmF /StdCF /StrF /Identity ' .
+            '/CF << /StdCF << /CFM /AESV3 /AuthEvent /DocOpen /Length 32 >> >> /StmF /StdCF /StrF /StdCF ' .
             "/O {$hex($dict['O'])} /U {$hex($dict['U'])} /OE {$hex($dict['OE'])} /UE {$hex($dict['UE'])} " .
             "/P {$dict['P']} /Perms {$hex($dict['Perms'])} >>";
     }

@@ -878,9 +878,9 @@ class DocumentTest extends TestCase
 
     /**
      * Write an encrypted PDF with this library's OWN write path, which
-     * deliberately declares /StrF /Identity - the opposite of what a
-     * third-party encryptor emits, and the case hasEncryptedStrings() has to
-     * tell apart from it.
+     * declares /StrF /StdCF (like a third-party encryptor) and actually
+     * encrypts its /Info strings to match - see Build\Compiler's
+     * buildEncryptDictBody() docblock for why.
      */
     protected function writeOurOwnEncryptedPdf(): string
     {
@@ -1185,8 +1185,8 @@ class DocumentTest extends TestCase
     public function testCryptFilterMethodResolvesTheStrFCryptFilterIndependentlyOfStmF()
     {
         // /StrF and /StmF are separate entries and a document can legally set
-        // them differently - this library's own write path is exactly that
-        // case (/StmF /StdCF with /StrF /Identity), so the two must not be
+        // them differently - a third-party encryptor commonly does exactly
+        // that (/StmF /StdCF with /StrF /Identity), so the two must not be
         // conflated.
         $doc    = new Document($this->buildSimplePdf());
         $method = new \ReflectionMethod(Document::class, 'cryptFilterMethod');
@@ -1210,14 +1210,17 @@ class DocumentTest extends TestCase
         // A plain document has nothing encrypted at all.
         $this->assertFalse((new Document($this->buildSimplePdf()))->hasEncryptedStrings());
 
-        // A document this library wrote declares /StrF /Identity, so its
-        // strings are readable even though it is encrypted.
+        // This library's own write path now declares /StrF /StdCF (restored
+        // from the earlier /StrF /Identity workaround) and actually encrypts
+        // its /Info strings to match, so its strings are ciphertext too -
+        // Extract\* has no string-decryption layer, so it cannot read them
+        // back as metadata (see Build\Parser's parse()).
         $ours = new Document(file_get_contents($this->writeOurOwnEncryptedPdf()), 'open-me');
 
         $this->assertTrue($ours->isEncrypted());
-        $this->assertFalse($ours->hasEncryptedStrings());
+        $this->assertTrue($ours->hasEncryptedStrings());
 
-        // A third-party encryptor's default is /StrF /StdCF, which this
+        // A third-party encryptor's default is /StrF /StdCF too, which this
         // library has no way to decrypt - every string it returns from such a
         // document is raw ciphertext.
         $theirs = new Document(file_get_contents($this->qpdfEncrypt('test-extract.pdf', '128')), 'open-me');
