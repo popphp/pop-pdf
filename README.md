@@ -496,13 +496,19 @@ mysteriously - if you hit one, these are the terms to search for:
 |-----------------------------------------------------|----------------------------------------------------------------------------|
 | RC4 (`/V` 1 or 2, revision 2 or 3)                  | Not supported - rejected as an unsupported encryption configuration        |
 | Revision 5 (Adobe extension level 3, deprecated)    | Not supported - rejected as an unsupported encryption configuration        |
-| `/EncryptMetadata false` (e.g. qpdf's `--cleartext-metadata`) | **Supported** for AES-128 and AES-256                            |
+| `/EncryptMetadata false` (e.g. qpdf's `--cleartext-metadata`) | Supported for AES-128 and AES-256, *unless* the document also carries an XMP `/Metadata` stream (see below) |
 | Encrypted strings (a non-`/Identity` `/StrF`)       | Opens; strings come back as ciphertext, and `/Info` is skipped (see above) |
 
 RC4 is deliberately absent rather than merely unimplemented: it is broken, and qpdf 11+ won't
 even write it without `--allow-weak-crypto`. A damaged encrypted PDF whose cross-reference
 data can't be repaired well enough to locate its `/Encrypt` dictionary is also refused
 outright, rather than being reported as an unencrypted document with empty page content.
+
+A document with `/EncryptMetadata false` *and* an XMP `/Metadata` stream - the actual reason
+anyone sets that flag - fails to open: `/EncryptMetadata false` means that one stream is left
+unencrypted, but nothing in this library's read path knows to skip decrypting it, so opening
+one raises `Could not decrypt the stream of object N: AES-128/256 decryption failed` instead
+of succeeding.
 
 [Top](#pop-pdf)
 
