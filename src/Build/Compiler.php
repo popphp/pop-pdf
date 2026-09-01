@@ -99,6 +99,42 @@ class Compiler extends AbstractCompiler
         }
         $this->prepareFonts();
 
+        // Raw bytes of the file identifier - used both for the trailer's
+        // /ID (hex-encoded further below) and, when the document is
+        // encrypted, as key-derivation/checksum input for AES-128/revision 4
+        // (revision 6 ignores it). Computed once so both uses agree on the
+        // same value.
+        $fileId = md5(uniqid((string)mt_rand(), true), true);
+
+        // Computed here, before the page/annotation/field preparation passes
+        // below, rather than immediately before serialization where this
+        // block used to live - prepareAnnotations() (and, in later tasks,
+        // prepareFields()/font preparation) needs $fileKey/$algorithm
+        // already resolved so it can encrypt each string-bearing object's
+        // literal content on the way in, instead of after the fact.
+        $fileKey     = null;
+        $encryptDict = null;
+        $algorithm   = null;
+
+        if ($document->hasSecurity()) {
+            $security  = $document->getSecurity();
+            $algorithm = $security->getAlgorithm();
+
+            if (($algorithm !== Document\Security::AES_128) && ($algorithm !== Document\Security::AES_256)) {
+                throw new PdfSecurity\Exception(
+                    "Error: Invalid encryption algorithm '{$algorithm}'. Expected '" .
+                    Document\Security::AES_128 . "' or '" . Document\Security::AES_256 . "'."
+                );
+            }
+
+            $built = ($algorithm === Document\Security::AES_128)
+                ? PdfSecurity\StandardSecurityHandler::buildRevision4($security, $fileId)
+                : PdfSecurity\StandardSecurityHandler::buildRevision6($security, $fileId);
+
+            $fileKey     = $built['fileKey'];
+            $encryptDict = $built['dict'];
+        }
+
         $pageObjects = [];
 
         foreach ($this->pages as $page) {
@@ -156,7 +192,7 @@ class Compiler extends AbstractCompiler
         // Prepare annotation objects, after the pages have been set
         foreach ($this->pages as $page) {
             if ($page->hasAnnotations()) {
-                $this->prepareAnnotations($page->getAnnotations(), $pageObjects[$page->getIndex()]);
+                $this->prepareAnnotations($page->getAnnotations(), $pageObjects[$page->getIndex()], $fileKey, $algorithm);
             }
         }
 
@@ -184,35 +220,6 @@ class Compiler extends AbstractCompiler
         $this->byteLength  = $this->calculateByteLength($rootString);
 
         $this->output .= $rootString;
-
-        // Raw bytes of the file identifier - used both for the trailer's
-        // /ID (hex-encoded below) and, when the document is encrypted, as
-        // key-derivation/checksum input for AES-128/revision 4 (revision 6
-        // ignores it). Computed once so both uses agree on the same value.
-        $fileId = md5(uniqid((string)mt_rand(), true), true);
-
-        $fileKey     = null;
-        $encryptDict = null;
-        $algorithm   = null;
-
-        if ($document->hasSecurity()) {
-            $security  = $document->getSecurity();
-            $algorithm = $security->getAlgorithm();
-
-            if (($algorithm !== Document\Security::AES_128) && ($algorithm !== Document\Security::AES_256)) {
-                throw new PdfSecurity\Exception(
-                    "Error: Invalid encryption algorithm '{$algorithm}'. Expected '" .
-                    Document\Security::AES_128 . "' or '" . Document\Security::AES_256 . "'."
-                );
-            }
-
-            $built = ($algorithm === Document\Security::AES_128)
-                ? PdfSecurity\StandardSecurityHandler::buildRevision4($security, $fileId)
-                : PdfSecurity\StandardSecurityHandler::buildRevision6($security, $fileId);
-
-            $fileKey     = $built['fileKey'];
-            $encryptDict = $built['dict'];
-        }
 
         // Per-object compression pass, run to completion before anything is
         // encrypted - encryption wraps whatever bytes the filter chain
@@ -419,6 +426,32 @@ class Compiler extends AbstractCompiler
             '/CF << /StdCF << /CFM /AESV3 /AuthEvent /DocOpen /Length 32 >> >> /StmF /StdCF /StrF /StdCF ' .
             "/O {$hex($dict['O'])} /U {$hex($dict['U'])} /OE {$hex($dict['OE'])} /UE {$hex($dict['UE'])} " .
             "/P {$dict['P']} /Perms {$hex($dict['Perms'])} >>";
+    }
+
+    /**
+     * Build a per-object string-encryptor closure for the current
+     * document's encryption settings, or null if the document isn't
+     * encrypted. Shared by every literal-string encryption call site
+     * (annotations, form fields, embedded fonts) - each needs its own
+     * closure bound to its own object index, since AES-128's per-object
+     * key derivation depends on it.
+     *
+     * @param  ?string $fileKey
+     * @param  ?string $algorithm
+     * @param  int     $objectIndex
+     * @return ?callable
+     */
+    private function stringEncryptor(?string $fileKey, ?string $algorithm, int $objectIndex): ?callable
+    {
+        if ($fileKey === null) {
+            return null;
+        }
+
+        return function (string $data) use ($algorithm, $fileKey, $objectIndex): string {
+            return ($algorithm === Document\Security::AES_128)
+                ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $objectIndex, 0, $data)
+                : PdfSecurity\ObjectCipher::encryptAes256($fileKey, $data);
+        };
     }
 
     /**
@@ -662,11 +695,15 @@ class Compiler extends AbstractCompiler
     /**
      * Prepare the annotation objects
      *
-     * @param  array $annotations
+     * @param  array    $annotations
      * @param  PdfObject\PageObject $pageObject
+     * @param  ?string  $fileKey
+     * @param  ?string  $algorithm
      * @return void
      */
-    protected function prepareAnnotations(array $annotations, PdfObject\PageObject $pageObject): void
+    protected function prepareAnnotations(
+        array $annotations, PdfObject\PageObject $pageObject, ?string $fileKey = null, ?string $algorithm = null
+    ): void
     {
         foreach ($annotations as $annotation) {
             $i = $this->lastIndex() + 1;
@@ -674,6 +711,9 @@ class Compiler extends AbstractCompiler
 
             $coordinates = $this->getCoordinates($annotation['x'], $annotation['y'], $pageObject);
             if ($annotation['annotation'] instanceof \Pop\Pdf\Document\Page\Annotation\Url) {
+                if ($fileKey !== null) {
+                    $annotation['annotation']->encryptWith($this->stringEncryptor($fileKey, $algorithm, $i));
+                }
                 $stream = $annotation['annotation']->getStream($i, $coordinates['x'], $coordinates['y']);
             } else {
                 $targetCoordinates = $this->getCoordinates(

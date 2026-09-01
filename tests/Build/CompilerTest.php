@@ -764,6 +764,55 @@ class CompilerTest extends TestCase
         }
     }
 
+    // Annotation\Url's /URI is a literal PDF string, so once /StrF /StdCF is
+    // declared (restored by the previous test's fix) it must actually be
+    // encrypted - otherwise a conforming reader tries to AES-decrypt
+    // plaintext bytes, corrupting the URL into garbage. This is verified
+    // with real qpdf AND poppler (not just qpdf, which can't detect the
+    // narrower "declared encrypted but not actually encrypted" bug on its
+    // own the way poppler's stricter parser can).
+    public function testFinalizeEncryptsAnnotationUrlStrings()
+    {
+        if ((shell_exec('which qpdf') === null) || (shell_exec('which pdftotext') === null)
+            || (shell_exec('which pdfinfo') === null)) {
+            $this->markTestSkipped('qpdf and poppler-utils are required for this test.');
+        }
+
+        foreach ([Document\Security::AES_128, Document\Security::AES_256] as $algorithm) {
+            $doc = new Document();
+            $doc->addFont(new Font('Arial'));
+            $doc->setSecurity(new Document\Security('open-me', 'admin123', null, $algorithm));
+
+            $page = new Page(Page::LETTER);
+            $page->addUrl(new Page\Annotation\Url(150, 20, 'https://example.com/annotation-secret'), 50, 400);
+            $doc->addPage($page);
+
+            $compiler = new Compiler();
+            $compiler->finalize($doc);
+            $output = $compiler->getOutput();
+
+            $this->assertStringNotContainsString('https://example.com/annotation-secret', $output);
+
+            $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
+            $this->assertStringContainsString('https://example.com/annotation-secret', $decrypted);
+
+            $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_url_compiler_test_') . '.pdf';
+            file_put_contents($tmpFile, $output);
+
+            $info = shell_exec('pdfinfo -upw open-me ' . escapeshellarg($tmpFile) . ' 2>&1');
+            $textOutput = [];
+            exec('pdftotext -upw open-me ' . escapeshellarg($tmpFile) . ' - 2>&1', $textOutput, $textStatus);
+
+            unlink($tmpFile);
+
+            $this->assertStringNotContainsString('algorithm:RC4', $info);
+            $this->assertEquals(0, $textStatus, implode("\n", $textOutput));
+            foreach ($textOutput as $line) {
+                $this->assertStringNotContainsString('Syntax Error', $line);
+            }
+        }
+    }
+
     public function testFinalizeThrowsExceptionForInvalidAlgorithm()
     {
         $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
