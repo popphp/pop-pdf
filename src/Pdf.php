@@ -346,54 +346,66 @@ class Pdf
     /**
      * Determine if every page of a PDF file is nothing but a single scanned/drawn image
      *
-     * @param  string $file
-     * @param  mixed  $pages
-     * @param  ?int   $pageLimit
+     * @param  string  $file
+     * @param  mixed   $pages
+     * @param  ?int    $pageLimit
+     * @param  ?string $password
      * @return bool
      */
-    public static function isImageOnlyDocument(string $file, mixed $pages = null, ?int $pageLimit = null): bool
+    public static function isImageOnlyDocument(
+        string $file, mixed $pages = null, ?int $pageLimit = null, ?string $password = null
+    ): bool
     {
-        return self::allPagesImageOnly(self::getImageOnlyPages($file, $pages, $pageLimit));
+        return self::allPagesImageOnly(self::getImageOnlyPages($file, $pages, $pageLimit, $password));
     }
 
     /**
      * Determine if every page of raw PDF data is nothing but a single scanned/drawn image
      *
-     * @param  string $data
-     * @param  mixed  $pages
-     * @param  ?int   $pageLimit
+     * @param  string  $data
+     * @param  mixed   $pages
+     * @param  ?int    $pageLimit
+     * @param  ?string $password
      * @return bool
      */
-    public static function isImageOnlyData(string $data, mixed $pages = null, ?int $pageLimit = null): bool
+    public static function isImageOnlyData(
+        string $data, mixed $pages = null, ?int $pageLimit = null, ?string $password = null
+    ): bool
     {
-        return self::allPagesImageOnly(self::getImageOnlyPagesFromData($data, $pages, $pageLimit));
+        return self::allPagesImageOnly(self::getImageOnlyPagesFromData($data, $pages, $pageLimit, $password));
     }
 
     /**
      * Get a per-page image-only classification for a PDF file
      *
-     * @param  string $file
-     * @param  mixed  $pages
-     * @param  ?int   $pageLimit
+     * @param  string  $file
+     * @param  mixed   $pages
+     * @param  ?int    $pageLimit
+     * @param  ?string $password
      * @return array
      */
-    public static function getImageOnlyPages(string $file, mixed $pages = null, ?int $pageLimit = null): array
+    public static function getImageOnlyPages(
+        string $file, mixed $pages = null, ?int $pageLimit = null, ?string $password = null
+    ): array
     {
-        $doc = Extract\Document::fromFile($file);
+        $doc = Extract\Document::fromFile($file, $password);
         return self::classifyPages($doc, $pages, $pageLimit);
     }
 
     /**
      * Get a per-page image-only classification for raw PDF data
      *
-     * @param  string $data
-     * @param  mixed  $pages
-     * @param  ?int   $pageLimit
+     * @param  string  $data
+     * @param  mixed   $pages
+     * @param  ?int    $pageLimit
+     * @param  ?string $password
      * @return array
      */
-    public static function getImageOnlyPagesFromData(string $data, mixed $pages = null, ?int $pageLimit = null): array
+    public static function getImageOnlyPagesFromData(
+        string $data, mixed $pages = null, ?int $pageLimit = null, ?string $password = null
+    ): array
     {
-        $doc = new Extract\Document($data);
+        $doc = new Extract\Document($data, $password);
         return self::classifyPages($doc, $pages, $pageLimit);
     }
 

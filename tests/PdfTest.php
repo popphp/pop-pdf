@@ -11,6 +11,38 @@ use PHPUnit\Framework\TestCase;
 class PdfTest extends TestCase
 {
 
+    /**
+     * Temp files created by a test, removed in tearDown()
+     * @var array
+     */
+    protected array $tempFiles = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempFiles as $tempFile) {
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+
+        $this->tempFiles = [];
+    }
+
+    /**
+     * Reserve a temp .pdf path, tracking BOTH it and the extension-less file
+     * tempnam() actually creates, so neither is left behind.
+     */
+    protected function tempPdfPath(string $prefix = 'pop_pdf_test_'): string
+    {
+        $base = tempnam(sys_get_temp_dir(), $prefix);
+        $path = $base . '.pdf';
+
+        $this->tempFiles[] = $base;
+        $this->tempFiles[] = $path;
+
+        return $path;
+    }
+
     public function testImportFromFile()
     {
         $this->assertInstanceOf('Pop\Pdf\Document', Pdf\Pdf::importFromFile(__DIR__ . '/tmp/doc.pdf', 1));
@@ -679,8 +711,7 @@ class PdfTest extends TestCase
         // rather than a hand-built /Encrypt stub: a stub would be rejected by
         // the missing-password check no matter how broken decryption was,
         // making the test pass for the wrong reason.
-        $base      = tempnam(sys_get_temp_dir(), 'pop_pdf_merge_enc_');
-        $encrypted = $base . '.pdf';
+        $encrypted = $this->tempPdfPath('pop_pdf_merge_enc_');
         $source    = __DIR__ . '/tmp/test-extract.pdf';
 
         exec(
@@ -694,7 +725,6 @@ class PdfTest extends TestCase
         // qpdf exits 3 on warnings, so only a missing/empty output file
         // reliably means qpdf itself is unavailable.
         if (!file_exists($encrypted) || (filesize($encrypted) === 0)) {
-            @unlink($base);
             $this->markTestSkipped('qpdf is not available to produce an encrypted fixture: ' . implode("\n", $output));
         }
 
@@ -704,9 +734,6 @@ class PdfTest extends TestCase
         // so the rejection below is specifically about the MISSING password
         // and not about a broken fixture or broken decryption.
         $this->assertTrue((new Pdf\Extract\Document($encryptedData, 'open-me'))->isEncrypted());
-
-        @unlink($base);
-        @unlink($encrypted);
 
         $this->expectException('Pop\Pdf\Build\Exception');
         $this->expectExceptionMessage('a password is required');
@@ -733,11 +760,10 @@ class PdfTest extends TestCase
         $page->addText(new Document\Page\Text('Round trip content', 12), 'Arial', 50, 700);
         $document->addPage($page);
 
-        $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_roundtrip_') . '.pdf';
+        $tmpFile = $this->tempPdfPath('pop_pdf_roundtrip_');
         Pdf\Pdf::writeToFile($document, $tmpFile);
 
         $text = Pdf\Pdf::extractTextFromFile($tmpFile, null, null, 'open-me');
-        unlink($tmpFile);
 
         $this->assertStringContainsString('Round trip content', $text);
     }
@@ -886,7 +912,7 @@ class PdfTest extends TestCase
         string $source, string $userPassword = 'open-me', string $ownerPassword = 'admin123'
     ): string
     {
-        $encrypted = tempnam(sys_get_temp_dir(), 'pop_pdf_enc_test_') . '.pdf';
+        $encrypted = $this->tempPdfPath('pop_pdf_enc_test_');
 
         exec(
             'qpdf --encrypt ' . escapeshellarg($userPassword) . ' ' . escapeshellarg($ownerPassword) . ' 256 -- ' .
@@ -898,11 +924,38 @@ class PdfTest extends TestCase
         // qpdf exits 3 on warnings, so only a missing/empty output file
         // reliably means qpdf itself is unavailable.
         if (!file_exists($encrypted) || (filesize($encrypted) === 0)) {
-            @unlink($encrypted);
             $this->markTestSkipped('qpdf is not available to produce an encrypted fixture: ' . implode("\n", $output));
         }
 
         return $encrypted;
+    }
+
+    public function testImageOnlyEntryPointsOpenAnEncryptedPdfGivenTheCorrectPassword()
+    {
+        $encrypted = $this->encryptFixture(__DIR__ . '/tmp/image-only-3page.pdf');
+        $data      = file_get_contents($encrypted);
+
+        $this->assertTrue(Pdf\Pdf::isImageOnlyDocument($encrypted, null, null, 'open-me'));
+        $this->assertTrue(Pdf\Pdf::isImageOnlyData($data, null, null, 'open-me'));
+        $this->assertEquals([true, true, true], Pdf\Pdf::getImageOnlyPages($encrypted, null, null, 'open-me'));
+        $this->assertEquals([true, true, true], Pdf\Pdf::getImageOnlyPagesFromData($data, null, null, 'open-me'));
+
+        // Same answer as the unencrypted source, so decryption really did
+        // happen rather than the classifier defaulting to "image-only".
+        $this->assertEquals(
+            Pdf\Pdf::getImageOnlyPages(__DIR__ . '/tmp/image-only-3page.pdf'),
+            Pdf\Pdf::getImageOnlyPages($encrypted, null, null, 'open-me')
+        );
+    }
+
+    public function testImageOnlyEntryPointsStillRejectAnEncryptedPdfWithNoPassword()
+    {
+        $encrypted = $this->encryptFixture(__DIR__ . '/tmp/image-only-3page.pdf');
+
+        $this->expectException(\Pop\Pdf\Extract\Exception::class);
+        $this->expectExceptionMessage('a password is required');
+
+        Pdf\Pdf::isImageOnlyDocument($encrypted);
     }
 
     public function testImportFromFileOpensAnEncryptedPdfGivenTheCorrectPassword()
