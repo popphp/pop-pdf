@@ -495,6 +495,7 @@ class CompilerTest extends TestCase
         $checkbox->setWidth(14);
         $checkbox->setHeight(14);
         $checkbox->setValue('Yes');
+        $checkbox->setChecked();
         $page->addField($checkbox, 'form1', 50, 700);
 
         $compiler = new Compiler();
@@ -504,6 +505,33 @@ class CompilerTest extends TestCase
         $this->assertStringContainsString('/Subtype /Form', $output);
         $this->assertStringContainsString('/AP << /N <<', $output);
         $this->assertStringContainsString('/AS /Yes', $output);
+    }
+
+    // A plain (non-grouped) checkbox's checked state must come from
+    // isChecked(), independent of whether a value happens to be set -
+    // setValue() alone must never be treated as "checked".
+    public function testCheckboxCheckedStateComesFromIsCheckedNotFromValue()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $checkbox = new Page\Field\Button('subscribe');
+        $checkbox->setWidth(14);
+        $checkbox->setHeight(14);
+        $checkbox->setValue('Yes');
+        // Deliberately no setChecked() call.
+        $page->addField($checkbox, 'form1', 50, 700);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('/AS /Off', $output);
+        $this->assertStringContainsString('/V /Off', $output);
+        $this->assertStringNotContainsString('/AS /Yes', $output);
     }
 
     // Regression test for a real object-numbering collision this task's own
@@ -581,6 +609,7 @@ class CompilerTest extends TestCase
         $optionA->setWidth(14);
         $optionA->setHeight(14);
         $optionA->setValue('a');
+        $optionA->setChecked();
         $page->addField($optionA, 'form1', 50, 700);
 
         $optionB = new Page\Field\Button('plan');
@@ -698,6 +727,61 @@ class CompilerTest extends TestCase
                 );
             }
         }
+    }
+
+    // Regression test for the checked-flag fix: when every option in a radio
+    // group carries its own distinct value (the only way to get distinct
+    // export names), the resolved parent /V must come from whichever kid was
+    // actually marked checked via setChecked() - not from "the last group
+    // member with a non-null value", which would always pick the last radio
+    // regardless of which one HTML marked checked. Also confirms all three
+    // kids get genuinely distinct /AP on-state names, since createCheckable
+    // Appearance()'s getValue() ?? 'Yes' fallback only derives a correct,
+    // distinct name per kid when every kid carries its own setValue().
+    public function testRadioGroupChecksMiddleOptionNotLastValuedOption()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $optionA = new Page\Field\Button('plan');
+        $optionA->setRadio();
+        $optionA->setWidth(14);
+        $optionA->setHeight(14);
+        $optionA->setValue('a');
+        $page->addField($optionA, 'form1', 50, 700);
+
+        $optionB = new Page\Field\Button('plan');
+        $optionB->setRadio();
+        $optionB->setWidth(14);
+        $optionB->setHeight(14);
+        $optionB->setValue('b');
+        $optionB->setChecked();
+        $page->addField($optionB, 'form1', 50, 680);
+
+        $optionC = new Page\Field\Button('plan');
+        $optionC->setRadio();
+        $optionC->setWidth(14);
+        $optionC->setHeight(14);
+        $optionC->setValue('c');
+        $page->addField($optionC, 'form1', 50, 660);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        // The shared parent field's /V must be the checked kid's ('b') own
+        // value - not 'c' (the last group member with a non-null value).
+        $this->assertStringContainsString('/V /b', $output);
+        $this->assertStringNotContainsString('/V /c', $output);
+
+        // All three kids must get genuinely distinct on-state export names -
+        // none of them collapsing onto a shared 'Yes' fallback.
+        preg_match_all('/\/AP << \/N << \/(\w+) (\d+) 0 R \/Off (\d+) 0 R >> >>/', $output, $apMatches);
+        $this->assertCount(3, $apMatches[1], 'Expected exactly three AP dicts, one per radio kid.');
+        $this->assertEquals(['a', 'b', 'c'], $apMatches[1], 'Each kid must have its own distinct on-state name.');
     }
 
     public function testPrepareFieldsThrowsWhenFontNotAdded()

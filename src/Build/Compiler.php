@@ -1015,7 +1015,7 @@ class Compiler extends AbstractCompiler
             $appearance = $this->createCheckableAppearance(
                 $field['field'], (float) $field['field']->getWidth(), (float) $field['field']->getHeight()
             );
-            $appearance['checked'] = ($field['field']->getValue() !== null);
+            $appearance['checked'] = $field['field']->isChecked();
         }
 
         $i           = $this->lastIndex() + 1;
@@ -1056,8 +1056,12 @@ class Compiler extends AbstractCompiler
         $representative = $groupFields[0]['field'];
         $checkedValue   = null;
         foreach ($groupFields as $field) {
-            if ($field['field']->getValue() !== null) {
-                $checkedValue = $this->sanitizeExportName($field['field']->getValue());
+            if ($field['field']->isChecked()) {
+                // Sanitized the same way createCheckableAppearance() derives
+                // each kid's own on-state export name, so the parent's /V
+                // always matches the actually-checked kid's /AP /N key - not
+                // just whichever kid happened to have a non-null value.
+                $checkedValue = $this->sanitizeExportName($field['field']->getValue() ?? 'Yes');
             }
         }
 

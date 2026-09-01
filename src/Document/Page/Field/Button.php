@@ -36,6 +36,37 @@ class Button extends AbstractField
     protected array $options = [];
 
     /**
+     * Whether this specific widget is checked - independent of getValue()/
+     * setValue(), which carry the export/on-state name, not the checked
+     * state. A radio group can have every option carrying its own distinct
+     * value while only one of them is actually checked.
+     * @var bool
+     */
+    protected bool $checked = false;
+
+    /**
+     * Set checked
+     *
+     * @param  bool $checked
+     * @return Button
+     */
+    public function setChecked(bool $checked = true): Button
+    {
+        $this->checked = $checked;
+        return $this;
+    }
+
+    /**
+     * Is checked
+     *
+     * @return bool
+     */
+    public function isChecked(): bool
+    {
+        return $this->checked;
+    }
+
+    /**
      * Add an option
      *
      * @param  string $option

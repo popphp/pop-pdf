@@ -437,6 +437,28 @@ class FieldTest extends TestCase
         $this->assertStringNotContainsString('/Rect', $stream);
     }
 
+    // isChecked()/setChecked() are a genuinely independent flag from
+    // getValue()/setValue() - the export/on-state name. A radio group needs
+    // every option to carry its own distinct value while only one of them is
+    // actually checked, so "checked" cannot be derived from whether a value
+    // happens to be set.
+    public function testButtonCheckedFlagIsIndependentOfValue()
+    {
+        $field = new Field\Button('plan');
+
+        $this->assertFalse($field->isChecked());
+
+        $field->setValue('a');
+        $this->assertFalse($field->isChecked(), 'setValue() must not implicitly mark the field checked.');
+
+        $field->setChecked();
+        $this->assertTrue($field->isChecked());
+        $this->assertEquals('a', $field->getValue(), 'setChecked() must not change the export value.');
+
+        $field->setChecked(false);
+        $this->assertFalse($field->isChecked());
+    }
+
     public function testTextAppearanceRendersBorderAndBackground()
     {
         $field = new Field\Text('name', 'Arial', 14);
