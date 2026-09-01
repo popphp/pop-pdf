@@ -344,6 +344,61 @@ class FieldTest extends TestCase
         $this->assertStringContainsString('/T(Name \(With\) \\\\Parens)', $stream);
     }
 
+    public function testButtonAppearanceStateRendersApAndAs()
+    {
+        $field = new Field\Button('subscribe');
+        $field->setWidth(14);
+        $field->setHeight(14);
+
+        $stream = $field->getStream(10, 2, null, 20, 200, [
+            'onName' => 'Yes', 'onRef' => '15 0 R', 'offRef' => '16 0 R', 'checked' => true
+        ]);
+
+        $this->assertStringContainsString('/AP << /N << /Yes 15 0 R /Off 16 0 R >> >>', $stream);
+        $this->assertStringContainsString('/AS /Yes', $stream);
+    }
+
+    public function testButtonAppearanceStateUncheckedUsesOffState()
+    {
+        $field = new Field\Button('subscribe');
+        $field->setWidth(14);
+        $field->setHeight(14);
+
+        $stream = $field->getStream(10, 2, null, 20, 200, [
+            'onName' => 'Yes', 'onRef' => '15 0 R', 'offRef' => '16 0 R', 'checked' => false
+        ]);
+
+        $this->assertStringContainsString('/AS /Off', $stream);
+    }
+
+    public function testButtonWithParentIndexOmitsNameAndFlags()
+    {
+        $field = new Field\Button('plan');
+        $field->setWidth(14);
+        $field->setHeight(14);
+        $field->setRadio();
+
+        $stream = $field->getStream(10, 2, null, 20, 200, null, 3);
+
+        $this->assertStringContainsString('/Parent 3 0 R', $stream);
+        $this->assertStringNotContainsString('/T(plan)', $stream);
+        $this->assertStringNotContainsString('/Ff', $stream);
+    }
+
+    public function testButtonGetParentFieldStream()
+    {
+        $field = new Field\Button('plan');
+        $field->setRadio();
+
+        $stream = $field->getParentFieldStream(7, 'us');
+
+        $this->assertStringStartsWith('7 0 obj', $stream);
+        $this->assertStringContainsString('/FT /Btn', $stream);
+        $this->assertStringContainsString('/T(plan)', $stream);
+        $this->assertStringContainsString('/V /us', $stream);
+        $this->assertStringNotContainsString('/Rect', $stream);
+    }
+
     public function testTextAppearanceRendersBorderAndBackground()
     {
         $field = new Field\Text('name', 'Arial', 14);

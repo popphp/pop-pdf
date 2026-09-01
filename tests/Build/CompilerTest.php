@@ -483,6 +483,91 @@ class CompilerTest extends TestCase
         $this->assertEquals(2, substr_count($fieldsMatch[1], ' 0 R'));
     }
 
+    public function testCheckboxGetsGeneratedOnOffAppearanceObjects()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $checkbox = new Page\Field\Button('subscribe');
+        $checkbox->setWidth(14);
+        $checkbox->setHeight(14);
+        $checkbox->setValue('Yes');
+        $page->addField($checkbox, 'form1', 50, 700);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('/Subtype /Form', $output);
+        $this->assertStringContainsString('/AP << /N <<', $output);
+        $this->assertStringContainsString('/AS /Yes', $output);
+    }
+
+    // Regression test for a real object-numbering collision this task's own
+    // implementation introduced: prepareFields() used to compute the field's
+    // own object index ($i = lastIndex() + 1) BEFORE calling
+    // createCheckableAppearance() - but that index is only reserved, not
+    // actually registered via addObject(), until the very end of the loop
+    // body. createCheckableAppearance() independently calls lastIndex() + 1
+    // to allocate its own "on" appearance object, which (since nothing was
+    // added to $this->objects in between) computed the SAME number as $i -
+    // so the field's own widget dict silently overwrote the "on" appearance
+    // XObject once addObject($i, ...) finally ran. The result was an /AP
+    // dict whose /Yes reference pointed at the widget's own annotation
+    // object (not a Form XObject at all) instead of the real checkmark
+    // content, which was lost entirely - broken regardless of whether the
+    // document was encrypted. This resolves each /AP name/reference pair to
+    // its actual object in the compiled output and asserts each one is a
+    // real, distinct /Subtype /Form XObject.
+    public function testCheckboxAppearanceReferencesPointToActualDistinctFormXObjectsNotTheFieldItself()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $checkbox = new Page\Field\Button('subscribe');
+        $checkbox->setWidth(14);
+        $checkbox->setHeight(14);
+        $checkbox->setValue('Yes');
+        $page->addField($checkbox, 'form1', 50, 700);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertMatchesRegularExpression(
+            '/\/AP << \/N << \/Yes (\d+) 0 R \/Off (\d+) 0 R >> >>/', $output, 'AP dict not found in output'
+        );
+        preg_match('/\/AP << \/N << \/Yes (\d+) 0 R \/Off (\d+) 0 R >> >>/', $output, $apMatch);
+        $onIndex  = (int) $apMatch[1];
+        $offIndex = (int) $apMatch[2];
+
+        $this->assertNotEquals($onIndex, $offIndex, '/Yes and /Off must reference distinct objects.');
+
+        foreach (['on' => $onIndex, 'off' => $offIndex] as $label => $index) {
+            $this->assertMatchesRegularExpression(
+                '/' . $index . ' 0 obj\s*<< \/Type \/XObject \/Subtype \/Form/s', $output,
+                "The {$label}-state /AP reference ({$index} 0 R) does not point at a real Form XObject - " .
+                "it was likely clobbered by another object reusing the same index."
+            );
+        }
+
+        // The "on" state's Form XObject must actually contain the rendered
+        // checkmark content (a filled rectangle, "re" + "f" operators), not
+        // be empty or contain the widget's own dictionary.
+        preg_match(
+            '/' . $onIndex . ' 0 obj\s*<< \/Type \/XObject \/Subtype \/Form.*?stream\n(.*?)\nendstream/s',
+            $output, $onStreamMatch
+        );
+        $this->assertStringContainsString('re', $onStreamMatch[1] ?? '');
+        $this->assertStringContainsString('f', $onStreamMatch[1] ?? '');
+    }
+
     public function testPrepareFieldsThrowsWhenFontNotAdded()
     {
         $this->expectException(Exception::class);

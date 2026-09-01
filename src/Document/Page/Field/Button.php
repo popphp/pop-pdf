@@ -144,9 +144,14 @@ class Button extends AbstractField
      * @param  ?string $fontReference
      * @param  int     $x
      * @param  int     $y
+     * @param  ?array  $appearance
+     * @param  ?int    $parentIndex
      * @return string
      */
-    public function getStream(int $i, int $pageIndex, ?string $fontReference, int $x, int $y): string
+    public function getStream(
+        int $i, int $pageIndex, ?string $fontReference, int $x, int $y,
+        ?array $appearance = null, ?int $parentIndex = null
+    ): string
     {
         $text    = null;
         $options = null;
@@ -167,9 +172,10 @@ class Button extends AbstractField
             $text          = '    /DA(' . $this->encryptLiteral($fontReference . ' ' . $this->size . ' Tf ' . $color) . ')';
         }
 
-        $name    = ($this->name !== null) ? '    /T(' . $this->encryptLiteral($this->name) . ')/TU(' . $this->encryptLiteral($this->name) .
+        $name   = (($parentIndex === null) && ($this->name !== null)) ? '    /T(' . $this->encryptLiteral($this->name) . ')/TU(' . $this->encryptLiteral($this->name) .
             ')/TM(' . $this->encryptLiteral($this->name) . ')' : '';
-        $flags   = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
+        $flags  = (($parentIndex === null) && (count($this->flagBits) > 0)) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
+        $parent = ($parentIndex !== null) ? "    /Parent {$parentIndex} 0 R\n" : '';
         // /V and /DV are bare PDF Names here (no parens/escaping), not
         // string literals - left untouched by encryptLiteral() on purpose.
         $value   = ($this->value !== null) ? "\n    /V " . $this->value . "\n" : null;
@@ -183,11 +189,37 @@ class Button extends AbstractField
             $options .= "]\n";
         }
 
+        $ap = '';
+        $as = '';
+        if ($appearance !== null) {
+            $stateName = ($appearance['checked']) ? $appearance['onName'] : 'Off';
+            $ap = "    /AP << /N << /" . $appearance['onName'] . " " . $appearance['onRef'] . " /Off " . $appearance['offRef'] . " >> >>\n";
+            $as = "    /AS /" . $stateName . "\n";
+        }
+
         // Return the stream
         return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Btn\n    /Rect [{$x} {$y} " .
-            ($this->width + $x) . " " . ($this->height + $y) . "]{$value}{$default}\n    /P {$pageIndex} 0 R\n" .
-            "    \n{$text}\n{$name}\n{$flags}\n{$options}" .
+            ($this->width + $x) . " " . ($this->height + $y) . "]{$value}{$default}\n    /P {$pageIndex} 0 R\n{$parent}" .
+            "    \n{$text}\n{$name}\n{$flags}\n{$options}{$ap}{$as}" .
             $this->getAppearanceCharacteristics() . $this->getBorderStyle() . ">>\nendobj\n\n";
+    }
+
+    /**
+     * Get the shared parent field stream for a radio group - has no /Rect
+     * since it is not itself a widget annotation, only the field the group's
+     * widgets point back to via their own /Parent
+     *
+     * @param  int     $i
+     * @param  ?string $checkedExportName
+     * @return string
+     */
+    public function getParentFieldStream(int $i, ?string $checkedExportName = null): string
+    {
+        $name  = ($this->name !== null) ? '    /T(' . $this->encryptLiteral($this->name) . ')' : '';
+        $flags = "    /Ff " . $this->getFlags() . "\n";
+        $value = ($checkedExportName !== null) ? "    /V /" . $checkedExportName . "\n" : '';
+
+        return "{$i} 0 obj\n<<\n    /FT /Btn\n{$name}\n{$flags}{$value}>>\nendobj\n\n";
     }
 
 }

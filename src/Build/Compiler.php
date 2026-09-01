@@ -16,6 +16,7 @@ namespace Pop\Pdf\Build;
 
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Page\Text;
+use Pop\Pdf\Document\Page\Field\Button;
 use Pop\Pdf\Build\Security as PdfSecurity;
 
 /**
@@ -455,6 +456,109 @@ class Compiler extends AbstractCompiler
     }
 
     /**
+     * Build the on/off appearance-stream XObjects for a checkbox or radio
+     * widget and return the pieces Button::getStream() needs to reference
+     * them - does not set 'checked', callers fill that in themselves since
+     * a radio group's checked state depends on its sibling widgets too.
+     *
+     * @param  Button $field
+     * @param  float  $width
+     * @param  float  $height
+     * @return array
+     */
+    private function createCheckableAppearance(Button $field, float $width, float $height): array
+    {
+        $exportName = $this->sanitizeExportName($field->getValue() ?? 'Yes');
+        $onContent  = ($field->isRadio())
+            ? $this->radioDotAppearanceStream($width, $height)
+            : $this->checkMarkAppearanceStream($width, $height);
+
+        $onIndex = $this->lastIndex() + 1;
+        $this->addObject($onIndex, $this->buildAppearanceXObject($onIndex, $width, $height, $onContent));
+
+        $offIndex = $this->lastIndex() + 1;
+        $this->addObject($offIndex, $this->buildAppearanceXObject($offIndex, $width, $height, ''));
+
+        return [
+            'onName' => $exportName,
+            'onRef'  => "{$onIndex} 0 R",
+            'offRef' => "{$offIndex} 0 R",
+        ];
+    }
+
+    /**
+     * Sanitize an arbitrary HTML checkbox/radio value into a valid bare PDF
+     * name token (letters, digits, underscore only)
+     *
+     * @param  string $value
+     * @return string
+     */
+    private function sanitizeExportName(string $value): string
+    {
+        $sanitized = (string) preg_replace('/[^A-Za-z0-9_]/', '_', $value);
+        return ($sanitized === '') ? 'Yes' : $sanitized;
+    }
+
+    /**
+     * Content stream for a checked checkbox's "on" appearance: a simple
+     * filled square inset within the widget's own box
+     *
+     * @param  float $width
+     * @param  float $height
+     * @return string
+     */
+    private function checkMarkAppearanceStream(float $width, float $height): string
+    {
+        $inset = min($width, $height) * 0.25;
+        $w     = $width - (2 * $inset);
+        $h     = $height - (2 * $inset);
+
+        return sprintf("0 g\n%.2F %.2F %.2F %.2F re\nf\n", $inset, $inset, $w, $h);
+    }
+
+    /**
+     * Content stream for a selected radio button's "on" appearance: a
+     * filled circle (4-Bezier approximation, kappa = 0.5523) inset within
+     * the widget's own box
+     *
+     * @param  float $width
+     * @param  float $height
+     * @return string
+     */
+    private function radioDotAppearanceStream(float $width, float $height): string
+    {
+        $cx = $width / 2;
+        $cy = $height / 2;
+        $r  = min($width, $height) * 0.3;
+        $k  = $r * 0.5523;
+
+        $stream  = sprintf("0 g\n%.2F %.2F m\n", $cx + $r, $cy);
+        $stream .= sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c\n", $cx + $r, $cy + $k, $cx + $k, $cy + $r, $cx, $cy + $r);
+        $stream .= sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c\n", $cx - $k, $cy + $r, $cx - $r, $cy + $k, $cx - $r, $cy);
+        $stream .= sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c\n", $cx - $r, $cy - $k, $cx - $k, $cy - $r, $cx, $cy - $r);
+        $stream .= sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c\n", $cx + $k, $cy - $r, $cx + $r, $cy - $k, $cx + $r, $cy);
+        $stream .= "f\n";
+
+        return $stream;
+    }
+
+    /**
+     * Wrap a content stream fragment into a standalone Form XObject PDF object
+     *
+     * @param  int    $i
+     * @param  float  $width
+     * @param  float  $height
+     * @param  string $content
+     * @return PdfObject\StreamObject
+     */
+    private function buildAppearanceXObject(int $i, float $width, float $height, string $content): PdfObject\StreamObject
+    {
+        $length = strlen($content);
+        $stream = "{$i} 0 obj\n<< /Type /XObject /Subtype /Form /FormType 1 /BBox [0 0 {$width} {$height}] /Length {$length} >>\nstream\n{$content}\nendstream\nendobj\n\n";
+        return PdfObject\StreamObject::parse($stream);
+    }
+
+    /**
      * Encrypt an embedded CID font's /CIDSystemInfo strings (the CID font
      * dictionary's /Registry /Ordering pair) to match /StrF /StdCF.
      *
@@ -820,6 +924,23 @@ class Compiler extends AbstractCompiler
                 } else {
                     $fontRef = null;
                 }
+                // For a checkbox/radio, the on/off appearance XObjects must be
+                // allocated (and registered via addObject()) BEFORE this
+                // field's own object index ($i) is computed below - $i is
+                // only reserved via lastIndex()+1 here and not actually
+                // added to $this->objects until this loop body's very last
+                // statement, so calling createCheckableAppearance() (which
+                // also allocates via lastIndex()+1) any later would collide
+                // with $i and its object silently clobber the field's own
+                // widget dict once addObject($i, ...) ran.
+                $appearance = null;
+                if (($field['field'] instanceof Button) && (!$field['field']->isPushButton())) {
+                    $appearance = $this->createCheckableAppearance(
+                        $field['field'], (float) $field['field']->getWidth(), (float) $field['field']->getHeight()
+                    );
+                    $appearance['checked'] = ($field['field']->getValue() !== null);
+                }
+
                 $i = $this->lastIndex() + 1;
                 $pageObject->addAnnotIndex($i);
                 $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
@@ -827,9 +948,12 @@ class Compiler extends AbstractCompiler
                 if ($fileKey !== null) {
                     $field['field']->encryptWith($this->stringEncryptor($fileKey, $algorithm, $i));
                 }
-                $this->addObject($i, PdfObject\StreamObject::parse(
-                    $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'])
-                ));
+
+                $stream = ($appearance !== null)
+                    ? $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'], $appearance)
+                    : $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y']);
+
+                $this->addObject($i, PdfObject\StreamObject::parse($stream));
             }
         }
     }
