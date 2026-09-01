@@ -16,6 +16,7 @@ namespace Pop\Pdf\Build;
 
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Page\Text;
+use Pop\Pdf\Document\Page\Field;
 use Pop\Pdf\Document\Page\Field\Button;
 use Pop\Pdf\Build\Security as PdfSecurity;
 
@@ -915,46 +916,183 @@ class Compiler extends AbstractCompiler
         array $fields, PdfObject\PageObject $pageObject, ?string $fileKey = null, ?string $algorithm = null
     ): void
     {
+        $groups = $this->groupRadioFields($fields);
+
+        foreach ($groups['grouped'] as $groupFields) {
+            $this->prepareRadioGroup($groupFields, $pageObject, $fileKey, $algorithm);
+        }
+
+        foreach ($groups['ungrouped'] as $field) {
+            $this->prepareSingleField($field, $pageObject, $fileKey, $algorithm);
+        }
+    }
+
+    /**
+     * Split a page's field entries into radio groups (2+ same-named,
+     * same-form Button fields with isRadio() true) and everything else
+     *
+     * @param  array $fields
+     * @return array
+     */
+    private function groupRadioFields(array $fields): array
+    {
+        $byKey = [];
         foreach ($fields as $field) {
-            if ($this->document->getForm($field['form']) !== null) {
-                if (($field['field']->getFont() !== null) && (!isset($this->fontReferences[$field['field']->getFont()]))) {
-                    throw new Exception('Error: The font \'' . $field['field']->getFont() . '\' has not been added to the document.');
-                } else if (($field['field']->getFont() !== null) && (isset($this->fontReferences[$field['field']->getFont()]))) {
-                    $fontRef = $this->fontReferences[$field['field']->getFont()];
-                } else {
-                    $fontRef = null;
-                }
-                // For a checkbox/radio, the on/off appearance XObjects must be
-                // allocated (and registered via addObject()) BEFORE this
-                // field's own object index ($i) is computed below - $i is
-                // only reserved via lastIndex()+1 here and not actually
-                // added to $this->objects until this loop body's very last
-                // statement, so calling createCheckableAppearance() (which
-                // also allocates via lastIndex()+1) any later would collide
-                // with $i and its object silently clobber the field's own
-                // widget dict once addObject($i, ...) ran.
-                $appearance = null;
-                if (($field['field'] instanceof Button) && (!$field['field']->isPushButton())) {
-                    $appearance = $this->createCheckableAppearance(
-                        $field['field'], (float) $field['field']->getWidth(), (float) $field['field']->getHeight()
-                    );
-                    $appearance['checked'] = ($field['field']->getValue() !== null);
-                }
-
-                $i = $this->lastIndex() + 1;
-                $pageObject->addAnnotIndex($i);
-                $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
-                $this->document->getForm($field['form'])->addFieldIndex($i);
-                if ($fileKey !== null) {
-                    $field['field']->encryptWith($this->stringEncryptor($fileKey, $algorithm, $i));
-                }
-
-                $stream = ($appearance !== null)
-                    ? $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'], $appearance)
-                    : $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y']);
-
-                $this->addObject($i, PdfObject\StreamObject::parse($stream));
+            if (($field['field'] instanceof Button) && $field['field']->isRadio()) {
+                $key = $field['form'] . '|' . $field['field']->getName();
+                $byKey[$key][] = $field;
             }
+        }
+
+        $grouped     = [];
+        $groupedKeys = [];
+        foreach ($byKey as $key => $groupFields) {
+            if (count($groupFields) >= 2) {
+                $grouped[$key] = $groupFields;
+                $groupedKeys[] = $key;
+            }
+        }
+
+        $ungrouped = array_values(array_filter($fields, function ($field) use ($groupedKeys) {
+            if (!(($field['field'] instanceof Button) && $field['field']->isRadio())) {
+                return true;
+            }
+            return !in_array($field['form'] . '|' . $field['field']->getName(), $groupedKeys);
+        }));
+
+        return ['grouped' => $grouped, 'ungrouped' => $ungrouped];
+    }
+
+    /**
+     * Resolve a field's font reference, throwing if it references a font
+     * never added to the document
+     *
+     * @param  Field\AbstractField $field
+     * @throws Exception
+     * @return ?string
+     */
+    private function resolveFieldFontRef(Field\AbstractField $field): ?string
+    {
+        if (($field->getFont() !== null) && (!isset($this->fontReferences[$field->getFont()]))) {
+            throw new Exception('Error: The font \'' . $field->getFont() . '\' has not been added to the document.');
+        }
+
+        return ($field->getFont() !== null) ? $this->fontReferences[$field->getFont()] : null;
+    }
+
+    /**
+     * Emit a single, non-grouped field's PDF object (ordinary text/choice
+     * fields, push buttons, plain checkboxes, and a solitary radio with no
+     * same-named sibling)
+     *
+     * @param  array    $field
+     * @param  PdfObject\PageObject $pageObject
+     * @param  ?string  $fileKey
+     * @param  ?string  $algorithm
+     * @return void
+     */
+    private function prepareSingleField(
+        array $field, PdfObject\PageObject $pageObject, ?string $fileKey, ?string $algorithm
+    ): void
+    {
+        if ($this->document->getForm($field['form']) === null) {
+            return;
+        }
+
+        $fontRef = $this->resolveFieldFontRef($field['field']);
+
+        // For a checkbox/radio, the on/off appearance XObjects must be
+        // allocated (and registered via addObject()) BEFORE this field's own
+        // object index ($i) is computed below - $i is only reserved via
+        // lastIndex()+1 here and not actually added to $this->objects until
+        // addObject($i, ...) runs further down, so calling
+        // createCheckableAppearance() (which also allocates via
+        // lastIndex()+1) any later would collide with $i and its object
+        // would silently clobber the field's own widget dict once
+        // addObject($i, ...) ran.
+        $appearance = null;
+        if (($field['field'] instanceof Button) && (!$field['field']->isPushButton())) {
+            $appearance = $this->createCheckableAppearance(
+                $field['field'], (float) $field['field']->getWidth(), (float) $field['field']->getHeight()
+            );
+            $appearance['checked'] = ($field['field']->getValue() !== null);
+        }
+
+        $i           = $this->lastIndex() + 1;
+        $pageObject->addAnnotIndex($i);
+        $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
+        $this->document->getForm($field['form'])->addFieldIndex($i);
+
+        if ($fileKey !== null) {
+            $field['field']->encryptWith($this->stringEncryptor($fileKey, $algorithm, $i));
+        }
+
+        $stream = ($appearance !== null)
+            ? $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'], $appearance)
+            : $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y']);
+
+        $this->addObject($i, PdfObject\StreamObject::parse($stream));
+    }
+
+    /**
+     * Emit a shared, non-visual parent field object plus one child widget
+     * per radio option
+     *
+     * @param  array    $groupFields
+     * @param  PdfObject\PageObject $pageObject
+     * @param  ?string  $fileKey
+     * @param  ?string  $algorithm
+     * @return void
+     */
+    private function prepareRadioGroup(
+        array $groupFields, PdfObject\PageObject $pageObject, ?string $fileKey, ?string $algorithm
+    ): void
+    {
+        $formName = $groupFields[0]['form'];
+        if ($this->document->getForm($formName) === null) {
+            return;
+        }
+
+        $representative = $groupFields[0]['field'];
+        $checkedValue   = null;
+        foreach ($groupFields as $field) {
+            if ($field['field']->getValue() !== null) {
+                $checkedValue = $this->sanitizeExportName($field['field']->getValue());
+            }
+        }
+
+        $parentIndex = $this->lastIndex() + 1;
+        if ($fileKey !== null) {
+            $representative->encryptWith($this->stringEncryptor($fileKey, $algorithm, $parentIndex));
+        }
+        $this->addObject($parentIndex, PdfObject\StreamObject::parse(
+            $representative->getParentFieldStream($parentIndex, $checkedValue)
+        ));
+        $this->document->getForm($formName)->addFieldIndex($parentIndex);
+
+        foreach ($groupFields as $field) {
+            $kid = $field['field'];
+
+            // Same ordering fix as prepareSingleField(): the kid's "on"
+            // appearance XObject must be allocated and registered via
+            // addObject() BEFORE the kid's own widget object index ($i) is
+            // computed, or the kid's own widget dict would silently clobber
+            // the appearance XObject once both reused the same reserved
+            // lastIndex()+1 number.
+            $appearance = $this->createCheckableAppearance($kid, (float) $kid->getWidth(), (float) $kid->getHeight());
+            $appearance['checked'] = ($checkedValue !== null) && ($this->sanitizeExportName((string) $kid->getValue()) === $checkedValue);
+
+            $i           = $this->lastIndex() + 1;
+            $pageObject->addAnnotIndex($i);
+            $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
+
+            if ($fileKey !== null) {
+                $kid->encryptWith($this->stringEncryptor($fileKey, $algorithm, $i));
+            }
+
+            $fontRef = $this->resolveFieldFontRef($kid);
+            $stream  = $kid->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'], $appearance, $parentIndex);
+            $this->addObject($i, PdfObject\StreamObject::parse($stream));
         }
     }
 

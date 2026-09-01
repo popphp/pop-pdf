@@ -568,6 +568,138 @@ class CompilerTest extends TestCase
         $this->assertStringContainsString('f', $onStreamMatch[1] ?? '');
     }
 
+    public function testRadioGroupEmitsSharedParentAndKidWidgets()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $optionA = new Page\Field\Button('plan');
+        $optionA->setRadio();
+        $optionA->setWidth(14);
+        $optionA->setHeight(14);
+        $optionA->setValue('a');
+        $page->addField($optionA, 'form1', 50, 700);
+
+        $optionB = new Page\Field\Button('plan');
+        $optionB->setRadio();
+        $optionB->setWidth(14);
+        $optionB->setHeight(14);
+        $page->addField($optionB, 'form1', 50, 680);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('/FT /Btn', $output);
+        $this->assertStringContainsString('/V /a', $output);
+        // The field-level /Parent reference (Button::getStream()'s
+        // "    /Parent {n} 0 R\n", 4-space indented) - not to be confused
+        // with a page object's own unrelated "/Parent {n} 0 R" pointing at
+        // the page tree, which has no leading whitespace.
+        $this->assertMatchesRegularExpression('/ {4}\/Parent \d+ 0 R/', $output);
+
+        // Exactly one field object is referenced from /Fields for this group -
+        // the shared parent, never the kids.
+        preg_match('/\/AcroForm/', $output, $hasAcroForm);
+        $this->assertNotEmpty($hasAcroForm);
+
+        preg_match('/\/AcroForm (\d+) 0 R/', $output, $matches);
+        $formObjNum = $matches[1];
+        preg_match('/' . $formObjNum . ' 0 obj\s*<<\/Fields\[(.*?)\]>>/', $output, $fieldsMatch);
+        $this->assertEquals(1, substr_count($fieldsMatch[1], ' 0 R'));
+    }
+
+    public function testSoloRadioWithNoSiblingUsesSingleWidgetPath()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $solo = new Page\Field\Button('agree');
+        $solo->setRadio();
+        $solo->setWidth(14);
+        $solo->setHeight(14);
+        $page->addField($solo, 'form1', 50, 700);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        // A page object's own "/Parent {n} 0 R" (pointing at the page tree)
+        // has no leading whitespace; only Button::getStream()'s field-level
+        // /Parent reference is 4-space indented, so this checks specifically
+        // for the absence of a widget-level /Parent, not the unrelated page
+        // hierarchy reference.
+        $this->assertDoesNotMatchRegularExpression('/ {4}\/Parent \d+ 0 R/', $output);
+        $this->assertStringContainsString('/T(agree)', $output);
+    }
+
+    // Regression test mirroring
+    // testCheckboxAppearanceReferencesPointToActualDistinctFormXObjectsNotTheFieldItself()
+    // but for the grouped radio path: prepareRadioGroup()'s per-kid loop must
+    // call createCheckableAppearance() (and let its addObject() calls
+    // complete) BEFORE computing/registering the kid's own widget object
+    // index, or the "on" appearance XObject for that kid would be silently
+    // clobbered by the kid's own widget dict reusing the same object number.
+    // This resolves each kid's /AP name/reference pair to its actual object
+    // in the compiled output and asserts each one is a real, distinct
+    // /Subtype /Form XObject - for BOTH radio options sharing one parent.
+    public function testRadioGroupAppearanceReferencesPointToActualDistinctFormXObjectsNotTheKidItself()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $optionA = new Page\Field\Button('plan');
+        $optionA->setRadio();
+        $optionA->setWidth(14);
+        $optionA->setHeight(14);
+        $optionA->setValue('a');
+        $page->addField($optionA, 'form1', 50, 700);
+
+        $optionB = new Page\Field\Button('plan');
+        $optionB->setRadio();
+        $optionB->setWidth(14);
+        $optionB->setHeight(14);
+        $optionB->setValue('b');
+        $page->addField($optionB, 'form1', 50, 680);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertMatchesRegularExpression(
+            '/\/AP << \/N << \/\w+ (\d+) 0 R \/Off (\d+) 0 R >> >>/', $output, 'AP dict not found in output'
+        );
+
+        preg_match_all(
+            '/\/AP << \/N << \/\w+ (\d+) 0 R \/Off (\d+) 0 R >> >>/', $output, $apMatches, PREG_SET_ORDER
+        );
+        $this->assertCount(2, $apMatches, 'Expected exactly two AP dicts, one per radio kid.');
+
+        foreach ($apMatches as $apMatch) {
+            $onIndex  = (int) $apMatch[1];
+            $offIndex = (int) $apMatch[2];
+
+            $this->assertNotEquals($onIndex, $offIndex, '/On and /Off must reference distinct objects.');
+
+            foreach (['on' => $onIndex, 'off' => $offIndex] as $label => $index) {
+                $this->assertMatchesRegularExpression(
+                    '/' . $index . ' 0 obj\s*<< \/Type \/XObject \/Subtype \/Form/s', $output,
+                    "The {$label}-state /AP reference ({$index} 0 R) does not point at a real Form XObject - " .
+                    "it was likely clobbered by another object reusing the same index."
+                );
+            }
+        }
+    }
+
     public function testPrepareFieldsThrowsWhenFontNotAdded()
     {
         $this->expectException(Exception::class);
