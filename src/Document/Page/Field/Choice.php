@@ -38,12 +38,13 @@ class Choice extends AbstractField
     /**
      * Add an option
      *
-     * @param  string $option
+     * @param  string  $value
+     * @param  ?string $label
      * @return Choice
      */
-    public function addOption(string $option): Choice
+    public function addOption(string $value, ?string $label = null): Choice
     {
-        $this->options[] = $option;
+        $this->options[] = (($label !== null) && ($label !== $value)) ? [$value, $label] : $value;
         return $this;
     }
 
@@ -197,7 +198,11 @@ class Choice extends AbstractField
         if (count($this->options) > 0) {
             $options = "    /Opt [ ";
             foreach ($this->options as $option) {
-                $options .= '(' . $this->encryptLiteral($option) . ') ';
+                if (is_array($option)) {
+                    $options .= '[(' . $this->encryptLiteral($option[0]) . ') (' . $this->encryptLiteral($option[1]) . ')] ';
+                } else {
+                    $options .= '(' . $this->encryptLiteral($option) . ') ';
+                }
             }
             $options .= "]\n";
         }

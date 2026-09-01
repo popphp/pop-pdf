@@ -391,4 +391,15 @@ class FieldTest extends TestCase
         $this->assertStringContainsString('/BG [1 1 1]', $button->getStream(2, 1, null, 0, 0));
     }
 
+    public function testChoiceAddOptionWithSeparateLabel()
+    {
+        $field = new Field\Choice('country');
+        $field->addOption('us', 'United States');
+        $field->addOption('same-value'); // no label - unchanged flat form
+
+        $stream = $field->getStream(1, 1, null, 0, 0);
+
+        $this->assertStringContainsString('/Opt [ [(us) (United States)] (same-value) ]', $stream);
+    }
+
 }
