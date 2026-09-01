@@ -1195,6 +1195,123 @@ class CompilerTest extends TestCase
         }
     }
 
+    // Capstone test for this whole plan: every literal-string category Tasks
+    // 1-4 encrypted (/Info metadata, an annotation /URI, form-field /T//TU//
+    // TM//DA//V strings, and an embedded CID font's /CIDSystemInfo), plus a
+    // standard-font text run and an embedded-font text run, all in ONE
+    // document under ONE password - not four separate documents each proving
+    // its own category in isolation. Verified with real qpdf AND poppler
+    // (pdfinfo/pdftotext/pdftoppm), per this plan's Global Constraint that
+    // qpdf alone cannot catch the "declared encrypted but not actually
+    // encrypted"/"declares the wrong crypt filter" class of bug this whole
+    // plan exists to fix - a passing qpdf --check on its own proved nothing
+    // about the original real-world bug (blank/garbled pages in poppler-based
+    // readers, outright rejection in Chrome).
+    public function testFullyEncryptedDocumentWithEveryStringCategoryOpensCleanlyEverywhere()
+    {
+        if ((shell_exec('which qpdf') === null) || (shell_exec('which pdftotext') === null)
+            || (shell_exec('which pdfinfo') === null) || (shell_exec('which pdftoppm') === null)) {
+            $this->markTestSkipped('qpdf and poppler-utils are required for this test.');
+        }
+
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $document->embedFont(new Font(__DIR__ . '/../tmp/fonts/DejaVuSans.ttf'));
+        $document->setMetadata((new Document\Metadata())->setTitle('A Real Title')->setAuthor('A Real Author'));
+        $document->addForm(new Form('contact_form'));
+
+        $page = new Page(Page::LETTER);
+        $page->addText(new Page\Text('Plain text', 12), Font::ARIAL, 50, 700);
+        $page->addText(new Page\Text('Embedded font text', 12), 'DejaVuSans', 50, 650);
+        $page->addUrl(new Page\Annotation\Url(150, 20, 'https://example.com/comprehensive-test'), 50, 600);
+
+        $field = new Page\Field\Text('comprehensive_email_field', 'Arial', 10);
+        $field->setValue('comprehensive-field-value@example.com');
+        $field->setWidth(200);
+        $field->setHeight(24);
+        $page->addField($field, 'contact_form', 50, 550);
+
+        $document->addPage($page);
+        $document->setSecurity(new Document\Security('open-me', 'admin123'));
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_full_enc_test_') . '.pdf';
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+        file_put_contents($tmpFile, $output);
+
+        // Every plaintext category must be gone from the raw, still-encrypted
+        // output - if any of these survive literally, /StrF /StdCF is
+        // declared over data that was never actually encrypted, which is
+        // exactly the corruption this whole plan exists to prevent.
+        $this->assertStringNotContainsString('A Real Title', $output);
+        $this->assertStringNotContainsString('A Real Author', $output);
+        $this->assertStringNotContainsString('https://example.com/comprehensive-test', $output);
+        $this->assertStringNotContainsString('comprehensive_email_field', $output);
+        $this->assertStringNotContainsString('comprehensive-field-value@example.com', $output);
+
+        // 1. Poppler correctly identifies the algorithm (the original bug),
+        //    with both the user AND owner password.
+        $userInfo = shell_exec('pdfinfo -upw open-me ' . escapeshellarg($tmpFile) . ' 2>&1');
+        $this->assertStringContainsString('algorithm:AES-256', $userInfo);
+        $this->assertStringNotContainsString('algorithm:RC4', $userInfo);
+
+        $ownerInfo = shell_exec('pdfinfo -opw admin123 ' . escapeshellarg($tmpFile) . ' 2>&1');
+        $this->assertStringContainsString('algorithm:AES-256', $ownerInfo);
+        $this->assertStringNotContainsString('algorithm:RC4', $ownerInfo);
+
+        // 2. /Info strings decrypt correctly, not gibberish (the original
+        //    symptom) - both title and author.
+        $this->assertStringContainsString('Title:', $userInfo);
+        $this->assertStringContainsString('A Real Title', $userInfo);
+        $this->assertStringContainsString('Author:', $userInfo);
+        $this->assertStringContainsString('A Real Author', $userInfo);
+
+        // 3. qpdf finds no structural errors, and its own decrypt recovers
+        //    the annotation URL and the form field's name/value intact - the
+        //    two categories that don't show up in pdftotext's page-text
+        //    extraction (a URI target and a field's non-rendered /T//V) but
+        //    still must round-trip correctly through the same crypt filter.
+        $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
+        $this->assertStringContainsString('https://example.com/comprehensive-test', $decrypted);
+        $this->assertStringContainsString('comprehensive_email_field', $decrypted);
+        $this->assertStringContainsString('comprehensive-field-value@example.com', $decrypted);
+
+        // 4. Content extracts cleanly via poppler, including through the
+        //    embedded CID font (proves /CIDSystemInfo and the ToUnicode CMap
+        //    both survived intact - a corrupted glyph-to-Unicode mapping
+        //    would silently produce wrong or missing text here even though
+        //    the page still "opens").
+        $textOutput = [];
+        exec('pdftotext -upw open-me ' . escapeshellarg($tmpFile) . ' - 2>&1', $textOutput, $textStatus);
+        $this->assertEquals(0, $textStatus, implode("\n", $textOutput));
+        $text = implode("\n", $textOutput);
+        $this->assertStringContainsString('Plain text', $text);
+        $this->assertStringContainsString('Embedded font text', $text);
+
+        // 5. Rendering (not just text extraction) also succeeds cleanly -
+        //    exercises the glyph/image drawing path pdftotext never touches.
+        $ppmPrefix = tempnam(sys_get_temp_dir(), 'pop_pdf_full_enc_ppm_');
+        $ppmOutput = [];
+        exec(
+            'pdftoppm -upw open-me -png ' . escapeshellarg($tmpFile) . ' ' . escapeshellarg($ppmPrefix) . ' 2>&1',
+            $ppmOutput, $ppmStatus
+        );
+        $this->assertEquals(0, $ppmStatus, implode("\n", $ppmOutput));
+        $rendered = glob($ppmPrefix . '*.png');
+        $this->assertNotEmpty($rendered, 'pdftoppm produced no rendered page.');
+        foreach ($rendered as $ppmFile) {
+            unlink($ppmFile);
+        }
+
+        // No "Syntax Error" anywhere poppler had a chance to report one.
+        foreach (array_merge($textOutput, $ppmOutput) as $line) {
+            $this->assertStringNotContainsString('Syntax Error', $line);
+        }
+
+        unlink($tmpFile);
+    }
+
     // Everything else here drives Compiler directly; this drives the public
     // facade end to end, the way an application actually would.
     public function testPdfWriteToFileProducesAQpdfCleanEncryptedFile()
