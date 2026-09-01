@@ -43,19 +43,22 @@ class Merger
      *
      * @param  array    $files
      * @param  Document $document
+     * @param  array    $passwords per-source decryption passwords, keyed the same way as $files
+     *                             (e.g. [1 => 'secret'] to supply a password only for $files[1]);
+     *                             a source with no entry (or a null entry) is opened with no password.
      * @throws Exception
      * @return AbstractDocument
      */
-    public function mergeFiles(array $files, Document $document = new Document()): AbstractDocument
+    public function mergeFiles(array $files, Document $document = new Document(), array $passwords = []): AbstractDocument
     {
         $sources = [];
 
-        foreach ($files as $file) {
+        foreach ($files as $index => $file) {
             if (!file_exists($file)) {
                 throw new Exception("Error: The PDF file '{$file}' does not exist.");
             }
             try {
-                $sources[] = ExtractDocument::fromFile($file);
+                $sources[] = ExtractDocument::fromFile($file, $passwords[$index] ?? null);
             } catch (\Pop\Pdf\Extract\Exception $e) {
                 throw new Exception($e->getMessage(), $e->getCode(), $e);
             }
@@ -69,16 +72,19 @@ class Merger
      *
      * @param  array    $dataList
      * @param  Document $document
+     * @param  array    $passwords per-source decryption passwords, keyed the same way as $dataList
+     *                             (e.g. [1 => 'secret'] to supply a password only for $dataList[1]);
+     *                             a source with no entry (or a null entry) is opened with no password.
      * @throws Exception
      * @return AbstractDocument
      */
-    public function mergeData(array $dataList, Document $document = new Document()): AbstractDocument
+    public function mergeData(array $dataList, Document $document = new Document(), array $passwords = []): AbstractDocument
     {
         $sources = [];
 
-        foreach ($dataList as $data) {
+        foreach ($dataList as $index => $data) {
             try {
-                $sources[] = new ExtractDocument($data);
+                $sources[] = new ExtractDocument($data, $passwords[$index] ?? null);
             } catch (\Pop\Pdf\Extract\Exception $e) {
                 throw new Exception($e->getMessage(), $e->getCode(), $e);
             }
