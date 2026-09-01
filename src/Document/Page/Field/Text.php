@@ -29,8 +29,6 @@ use Pop\Color\Color;
 class Text extends AbstractField
 {
 
-    use EncryptsFieldStrings;
-
     /**
      * Set multiline
      *

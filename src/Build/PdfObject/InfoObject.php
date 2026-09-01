@@ -293,12 +293,12 @@ class InfoObject extends AbstractObject
         // unbalanced parenthesis or a stray backslash anywhere in one of them
         // ends the string early and corrupts the surrounding object. That is
         // not hypothetical - Build\Parser copies a source PDF's /Info strings
-        // into Metadata verbatim, and for a third-party-encrypted source
-        // (which, unlike this library's own /StrF /Identity output, really
-        // does encrypt its strings) those "strings" are raw AES ciphertext:
-        // arbitrary binary, routinely containing both. Escaping is applied to
-        // the value only - never to the already-escaped encryptWith()
-        // override, which would double-escape it.
+        // into Metadata verbatim, and for a source encrypted with a
+        // non-/Identity /StrF (including this library's own /StrF /StdCF
+        // output) those "strings" are raw AES ciphertext: arbitrary binary,
+        // routinely containing both. Escaping is applied to the value only -
+        // never to the already-escaped encryptWith() override, which would
+        // double-escape it.
         $title        = $this->encrypted['title']          ?? Text::escape((string)$this->metadata->getTitle());
         $subject      = $this->encrypted['subject']        ?? Text::escape((string)$this->metadata->getSubject());
         $author       = $this->encrypted['author']         ?? Text::escape((string)$this->metadata->getAuthor());

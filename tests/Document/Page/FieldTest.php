@@ -265,7 +265,7 @@ class FieldTest extends TestCase
     }
 
     // /T, /TU, and /TM never escaped their value at all before
-    // EncryptsFieldStrings::encryptLiteral() centralized escaping for every
+    // AbstractField::encryptLiteral() centralized escaping for every
     // literal string this class emits - a disclosed side effect of this
     // change. This confirms that gap is now closed even in the unencrypted
     // case (no encryptWith() call at all).

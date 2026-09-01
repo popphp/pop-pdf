@@ -29,8 +29,6 @@ use Pop\Color\Color;
 class Button extends AbstractField
 {
 
-    use EncryptsFieldStrings;
-
     /**
      * Field options
      * @var array

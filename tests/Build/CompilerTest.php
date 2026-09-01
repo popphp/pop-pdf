@@ -745,6 +745,10 @@ class CompilerTest extends TestCase
     // the crypt filter name for strings is /StdCF, not /Identity.
     public function testFinalizeEncryptsInfoStringsAndDeclaresStdCfStringFilter()
     {
+        if (shell_exec('which pdfinfo') === null) {
+            $this->markTestSkipped('poppler-utils (pdfinfo) is required for this test.');
+        }
+
         foreach ([Document\Security::AES_128, Document\Security::AES_256] as $algorithm) {
             $doc = new Document();
             $doc->addFont(new Font('Arial'));
@@ -761,6 +765,23 @@ class CompilerTest extends TestCase
             $this->assertStringContainsString('/StmF /StdCF /StrF /StdCF', $output);
             $this->assertStringNotContainsString('/StrF /Identity', $output);
             $this->assertStringNotContainsString('A Plaintext Title', $output);
+
+            // Plaintext-absence alone doesn't prove the title round-trips
+            // back correctly - it only proves it isn't emitted verbatim.
+            // This positive check (both algorithms, since AES-128 /Info
+            // encryption uses the exact same stringEncryptor() mechanism as
+            // AES-256) confirms pdfinfo actually recovers the real title
+            // after decrypting, not just that it fails to find the
+            // plaintext.
+            $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_info_compiler_test_') . '.pdf';
+            file_put_contents($tmpFile, $output);
+
+            $info = shell_exec('pdfinfo -upw open-me ' . escapeshellarg($tmpFile) . ' 2>&1');
+
+            unlink($tmpFile);
+
+            $this->assertStringContainsString('Title:', (string)$info, "{$algorithm}: {$info}");
+            $this->assertStringContainsString('A Plaintext Title', (string)$info, "{$algorithm}: {$info}");
         }
     }
 
@@ -878,6 +899,50 @@ class CompilerTest extends TestCase
                 $this->assertStringNotContainsString('Syntax Error', $line);
             }
         }
+    }
+
+    /**
+     * Regression test for a bug this branch introduced: Compiler::prepareFields()
+     * calls $field['field']->encryptWith(...) on ANY Page\Field\AbstractField
+     * once a document has security configured, guarded only by
+     * ($fileKey !== null) - but encryptWith()/encryptLiteral() used to live
+     * only on a trait applied to the three shipped field types (Text,
+     * Choice, Button). Page::addField() accepts any AbstractField subclass
+     * (a public, extendable class), so a user-defined field type that
+     * didn't use that trait would fatal with "Call to undefined method
+     * encryptWith()" the moment its containing document was encrypted.
+     * encryptWith()/encryptLiteral() now live directly on AbstractField, so
+     * every subclass inherits them automatically - this proves that with a
+     * minimal custom field type that does nothing special for encryption
+     * at all.
+     */
+    public function testEncryptWithIsInheritedByCustomFieldSubclassesNotJustShippedFieldTypes()
+    {
+        $field = new class('custom-field-name') extends Page\Field\AbstractField {
+            public function getStream(int $i, int $pageIndex, ?string $fontReference, int $x, int $y): string
+            {
+                return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Tx\n    /Rect [{$x} {$y} " .
+                    ($this->width + $x) . " " . ($this->height + $y) . "]\n    /T(" . $this->encryptLiteral((string) $this->getName()) . ")\n" .
+                    "    /P {$pageIndex} 0 R\n>>\nendobj\n\n";
+            }
+        };
+        $field->setWidth(200);
+        $field->setHeight(24);
+
+        $doc = new Document();
+        $doc->addFont(new Font('Arial'));
+        $doc->setSecurity(new Document\Security('open-me', 'admin123'));
+        $doc->addForm(new Form('contact_form'));
+
+        $page = new Page(Page::LETTER);
+        $page->addField($field, 'contact_form', 50, 200);
+        $doc->addPage($page);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $this->assertStringNotContainsString('custom-field-name', $output);
     }
 
     public function testFinalizeThrowsExceptionForInvalidAlgorithm()
@@ -1310,6 +1375,56 @@ class CompilerTest extends TestCase
         }
 
         unlink($tmpFile);
+    }
+
+    // KNOWN LIMITATION PIN - not a "correct behavior" test. Document::importObjects()
+    // (used by Pdf::importFromFile()/importRawData()) and Pdf::merge()/mergeRawData()
+    // bring in an existing PDF's objects verbatim, definition text and all - nothing in
+    // Compiler's encryption pass scans an already-serialized imported object's
+    // definition text for literal strings the way the dedicated
+    // prepareAnnotations()/prepareFields()/encryptEmbeddedFontStrings() passes do for
+    // content this library authors itself. So an annotation /URI that arrived via
+    // import is left as plaintext even after setSecurity() declares /StrF /StdCF - a
+    // conforming reader (and qpdf --decrypt here) then treats that plaintext as if it
+    // were real ciphertext and "recovers" corrupted garbage instead of the real URL.
+    //
+    // This is documented as a disclosed, known limitation (see the README's "Known
+    // limitation" note under "Reading Encrypted PDFs") rather than a silent bug - fully
+    // closing it needs a general-purpose literal-string scanner over arbitrary
+    // already-serialized PDF object text, which is out of scope for this fix round. This
+    // test intentionally asserts the CURRENT limitation, not the eventually-correct
+    // behavior, so that whoever closes this gap gets a loud, deliberate test failure
+    // here (a visible signal to flip this test) instead of a silent regression nobody
+    // notices.
+    public function testImportedAnnotationUrlIsNotEncryptedKnownLimitation()
+    {
+        if (shell_exec('which qpdf') === null) {
+            $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
+        }
+
+        // tests/tmp/doc.pdf's first page carries a real /URI link annotation:
+        // /A <</S /URI /URI (http://www.google.com/)>>.
+        $doc = Pdf\Pdf::importFromFile(__DIR__ . '/../tmp/doc.pdf', 1);
+        $doc->setSecurity(new Document\Security('open-me', 'admin123'));
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        // /StrF /StdCF is declared - a reader has every reason to expect this
+        // string was actually encrypted.
+        $this->assertStringContainsString('/StrF /StdCF', $output);
+
+        // The imported URI was never routed through any encryptWith() pass, so it
+        // survives as literal plaintext in the still-"encrypted" output.
+        $this->assertStringContainsString('http://www.google.com/', $output);
+
+        // qpdf --decrypt applies AES decryption uniformly to every declared string
+        // in the document, including this one that was never actually encrypted -
+        // so the recovered value is corrupted garbage, not the real URL. This is
+        // the known-limitation symptom this test exists to pin.
+        $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
+        $this->assertStringNotContainsString('http://www.google.com/', $decrypted);
     }
 
     // Everything else here drives Compiler directly; this drives the public

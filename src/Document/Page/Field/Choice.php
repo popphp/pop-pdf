@@ -29,8 +29,6 @@ use Pop\Color\Color;
 class Choice extends AbstractField
 {
 
-    use EncryptsFieldStrings;
-
     /**
      * Field options
      * @var array

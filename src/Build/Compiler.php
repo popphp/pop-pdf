@@ -108,10 +108,10 @@ class Compiler extends AbstractCompiler
 
         // Computed here, before the page/annotation/field preparation passes
         // below, rather than immediately before serialization where this
-        // block used to live - prepareAnnotations() (and, in later tasks,
-        // prepareFields()/font preparation) needs $fileKey/$algorithm
-        // already resolved so it can encrypt each string-bearing object's
-        // literal content on the way in, instead of after the fact.
+        // block used to live - prepareAnnotations(), prepareFields(), and
+        // font preparation each need $fileKey/$algorithm already resolved
+        // so they can encrypt each string-bearing object's literal content
+        // on the way in, instead of after the fact.
         $fileKey     = null;
         $encryptDict = null;
         $algorithm   = null;
@@ -310,13 +310,9 @@ class Compiler extends AbstractCompiler
             // string must actually be encrypted once that's declared.
             // Annotation URLs, form-field strings, and embedded-font
             // /CIDSystemInfo strings are handled in their own dedicated
-            // passes (prepareAnnotations()/prepareFields()/the
-            // encryptEmbeddedFontStrings() pass added later in this file).
-            $this->info->encryptWith(function (string $data) use ($algorithm, $fileKey): string {
-                return ($algorithm === Document\Security::AES_128)
-                    ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $this->info->getIndex(), 0, $data)
-                    : PdfSecurity\ObjectCipher::encryptAes256($fileKey, $data);
-            });
+            // passes (prepareAnnotations(), prepareFields(), and
+            // encryptEmbeddedFontStrings(), defined above in this file).
+            $this->info->encryptWith($this->stringEncryptor($fileKey, $algorithm, $this->info->getIndex()));
 
             $this->encryptEmbeddedFontStrings($fileKey, $algorithm);
         }
@@ -406,9 +402,11 @@ class Compiler extends AbstractCompiler
      * conforming reader to "decrypt" that plaintext anyway, corrupting it -
      * this dictionary must never be changed to /StrF /Identity (or have
      * /StrF omitted, which is spec-equivalent to /Identity) without also
-     * removing every encryptWith() call site this plan added, or real-world
-     * readers (confirmed: poppler-based Linux viewers, Chrome) will
-     * misdetect the cipher entirely and fail to open the document at all.
+     * removing every encryptWith() call site in prepareAnnotations(),
+     * prepareFields(), encryptEmbeddedFontStrings(), and the /Info
+     * encryption above, or real-world readers (confirmed: poppler-based
+     * Linux viewers, Chrome) will misdetect the cipher entirely and fail to
+     * open the document at all.
      *
      * @param  string $algorithm
      * @param  array  $dict
