@@ -158,7 +158,7 @@ class RootObject extends AbstractObject
      */
     public function __toString(): string
     {
-        return '%PDF-' . $this->version . "\n" .
+        return '%PDF-' . number_format($this->version, 1) . "\n" .
             str_replace(['[{root_index}]', '[{parent_index}]', '[{form_index}]'], [(string)$this->index, (string)$this->parent, ''], $this->data);
     }
 

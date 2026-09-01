@@ -9,6 +9,9 @@ declare(strict_types=1);
  * @license    https://www.popphp.org/license     New BSD License
  */
 
+/**
+ * @namespace
+ */
 namespace Pop\Pdf\Build\Security;
 
 /**
@@ -135,6 +138,8 @@ class ObjectCipher
     }
 
     /**
+     * Derive the AES-128 per-object key from the file key and the object's number/generation
+     *
      * @param  string $fileKey
      * @param  int    $objectNumber
      * @param  int    $generation

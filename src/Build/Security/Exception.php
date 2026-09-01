@@ -9,6 +9,19 @@ declare(strict_types=1);
  * @license    https://www.popphp.org/license     New BSD License
  */
 
+/**
+ * @namespace
+ */
 namespace Pop\Pdf\Build\Security;
 
+/**
+ * Pdf build security exception class
+ *
+ * @category   Pop
+ * @package    Pop\Pdf
+ * @author     Nick Sagona, III <nick@popphp.org>
+ * @copyright  Copyright (c) 2009-2026 Nick Sagona, III
+ * @license    https://www.popphp.org/license     New BSD License
+ * @version    6.0.0
+ */
 class Exception extends \Exception {}

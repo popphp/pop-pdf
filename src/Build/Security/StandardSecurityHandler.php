@@ -9,6 +9,9 @@ declare(strict_types=1);
  * @license    https://www.popphp.org/license     New BSD License
  */
 
+/**
+ * @namespace
+ */
 namespace Pop\Pdf\Build\Security;
 
 use Pop\Pdf\Document\Security;
