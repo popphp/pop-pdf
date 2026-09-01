@@ -137,10 +137,10 @@ to route the various object components to the right place to be processed.
 - `mergeRawData($data, $document = new Document(), $passwords = []): AbstractDocument`
 - `extractTextFromFile($file, $pages = null, $pageLimit = null, $password = null): string`
 - `extractTextFromData($data, $pages = null, $pageLimit = null, $password = null): string`
-- `isImageOnlyDocument($file, $pages = null, $pageLimit = null): bool`
-- `isImageOnlyData($data, $pages = null, $pageLimit = null): bool`
-- `getImageOnlyPages($file, $pages = null, $pageLimit = null): array`
-- `getImageOnlyPagesFromData($data, $pages = null, $pageLimit = null): array`
+- `isImageOnlyDocument($file, $pages = null, $pageLimit = null, $password = null): bool`
+- `isImageOnlyData($data, $pages = null, $pageLimit = null, $password = null): bool`
+- `getImageOnlyPages($file, $pages = null, $pageLimit = null, $password = null): array`
+- `getImageOnlyPagesFromData($data, $pages = null, $pageLimit = null, $password = null): array`
 
 ### Write to File
 
@@ -481,7 +481,28 @@ Note that a source PDF authored by a different tool that *does* encrypt strings 
 library's own write path, which - per the `/StrF /Identity` note above - never does) will
 still import successfully for content/images/fonts, but any literal string value read from it
 comes back as raw ciphertext bytes, since no string-decode layer exists anywhere in the
-extraction/import pipeline today, encrypted or not.
+extraction/import pipeline today, encrypted or not. Because those bytes are not readable
+metadata in any useful sense, importing such a document deliberately does *not* copy its
+`/Info` dictionary (title, author, subject, creator, producer, dates) into the resulting
+`Document`'s `Metadata` - the imported document gets the default metadata instead.
+
+#### Unsupported encryption configurations
+
+Only AES-128 (`/AESV2`, revision 4) and AES-256 (`/AESV3`, revision 6) can be opened. A PDF
+using any of the following raises a clear exception naming the problem rather than failing
+mysteriously - if you hit one, these are the terms to search for:
+
+| Configuration                                       | Status                                                                     |
+|-----------------------------------------------------|----------------------------------------------------------------------------|
+| RC4 (`/V` 1 or 2, revision 2 or 3)                  | Not supported - rejected as an unsupported encryption configuration        |
+| Revision 5 (Adobe extension level 3, deprecated)    | Not supported - rejected as an unsupported encryption configuration        |
+| `/EncryptMetadata false` (e.g. qpdf's `--cleartext-metadata`) | **Supported** for AES-128 and AES-256                            |
+| Encrypted strings (a non-`/Identity` `/StrF`)       | Opens; strings come back as ciphertext, and `/Info` is skipped (see above) |
+
+RC4 is deliberately absent rather than merely unimplemented: it is broken, and qpdf 11+ won't
+even write it without `--allow-weak-crypto`. A damaged encrypted PDF whose cross-reference
+data can't be repaired well enough to locate its `/Encrypt` dictionary is also refused
+outright, rather than being reported as an unencrypted document with empty page content.
 
 [Top](#pop-pdf)
 
