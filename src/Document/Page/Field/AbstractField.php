@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Pop\Pdf\Document\Page\Field;
 
 use Pop\Color\Color;
+use Pop\Pdf\Document\Page\Text as TextHelper;
 
 /**
  * Pdf abstract form field class
@@ -82,6 +83,13 @@ abstract class AbstractField implements FieldInterface
      * @var array
      */
     protected array $flagBits = [];
+
+    /**
+     * String encryptor callable, set by encryptWith() and applied lazily
+     * by encryptLiteral()
+     * @var ?callable
+     */
+    protected $stringEncryptor = null;
 
     /**
      * Constructor
@@ -330,6 +338,50 @@ abstract class AbstractField implements FieldInterface
         }
 
         return bindec($flags);
+    }
+
+    /**
+     * Encrypt this field's literal strings for a compiled, encrypted
+     * document. Called by Build\Compiler::prepareFields() before
+     * getStream().
+     *
+     * @param  callable $encryptor
+     * @return static
+     */
+    public function encryptWith(callable $encryptor): static
+    {
+        $this->stringEncryptor = $encryptor;
+        return $this;
+    }
+
+    /**
+     * Encrypt (if a document encryptor was set) a raw plaintext value and
+     * always PDF-literal-string-escape the result before it is embedded as
+     * "(...)" in a getStream() template.
+     *
+     * Always takes RAW, unescaped plaintext - never a value some caller has
+     * already escaped - because escaping and encrypting are genuinely
+     * ordered operations: encrypting an already-escaped string would
+     * encrypt the wrong bytes (the backslash-escapes themselves), so a
+     * reader would decrypt back to the escaped form, not the true value.
+     *
+     * Always escapes its own return value, even when no encryptor is set.
+     * This is a deliberate, small side effect beyond pure encryption
+     * support: /T, /TU, /TM, and /DA never escaped their value at all
+     * before this behavior existed (unlike /V and /DV, which already called
+     * Text::escape() directly). Centralizing escaping into this one helper
+     * fixes that pre-existing gap for every caller uniformly, since an
+     * unencrypted value containing "(" ")" or "\" was already just as
+     * capable of corrupting the surrounding dictionary syntax as an
+     * encrypted one is.
+     *
+     * @param  string $plaintext
+     * @return string
+     */
+    protected function encryptLiteral(string $plaintext): string
+    {
+        $value = ($this->stringEncryptor !== null) ? ($this->stringEncryptor)($plaintext) : $plaintext;
+        return TextHelper::escape($value);
     }
 
 }

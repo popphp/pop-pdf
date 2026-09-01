@@ -442,16 +442,18 @@ document: page content streams, embedded images, and embedded font files. This w
 without `setCompression(true)` - compression runs first and encryption wraps whatever bytes the
 filter chain produced.
 
-One thing this does **not** cover:
+When a document has security set, every literal string this library itself authors into that
+document is also encrypted - `/Info` metadata, annotation URLs, form-field
+names/values/tooltips/appearance strings, and an embedded font's internal `/CIDSystemInfo`
+entries. This matches the `/StrF /StdCF` declaration in the `/Encrypt` dictionary, which is what
+every mainstream PDF reader expects and requires for correct decryption - a document declaring
+encrypted strings while actually leaving some plaintext would cause a conforming reader to
+"decrypt" (and thereby corrupt) that plaintext.
 
-- **Literal strings are not encrypted** - none of them, anywhere in the document. That includes
-  the `/Info` dictionary's title/author/subject/creator/producer/date strings, annotation
-  strings (a URL annotation's target and similar), form-field strings (`/T`, `/TU`, `/TM`,
-  `/DA`, `/V`), and an embedded font's `/CIDSystemInfo` entries. The `/Encrypt` dictionary
-  declares this honestly with `/StrF /Identity`, so readers leave them alone rather than
-  corrupting them - but it does mean a title, an author name, a form field's value, or an
-  annotation's URL is readable in an encrypted document without the password. Keep sensitive
-  data out of those for now, and rely on the encryption for page content, images, and fonts.
+This coverage applies to content this library builds itself via the `Document\*`/`Build\*` API
+described throughout this README. It does **not** extend to literal strings that arrive verbatim
+from an imported or merged source PDF - see the known limitation under
+[Reading Encrypted PDFs](#reading-encrypted-pdfs).
 
 ### Reading Encrypted PDFs
 
@@ -477,14 +479,28 @@ in-memory `Document` has no memory of having been encrypted. Writing it back out
 via `merge()`, which can combine an encrypted source with plain ones) produces an
 unencrypted PDF unless you explicitly call `setSecurity()` again yourself.
 
-Note that a source PDF authored by a different tool that *does* encrypt strings (unlike this
-library's own write path, which - per the `/StrF /Identity` note above - never does) will
-still import successfully for content/images/fonts, but any literal string value read from it
-comes back as raw ciphertext bytes, since no string-decode layer exists anywhere in the
-extraction/import pipeline today, encrypted or not. Because those bytes are not readable
-metadata in any useful sense, importing such a document deliberately does *not* copy its
-`/Info` dictionary (title, author, subject, creator, producer, dates) into the resulting
-`Document`'s `Metadata` - the imported document gets the default metadata instead.
+**Known limitation:** calling `setSecurity()` on a `Document` built (in whole or in part) via
+`importFromFile()`, `importRawData()`, `merge()`, or `mergeRawData()` currently encrypts every
+*stream* in the output, and every literal string this library itself authors (`/Info`,
+annotations, form fields, embedded fonts it builds) - but it does **not** encrypt literal strings
+that were carried over verbatim from the imported/merged source PDF, such as an annotation's
+`/URI` or a form field's `/T`/`/V` from the original document. Those source-authored strings are
+written back out unencrypted even though the resulting file's `/Encrypt` dictionary declares
+`/StrF /StdCF` (all strings encrypted) - a conforming PDF reader will try to AES-decrypt that
+plaintext as if it were real ciphertext, corrupting it. This is a disclosed, known gap rather
+than a silent bug - closing it requires a general-purpose literal-string scanner over
+already-serialized imported object text, which is planned for a future release - so until then,
+avoid calling `setSecurity()` on an imported or merged document that contains literal strings you
+need protected, and treat any such strings in the output as unprotected.
+
+Note that a source PDF's encrypted literal strings are not decrypted on the way in: no
+string-decode layer exists anywhere in the extraction/import pipeline today, so any literal
+string value read from an encrypted source (regardless of which tool wrote it, including this
+library's own write path read back in) comes back as raw ciphertext bytes. Content, images, and
+fonts still import successfully. Because those bytes are not readable metadata in any useful
+sense, importing an encrypted document deliberately does *not* copy its `/Info` dictionary
+(title, author, subject, creator, producer, dates) into the resulting `Document`'s `Metadata` -
+the imported document gets the default metadata instead.
 
 #### Unsupported encryption configurations
 

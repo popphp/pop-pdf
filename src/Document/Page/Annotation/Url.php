@@ -34,6 +34,13 @@ class Url extends AbstractAnnotation
     protected ?string $url = null;
 
     /**
+     * Encrypted, already-escaped URI, set by encryptWith() - used by
+     * getStream() in place of the plain URL when present.
+     * @var ?string
+     */
+    protected ?string $encryptedUrl = null;
+
+    /**
      * Constructor
      *
      * Instantiate a PDF URL annotation object.
@@ -71,6 +78,23 @@ class Url extends AbstractAnnotation
     }
 
     /**
+     * Encrypt this annotation's URI target for a compiled, encrypted
+     * document. Called by Build\Compiler::prepareAnnotations() before
+     * getStream() - mirrors Build\PdfObject\InfoObject::encryptWith()'s
+     * shape and CR/LF-escaping rationale exactly (encrypted bytes are
+     * arbitrary binary, not human-authored text, and routinely contain raw
+     * bytes a literal-string reader would otherwise silently normalize).
+     *
+     * @param  callable $encryptor
+     * @return Url
+     */
+    public function encryptWith(callable $encryptor): Url
+    {
+        $this->encryptedUrl = \Pop\Pdf\Document\Page\Text::escape($encryptor($this->url));
+        return $this;
+    }
+
+    /**
      * Get the annotation stream
      *
      * @param  int       $i
@@ -89,7 +113,7 @@ class Url extends AbstractAnnotation
         // Return the stream
         return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Link\n    /Rect [{$x} {$y} " . ($this->width + $x) .
             " " . ($this->height + $y) . "]\n    /Border [" . $border .  "]\n    /A <</S /URI /URI (" .
-            $this->url . ")>>\n>>\nendobj\n\n";
+            ($this->encryptedUrl ?? $this->url) . ")>>\n>>\nendobj\n\n";
     }
 
 }

@@ -99,6 +99,42 @@ class Compiler extends AbstractCompiler
         }
         $this->prepareFonts();
 
+        // Raw bytes of the file identifier - used both for the trailer's
+        // /ID (hex-encoded further below) and, when the document is
+        // encrypted, as key-derivation/checksum input for AES-128/revision 4
+        // (revision 6 ignores it). Computed once so both uses agree on the
+        // same value.
+        $fileId = md5(uniqid((string)mt_rand(), true), true);
+
+        // Computed here, before the page/annotation/field preparation passes
+        // below, rather than immediately before serialization where this
+        // block used to live - prepareAnnotations(), prepareFields(), and
+        // font preparation each need $fileKey/$algorithm already resolved
+        // so they can encrypt each string-bearing object's literal content
+        // on the way in, instead of after the fact.
+        $fileKey     = null;
+        $encryptDict = null;
+        $algorithm   = null;
+
+        if ($document->hasSecurity()) {
+            $security  = $document->getSecurity();
+            $algorithm = $security->getAlgorithm();
+
+            if (($algorithm !== Document\Security::AES_128) && ($algorithm !== Document\Security::AES_256)) {
+                throw new PdfSecurity\Exception(
+                    "Error: Invalid encryption algorithm '{$algorithm}'. Expected '" .
+                    Document\Security::AES_128 . "' or '" . Document\Security::AES_256 . "'."
+                );
+            }
+
+            $built = ($algorithm === Document\Security::AES_128)
+                ? PdfSecurity\StandardSecurityHandler::buildRevision4($security, $fileId)
+                : PdfSecurity\StandardSecurityHandler::buildRevision6($security, $fileId);
+
+            $fileKey     = $built['fileKey'];
+            $encryptDict = $built['dict'];
+        }
+
         $pageObjects = [];
 
         foreach ($this->pages as $page) {
@@ -136,7 +172,7 @@ class Compiler extends AbstractCompiler
             }
             // Prepare field objects
             if ($page->hasFields()) {
-                $this->prepareFields($page->getFields(), $pageObject);
+                $this->prepareFields($page->getFields(), $pageObject, $fileKey, $algorithm);
             }
 
             $pageObjects[$pageObject->getIndex()] = $pageObject;
@@ -156,7 +192,7 @@ class Compiler extends AbstractCompiler
         // Prepare annotation objects, after the pages have been set
         foreach ($this->pages as $page) {
             if ($page->hasAnnotations()) {
-                $this->prepareAnnotations($page->getAnnotations(), $pageObjects[$page->getIndex()]);
+                $this->prepareAnnotations($page->getAnnotations(), $pageObjects[$page->getIndex()], $fileKey, $algorithm);
             }
         }
 
@@ -184,35 +220,6 @@ class Compiler extends AbstractCompiler
         $this->byteLength  = $this->calculateByteLength($rootString);
 
         $this->output .= $rootString;
-
-        // Raw bytes of the file identifier - used both for the trailer's
-        // /ID (hex-encoded below) and, when the document is encrypted, as
-        // key-derivation/checksum input for AES-128/revision 4 (revision 6
-        // ignores it). Computed once so both uses agree on the same value.
-        $fileId = md5(uniqid((string)mt_rand(), true), true);
-
-        $fileKey     = null;
-        $encryptDict = null;
-        $algorithm   = null;
-
-        if ($document->hasSecurity()) {
-            $security  = $document->getSecurity();
-            $algorithm = $security->getAlgorithm();
-
-            if (($algorithm !== Document\Security::AES_128) && ($algorithm !== Document\Security::AES_256)) {
-                throw new PdfSecurity\Exception(
-                    "Error: Invalid encryption algorithm '{$algorithm}'. Expected '" .
-                    Document\Security::AES_128 . "' or '" . Document\Security::AES_256 . "'."
-                );
-            }
-
-            $built = ($algorithm === Document\Security::AES_128)
-                ? PdfSecurity\StandardSecurityHandler::buildRevision4($security, $fileId)
-                : PdfSecurity\StandardSecurityHandler::buildRevision6($security, $fileId);
-
-            $fileKey     = $built['fileKey'];
-            $encryptDict = $built['dict'];
-        }
 
         // Per-object compression pass, run to completion before anything is
         // encrypted - encryption wraps whatever bytes the filter chain
@@ -297,27 +304,17 @@ class Compiler extends AbstractCompiler
                 }
             }
 
-            // NOTE: no literal STRING in the document is encrypted - not the
-            // /Info dictionary's title/author/etc., not annotation /Contents,
-            // not form-field /T, /TU, /TM, /DA, and not an embedded font's
-            // /CIDSystemInfo /Registry and /Ordering. That is deliberate and
-            // is what /StrF /Identity in buildEncryptDictBody() declares: a
-            // conforming reader decrypts strings only if the crypt filter
-            // named by /StrF says to, so declaring /Identity there and
-            // leaving every string plaintext is internally consistent.
-            //
-            // Declaring /StrF /StdCF while encrypting only *some* string
-            // categories is not: a reader would dutifully "decrypt" the
-            // untouched ones too, destroying them (short strings collapse to
-            // empty, since their first 16 bytes are consumed as an IV;
-            // longer ones become garbage). Every embedded font carries
-            // /CIDSystemInfo strings, so that would corrupt essentially
-            // every encrypted document with an embedded font.
-            //
-            // InfoObject::encryptWith() is intentionally left in place,
-            // correct and unit-tested, as ready-to-use infrastructure for a
-            // future change that encrypts ALL string categories consistently
-            // and can then restore /StrF /StdCF.
+            // /Info dictionary strings (title/author/subject/creator/
+            // producer/dates) are encrypted here to match /StrF /StdCF -
+            // see buildEncryptDictBody()'s docblock for why every literal
+            // string must actually be encrypted once that's declared.
+            // Annotation URLs, form-field strings, and embedded-font
+            // /CIDSystemInfo strings are handled in their own dedicated
+            // passes (prepareAnnotations(), prepareFields(), and
+            // encryptEmbeddedFontStrings(), defined above in this file).
+            $this->info->encryptWith($this->stringEncryptor($fileKey, $algorithm, $this->info->getIndex()));
+
+            $this->encryptEmbeddedFontStrings($fileKey, $algorithm);
         }
 
         // Loop through the rest of the objects, calculate their size and length
@@ -397,16 +394,19 @@ class Compiler extends AbstractCompiler
      * Build the /Encrypt dictionary body text from either revision's field
      * array produced by StandardSecurityHandler::buildRevision4()/buildRevision6().
      *
-     * /StmF names the crypt filter for STREAMS (/StdCF - every stream really
-     * is AES ciphertext) and /StrF the one for literal STRINGS. Strings are
-     * /Identity, i.e. not encrypted, because this component does not
-     * currently encrypt any of them: /Info title/author, annotation
-     * /Contents, form-field /T, /TU, /TM, /DA, and an embedded font's
-     * /CIDSystemInfo /Registry and /Ordering are all emitted as plaintext.
-     * Declaring /StdCF there instead would tell a conforming reader to
-     * "decrypt" those plaintext strings, destroying them - and since
-     * /CIDSystemInfo is universal to embedded fonts, that would break almost
-     * every encrypted document carrying one.
+     * /StmF names the crypt filter for STREAMS and /StrF the one for literal
+     * STRINGS - both /StdCF here, since every literal string this library
+     * emits (Info metadata, annotation URLs, form-field strings, an embedded
+     * font's /CIDSystemInfo) is actually encrypted to match. Declaring
+     * /StdCF for strings while leaving any of them plaintext causes a
+     * conforming reader to "decrypt" that plaintext anyway, corrupting it -
+     * this dictionary must never be changed to /StrF /Identity (or have
+     * /StrF omitted, which is spec-equivalent to /Identity) without also
+     * removing every encryptWith() call site in prepareAnnotations(),
+     * prepareFields(), encryptEmbeddedFontStrings(), and the /Info
+     * encryption above, or real-world readers (confirmed: poppler-based
+     * Linux viewers, Chrome) will misdetect the cipher entirely and fail to
+     * open the document at all.
      *
      * @param  string $algorithm
      * @param  array  $dict
@@ -418,14 +418,107 @@ class Compiler extends AbstractCompiler
 
         if ($algorithm === Document\Security::AES_128) {
             return '<< /Filter /Standard /V 4 /R 4 /Length 128 ' .
-                '/CF << /StdCF << /CFM /AESV2 /AuthEvent /DocOpen /Length 16 >> >> /StmF /StdCF /StrF /Identity ' .
+                '/CF << /StdCF << /CFM /AESV2 /AuthEvent /DocOpen /Length 16 >> >> /StmF /StdCF /StrF /StdCF ' .
                 "/O {$hex($dict['O'])} /U {$hex($dict['U'])} /P {$dict['P']} >>";
         }
 
         return '<< /Filter /Standard /V 5 /R 6 /Length 256 ' .
-            '/CF << /StdCF << /CFM /AESV3 /AuthEvent /DocOpen /Length 32 >> >> /StmF /StdCF /StrF /Identity ' .
+            '/CF << /StdCF << /CFM /AESV3 /AuthEvent /DocOpen /Length 32 >> >> /StmF /StdCF /StrF /StdCF ' .
             "/O {$hex($dict['O'])} /U {$hex($dict['U'])} /OE {$hex($dict['OE'])} /UE {$hex($dict['UE'])} " .
             "/P {$dict['P']} /Perms {$hex($dict['Perms'])} >>";
+    }
+
+    /**
+     * Build a per-object string-encryptor closure for the current
+     * document's encryption settings, or null if the document isn't
+     * encrypted. Shared by every literal-string encryption call site
+     * (annotations, form fields, embedded fonts) - each needs its own
+     * closure bound to its own object index, since AES-128's per-object
+     * key derivation depends on it.
+     *
+     * @param  ?string $fileKey
+     * @param  ?string $algorithm
+     * @param  int     $objectIndex
+     * @return ?callable
+     */
+    private function stringEncryptor(?string $fileKey, ?string $algorithm, int $objectIndex): ?callable
+    {
+        if ($fileKey === null) {
+            return null;
+        }
+
+        return function (string $data) use ($algorithm, $fileKey, $objectIndex): string {
+            return ($algorithm === Document\Security::AES_128)
+                ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $objectIndex, 0, $data)
+                : PdfSecurity\ObjectCipher::encryptAes256($fileKey, $data);
+        };
+    }
+
+    /**
+     * Encrypt an embedded CID font's /CIDSystemInfo strings (the CID font
+     * dictionary's /Registry /Ordering pair) to match /StrF /StdCF.
+     *
+     * Build\Font\Parser builds these objects inside Document::embedFont(),
+     * long before this method's caller (finalize()) knows encryption is even
+     * configured - unlike annotations/fields, there is no live callback-hook
+     * opportunity here. The value is always one of a small set of fixed
+     * constants ("Adobe"/"Identity" for the CID font dictionary), so a
+     * targeted find-and-replace over the already-built object definition
+     * text - using that object's own index for per-object key derivation -
+     * is sufficient and avoids retrofitting Font\Parser's already-eager
+     * construction path.
+     *
+     * The ToUnicode CMap stream's own copy of /CIDSystemInfo
+     * ("Adobe"/"UCS") is NOT handled here: StreamObject::parse() splits that
+     * object into a bare "<</Length N>>" definition and a separate $stream
+     * holding the actual CMap program text (including that /CIDSystemInfo),
+     * so it never appears in getDefinition() here - it is already correctly
+     * encrypted as opaque stream bytes by the per-object stream-encryption
+     * pass above, and decrypts back to valid plaintext on read.
+     *
+     * @param  ?string $fileKey
+     * @param  ?string $algorithm
+     * @return void
+     */
+    private function encryptEmbeddedFontStrings(?string $fileKey, ?string $algorithm): void
+    {
+        if ($fileKey === null) {
+            return;
+        }
+
+        $pattern = '/\/CIDSystemInfo\s*<<\s*\/Registry\s*\(([^)]*)\)\s*\/Ordering\s*\(([^)]*)\)\s*\/Supplement\s+(\d+)\s*>>/';
+
+        foreach ($this->objects as $object) {
+            if (!($object instanceof PdfObject\StreamObject)) {
+                continue;
+            }
+
+            $definition = (string)$object->getDefinition();
+            if (preg_match($pattern, $definition) !== 1) {
+                continue;
+            }
+
+            $encryptor = $this->stringEncryptor($fileKey, $algorithm, $object->getIndex());
+
+            // preg_replace_callback(), not preg_replace(), is required here:
+            // the encrypted+escaped values below are essentially random
+            // ciphertext bytes, which can coincidentally contain a literal
+            // "$1"/"$2"-looking (or "\1"/"\2") sequence. preg_replace()
+            // treats its $replacement argument as a backreference template
+            // and would silently substitute (or blank out) such a sequence,
+            // corrupting the ciphertext. A callback's return value is used
+            // verbatim, with no backreference interpretation.
+            $object->setDefinition(preg_replace_callback(
+                $pattern,
+                function (array $matches) use ($encryptor): string {
+                    $registry = Text::escape($encryptor($matches[1]));
+                    $ordering = Text::escape($encryptor($matches[2]));
+                    return "/CIDSystemInfo <</Registry ({$registry}) /Ordering ({$ordering}) /Supplement {$matches[3]}>>";
+                },
+                $definition,
+                1
+            ) ?? $definition);
+        }
     }
 
     /**
@@ -669,11 +762,15 @@ class Compiler extends AbstractCompiler
     /**
      * Prepare the annotation objects
      *
-     * @param  array $annotations
+     * @param  array    $annotations
      * @param  PdfObject\PageObject $pageObject
+     * @param  ?string  $fileKey
+     * @param  ?string  $algorithm
      * @return void
      */
-    protected function prepareAnnotations(array $annotations, PdfObject\PageObject $pageObject): void
+    protected function prepareAnnotations(
+        array $annotations, PdfObject\PageObject $pageObject, ?string $fileKey = null, ?string $algorithm = null
+    ): void
     {
         foreach ($annotations as $annotation) {
             $i = $this->lastIndex() + 1;
@@ -681,6 +778,9 @@ class Compiler extends AbstractCompiler
 
             $coordinates = $this->getCoordinates($annotation['x'], $annotation['y'], $pageObject);
             if ($annotation['annotation'] instanceof \Pop\Pdf\Document\Page\Annotation\Url) {
+                if ($fileKey !== null) {
+                    $annotation['annotation']->encryptWith($this->stringEncryptor($fileKey, $algorithm, $i));
+                }
                 $stream = $annotation['annotation']->getStream($i, $coordinates['x'], $coordinates['y']);
             } else {
                 $targetCoordinates = $this->getCoordinates(
@@ -700,12 +800,16 @@ class Compiler extends AbstractCompiler
     /**
      * Prepare the field objects
      *
-     * @param  array $fields
+     * @param  array    $fields
      * @param  PdfObject\PageObject $pageObject
+     * @param  ?string  $fileKey
+     * @param  ?string  $algorithm
      * @throws Exception
      * @return void
      */
-    protected function prepareFields(array $fields, PdfObject\PageObject $pageObject): void
+    protected function prepareFields(
+        array $fields, PdfObject\PageObject $pageObject, ?string $fileKey = null, ?string $algorithm = null
+    ): void
     {
         foreach ($fields as $field) {
             if ($this->document->getForm($field['form']) !== null) {
@@ -720,6 +824,9 @@ class Compiler extends AbstractCompiler
                 $pageObject->addAnnotIndex($i);
                 $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
                 $this->document->getForm($field['form'])->addFieldIndex($i);
+                if ($fileKey !== null) {
+                    $field['field']->encryptWith($this->stringEncryptor($fileKey, $algorithm, $i));
+                }
                 $this->addObject($i, PdfObject\StreamObject::parse(
                     $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'])
                 ));
