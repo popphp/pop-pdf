@@ -9,6 +9,71 @@ use PHPUnit\Framework\TestCase;
 class ParserTest extends TestCase
 {
 
+    /**
+     * Temp files created by a test, removed in tearDown()
+     * @var array
+     */
+    protected array $tempFiles = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempFiles as $tempFile) {
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+
+        $this->tempFiles = [];
+    }
+
+    /**
+     * Reserve a temp .pdf path, tracking BOTH it and the extension-less file
+     * tempnam() actually creates, so neither is left behind.
+     */
+    protected function tempPdfPath(): string
+    {
+        $base = tempnam(sys_get_temp_dir(), 'parser_enc_test_');
+        $path = $base . '.pdf';
+
+        $this->tempFiles[] = $base;
+        $this->tempFiles[] = $path;
+
+        return $path;
+    }
+
+    /**
+     * Produce a qpdf-encrypted copy of a fixture, skipping the calling test if
+     * qpdf isn't available.
+     *
+     * qpdf exits 3 ("succeeded with warnings") for any source it had to
+     * repair, so a non-zero status alone is NOT a reliable "qpdf is missing"
+     * signal - existence of a non-empty output file is.
+     */
+    protected function qpdfEncrypt(string $source, string $bits = '256'): string
+    {
+        $encrypted = $this->tempPdfPath();
+        $args      = ['--encrypt', 'open-me', 'admin123', $bits];
+
+        // qpdf's default for 128 bits is RC4 (revision 3), which qpdf 11+
+        // refuses to write and this library deliberately doesn't support;
+        // --use-aes=y yields AESV2/revision 4. 256 bits is AES already and
+        // rejects the flag outright.
+        if ($bits === '128') {
+            $args[] = '--use-aes=y';
+        }
+
+        $args = array_merge($args, ['--', $source, $encrypted]);
+        $cmd  = 'qpdf ' . implode(' ', array_map('escapeshellarg', $args)) . ' 2>&1';
+
+        exec($cmd, $out, $status);
+
+        if (!file_exists($encrypted) || (filesize($encrypted) === 0)) {
+            $this->markTestSkipped('qpdf is not available (status ' . $status . '): ' . implode("\n", $out));
+        }
+
+        return $encrypted;
+    }
+
     public function testGetObjectStreamsAndMap()
     {
         $parser = new Parser();
@@ -225,18 +290,7 @@ class ParserTest extends TestCase
 
     public function testParseFileOpensAnEncryptedPdfGivenTheCorrectPassword()
     {
-        $source    = __DIR__ . '/../tmp/test-extract.pdf';
-        $encrypted = tempnam(sys_get_temp_dir(), 'parser_enc_test_') . '.pdf';
-
-        exec(
-            'qpdf --encrypt open-me admin123 256 -- ' . escapeshellarg($source) . ' ' . escapeshellarg($encrypted) . ' 2>&1',
-            $out
-        );
-
-        if (!file_exists($encrypted) || (filesize($encrypted) === 0)) {
-            @unlink($encrypted);
-            $this->markTestSkipped('qpdf is not available: ' . implode("\n", $out));
-        }
+        $encrypted = $this->qpdfEncrypt(__DIR__ . '/../tmp/test-extract.pdf');
 
         // Wrong/missing password must not succeed - proves the fixture
         // genuinely requires decryption to be read at all.
@@ -251,35 +305,94 @@ class ParserTest extends TestCase
         $parser = new Parser();
         $doc    = $parser->parseFile($encrypted, null, 'open-me');
 
-        unlink($encrypted);
-
         $this->assertInstanceOf('Pop\Pdf\Document\AbstractDocument', $doc);
         $this->assertGreaterThan(0, $doc->getNumberOfPages());
     }
 
     public function testParseDataOpensAnEncryptedPdfGivenTheCorrectPassword()
     {
-        $source    = __DIR__ . '/../tmp/test-extract.pdf';
-        $encrypted = tempnam(sys_get_temp_dir(), 'parser_enc_test_') . '.pdf';
-
-        exec(
-            'qpdf --encrypt open-me admin123 256 -- ' . escapeshellarg($source) . ' ' . escapeshellarg($encrypted) . ' 2>&1',
-            $out
-        );
-
-        if (!file_exists($encrypted) || (filesize($encrypted) === 0)) {
-            @unlink($encrypted);
-            $this->markTestSkipped('qpdf is not available: ' . implode("\n", $out));
-        }
-
-        $data = file_get_contents($encrypted);
-        unlink($encrypted);
+        $data = file_get_contents($this->qpdfEncrypt(__DIR__ . '/../tmp/test-extract.pdf'));
 
         $parser = new Parser();
         $doc    = $parser->parseData($data, null, 'open-me');
 
         $this->assertInstanceOf('Pop\Pdf\Document\AbstractDocument', $doc);
         $this->assertGreaterThan(0, $doc->getNumberOfPages());
+    }
+
+    public function testParseDoesNotCopyCiphertextInfoStringsIntoMetadata()
+    {
+        // A third-party encryptor's default is /StrF /StdCF, so a source PDF's
+        // /Info strings are still raw AES ciphertext when this library reads
+        // them - it has no string-decryption layer at all. Carrying those
+        // bytes into Document\Metadata would republish binary garbage as the
+        // document's title/author, so they are dropped instead.
+        $plainDoc = (new Parser())->parseFile(__DIR__ . '/../tmp/test-extract.pdf');
+        $encDoc   = (new Parser())->parseFile(
+            $this->qpdfEncrypt(__DIR__ . '/../tmp/test-extract.pdf'), null, 'open-me'
+        );
+
+        // Control: the plain source really does carry /Info metadata, so the
+        // assertion below is about the ciphertext and not about an /Info-less
+        // fixture.
+        $this->assertNotEquals('Pop PDF', $plainDoc->getMetadata()->getProducer());
+
+        // The encrypted read falls back to the default Metadata instead.
+        $this->assertEquals('Pop PDF', $encDoc->getMetadata()->getProducer());
+        $this->assertEquals('Pop PDF', $encDoc->getMetadata()->getTitle());
+    }
+
+    public function testParseKeepsInfoStringsForADocumentWrittenWithStrFIdentity()
+    {
+        // This library's own encrypted output declares /StrF /Identity, so its
+        // strings ARE readable and must still be copied through - the skip
+        // above keys off the source's actual /StrF, not merely on "encrypted".
+        $document = new \Pop\Pdf\Document();
+        $document->addFont(new \Pop\Pdf\Document\Font('Arial'));
+        $document->setSecurity(new \Pop\Pdf\Document\Security('open-me', 'admin123'));
+        $document->getMetadata()->setTitle('Readable Title');
+
+        $page = new \Pop\Pdf\Document\Page(\Pop\Pdf\Document\Page::LETTER);
+        $page->addText(new \Pop\Pdf\Document\Page\Text('Hello', 12), 'Arial', 50, 700);
+        $document->addPage($page);
+
+        $path = $this->tempPdfPath();
+        Pdf\Pdf::writeToFile($document, $path);
+
+        $reread = (new Parser())->parseFile($path, null, 'open-me');
+
+        $this->assertEquals('Readable Title', $reread->getMetadata()->getTitle());
+    }
+
+    public function testAnImportedEncryptedPdfWritesBackOutAsAStructurallyValidPdf()
+    {
+        // Regression pin for the read-path branch's final review. Importing a
+        // third-party-encrypted PDF leaves its /Info strings as raw AES
+        // ciphertext; substituting those bytes into (...) literal-string
+        // syntax unescaped corrupted the output object structure roughly half
+        // the time, with no exception and no warning. The corruption was
+        // data-dependent (whether that particular ciphertext happened to
+        // contain a paren or a backslash), so this re-encrypts several times -
+        // each run gets a fresh random file key and therefore fresh
+        // ciphertext.
+        for ($i = 0; $i < 8; $i++) {
+            $encrypted = $this->qpdfEncrypt(__DIR__ . '/../tmp/test-extract.pdf', (($i % 2) === 0) ? '128' : '256');
+            $document  = Pdf\Pdf::importFromFile($encrypted, null, 'open-me');
+
+            $written = $this->tempPdfPath();
+            Pdf\Pdf::writeToFile($document, $written);
+
+            $checkOutput = [];
+            exec('qpdf --check ' . escapeshellarg($written) . ' 2>&1', $checkOutput);
+            $check = implode("\n", $checkOutput);
+
+            // qpdf reports structural damage as these parse errors; anything
+            // else it warns about (e.g. a fixture's own pre-existing quirks)
+            // is not what this test is pinning.
+            $this->assertStringNotContainsString('expected endobj', $check);
+            $this->assertStringNotContainsString('EOF while reading token', $check);
+            $this->assertStringNotContainsString('parse error while reading object', $check);
+        }
     }
 
 }

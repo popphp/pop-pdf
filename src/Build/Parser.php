@@ -159,7 +159,14 @@ class Parser extends AbstractParser
 
         $doc = new \Pop\Pdf\Document();
 
-        if ($graph['infoDict'] !== null) {
+        // A source PDF that encrypts its STRINGS (any non-/Identity /StrF -
+        // the norm for third-party encryptors, unlike this library's own
+        // /StrF /Identity output) hands back /Info values that are still raw
+        // AES ciphertext, because nothing in Extract\* decrypts strings. Those
+        // bytes are not metadata in any useful sense, so they are dropped
+        // rather than carried into Document\Metadata and re-emitted as this
+        // document's title/author/dates.
+        if (($graph['infoDict'] !== null) && !$extractDoc->hasEncryptedStrings()) {
             $doc->setMetadata(self::metadataFromDict($graph['infoDict']));
         }
 

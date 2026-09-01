@@ -116,4 +116,36 @@ class InfoObjectTest extends TestCase
         $this->assertStringContainsString('/Title(' . Text::escape($rawCipherBytes) . ')', $result);
     }
 
+    public function testToStringEscapesRawMetadataValuesToo()
+    {
+        // Regression pin for the read-path branch's final review: the PLAIN
+        // (non-encrypted) substitution path dropped its metadata values into
+        // (...) literal-string syntax with no escaping at all, so a single
+        // unbalanced parenthesis or trailing backslash ended the string early
+        // and corrupted the whole Info object. Build\Parser copies a source
+        // PDF's /Info verbatim into Metadata, so the value here is exactly the
+        // shape an imported document can carry.
+        $metadata = (new Metadata())
+            ->setTitle('Weird (unbalanced title \\ here')
+            ->setAuthor('A) B (C')
+            ->setSubject("line\r\nbreak")
+            ->setCreator('back\\slash')
+            ->setProducer('plain');
+
+        $result = (string) (new InfoObject(3, $metadata));
+
+        $this->assertStringContainsString('/Title(' . Text::escape('Weird (unbalanced title \\ here') . ')', $result);
+        $this->assertStringContainsString('/Author(' . Text::escape('A) B (C') . ')', $result);
+        $this->assertStringContainsString('/Subject(' . Text::escape("line\r\nbreak") . ')', $result);
+        $this->assertStringContainsString('/Creator(' . Text::escape('back\\slash') . ')', $result);
+
+        // Every parenthesis left in the output is a delimiter or an escaped
+        // one - never a bare, unescaped paren from a value.
+        $this->assertStringNotContainsString('/Title(Weird (unbalanced', $result);
+
+        // Ordinary values are untouched, so this changes nothing for the
+        // overwhelmingly common case.
+        $this->assertStringContainsString('/Producer(plain)', $result);
+    }
+
 }

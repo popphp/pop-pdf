@@ -285,15 +285,27 @@ class InfoObject extends AbstractObject
         // Encrypted (and already literal-string-escaped) overrides take
         // precedence, field by field, over the raw metadata value - set by
         // encryptWith() when the document has security configured, and
-        // empty otherwise, in which case behavior is unchanged from before
-        // encryption support existed.
-        $title        = $this->encrypted['title']         ?? (string)$this->metadata->getTitle();
-        $subject      = $this->encrypted['subject']        ?? (string)$this->metadata->getSubject();
-        $author       = $this->encrypted['author']         ?? (string)$this->metadata->getAuthor();
-        $creator      = $this->encrypted['creator']        ?? (string)$this->metadata->getCreator();
-        $producer     = $this->encrypted['producer']       ?? (string)$this->metadata->getProducer();
-        $modDate      = $this->encrypted['mod_date']       ?? (string)$this->metadata->getModDate();
-        $creationDate = $this->encrypted['creation_date']  ?? (string)$this->metadata->getCreationDate();
+        // empty otherwise.
+        //
+        // A raw metadata value has to be escaped here for exactly the same
+        // reason encryptWith() escapes its ciphertext: these values are
+        // substituted straight into (...) literal-string syntax, so an
+        // unbalanced parenthesis or a stray backslash anywhere in one of them
+        // ends the string early and corrupts the surrounding object. That is
+        // not hypothetical - Build\Parser copies a source PDF's /Info strings
+        // into Metadata verbatim, and for a third-party-encrypted source
+        // (which, unlike this library's own /StrF /Identity output, really
+        // does encrypt its strings) those "strings" are raw AES ciphertext:
+        // arbitrary binary, routinely containing both. Escaping is applied to
+        // the value only - never to the already-escaped encryptWith()
+        // override, which would double-escape it.
+        $title        = $this->encrypted['title']          ?? Text::escape((string)$this->metadata->getTitle());
+        $subject      = $this->encrypted['subject']        ?? Text::escape((string)$this->metadata->getSubject());
+        $author       = $this->encrypted['author']         ?? Text::escape((string)$this->metadata->getAuthor());
+        $creator      = $this->encrypted['creator']        ?? Text::escape((string)$this->metadata->getCreator());
+        $producer     = $this->encrypted['producer']       ?? Text::escape((string)$this->metadata->getProducer());
+        $modDate      = $this->encrypted['mod_date']       ?? Text::escape((string)$this->metadata->getModDate());
+        $creationDate = $this->encrypted['creation_date']  ?? Text::escape((string)$this->metadata->getCreationDate());
 
         return str_replace(
             [
