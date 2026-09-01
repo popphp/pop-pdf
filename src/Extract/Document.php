@@ -27,7 +27,7 @@ use Pop\Pdf\Extract\Filter\Budget;
  * @author     Nick Sagona, III <nick@popphp.org>
  * @copyright  Copyright (c) 2009-2026 Nick Sagona, III
  * @license    https://www.popphp.org/license     New BSD License
- * @version    6.0.0
+ * @version    6.1.0
  */
 class Document
 {
