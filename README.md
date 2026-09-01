@@ -23,6 +23,7 @@ pop-pdf
     - [Compression](#compression)
     - [Page Origin](#page-origin)
     - [Encryption & Password Protection](#encryption--password-protection)
+    - [Reading Encrypted PDFs](#reading-encrypted-pdfs)
 * [Pages](#pages)
 * [Fonts](#fonts)
     - [Standard](#standard)
@@ -128,14 +129,14 @@ to route the various object components to the right place to be processed.
 
 - `writeToFile($document, $filename = 'pop.pdf'): void`
 - `outputToHttp($document, $filename = 'pop.pdf', $forceDownload = false, $headers = []): void`
-- `importFromFile($file, $pages = null): AbstractDocument`
-- `importRawData($data, $pages = null): AbstractDocument`
+- `importFromFile($file, $pages = null, $password = null): AbstractDocument`
+- `importRawData($data, $pages = null, $password = null): AbstractDocument`
 - `importFromImages($images, $quality = 70): AbstractDocument`
 - `extractAsImages($file, $location, $format = 'jpg', $resolution = 300, $filenameFormat = '%1$s-%2$02d', $pages = null, $pageLimit = null): array`
-- `merge($files): AbstractDocument`
-- `mergeRawData($data): AbstractDocument`
-- `extractTextFromFile($file, $pages = null, $pageLimit = null): string`
-- `extractTextFromData($data, $pages = null, $pageLimit = null): string`
+- `merge($files, $document = new Document(), $passwords = []): AbstractDocument`
+- `mergeRawData($data, $document = new Document(), $passwords = []): AbstractDocument`
+- `extractTextFromFile($file, $pages = null, $pageLimit = null, $password = null): string`
+- `extractTextFromData($data, $pages = null, $pageLimit = null, $password = null): string`
 - `isImageOnlyDocument($file, $pages = null, $pageLimit = null): bool`
 - `isImageOnlyData($data, $pages = null, $pageLimit = null): bool`
 - `getImageOnlyPages($file, $pages = null, $pageLimit = null): array`
@@ -441,7 +442,7 @@ document: page content streams, embedded images, and embedded font files. This w
 without `setCompression(true)` - compression runs first and encryption wraps whatever bytes the
 filter chain produced.
 
-Two things this does **not** cover yet:
+One thing this does **not** cover:
 
 - **Literal strings are not encrypted** - none of them, anywhere in the document. That includes
   the `/Info` dictionary's title/author/subject/creator/producer/date strings, annotation
@@ -451,9 +452,36 @@ Two things this does **not** cover yet:
   corrupting them - but it does mean a title, an author name, a form field's value, or an
   annotation's URL is readable in an encrypted document without the password. Keep sensitive
   data out of those for now, and rely on the encryption for page content, images, and fonts.
-- ***Opening* an already-encrypted PDF** - via `importFromFile()`, `importRawData()`,
-  `merge()`, or text extraction - is a separate, not-yet-implemented feature; this component
-  can currently only produce encrypted PDFs, not read them back in.
+
+### Reading Encrypted PDFs
+
+Opening an already-encrypted PDF requires the correct password, passed as an additional
+argument to whichever import/merge/extract method you're using:
+
+```php
+use Pop\Pdf\Document;
+use Pop\Pdf\Pdf;
+
+$document = Pdf::importFromFile('protected.pdf', null, 'open-me');
+$text     = Pdf::extractTextFromFile('protected.pdf', null, null, 'open-me');
+$merged   = Pdf::merge(['a.pdf', 'protected.pdf'], new Document(), [1 => 'open-me']);
+```
+
+Either the User or Owner password works to open a document - PDF's Standard Security
+Handler doesn't distinguish which one you present for that purpose, only for which
+permissions apply afterward (which pop-pdf doesn't enforce at read time - see the write-side
+documentation above).
+
+Opening a source PDF is fully transparent to everything downstream: the resulting
+in-memory `Document` has no memory of having been encrypted. Writing it back out (including
+via `merge()`, which can combine an encrypted source with plain ones) produces an
+unencrypted PDF unless you explicitly call `setSecurity()` again yourself.
+
+Note that a source PDF authored by a different tool that *does* encrypt strings (unlike this
+library's own write path, which - per the `/StrF /Identity` note above - never does) will
+still import successfully for content/images/fonts, but any literal string value read from it
+comes back as raw ciphertext bytes, since no string-decode layer exists anywhere in the
+extraction/import pipeline today, encrypted or not.
 
 [Top](#pop-pdf)
 

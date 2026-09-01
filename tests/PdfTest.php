@@ -5,6 +5,7 @@ namespace Pop\Pdf\Test;
 use Pop\Pdf;
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Font;
+use Pop\Pdf\Document\Security;
 use PHPUnit\Framework\TestCase;
 
 class PdfTest extends TestCase
@@ -710,6 +711,35 @@ class PdfTest extends TestCase
         $this->expectException('Pop\Pdf\Build\Exception');
         $this->expectExceptionMessage('a password is required');
         Pdf\Pdf::mergeRawData([file_get_contents(__DIR__ . '/tmp/doc.pdf'), $encryptedData]);
+    }
+
+    public function testWriteThenReadRoundTripsAnEncryptedDocument()
+    {
+        // This proves this library's own write path (Document\Security /
+        // Build\Compiler) and its own read path (Extract\Document /
+        // Build\Security\StandardSecurityHandler) agree with each other -
+        // it is NOT a substitute for the qpdf-fixture tests elsewhere in this
+        // suite (e.g. testMergeRejectsEncryptedSourceWhenNoPasswordIsSupplied
+        // and the Build\Security\StandardSecurityHandlerTest fixtures), which
+        // prove interoperability with an INDEPENDENT encryptor. A bug shared
+        // by both directions here (both sides agreeing on a wrong algorithm
+        // detail) would pass this test while failing the qpdf-based ones -
+        // that asymmetry is exactly why both kinds of test exist.
+        $document = new Document();
+        $document->addFont(new Font('Arial'));
+        $document->setSecurity(new Security('open-me', 'admin123'));
+
+        $page = new Document\Page(Document\Page::LETTER);
+        $page->addText(new Document\Page\Text('Round trip content', 12), 'Arial', 50, 700);
+        $document->addPage($page);
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_roundtrip_') . '.pdf';
+        Pdf\Pdf::writeToFile($document, $tmpFile);
+
+        $text = Pdf\Pdf::extractTextFromFile($tmpFile, null, null, 'open-me');
+        unlink($tmpFile);
+
+        $this->assertStringContainsString('Round trip content', $text);
     }
 
     public function testCyrillicTextRoundTripsThroughEmbeddedCidFont()
