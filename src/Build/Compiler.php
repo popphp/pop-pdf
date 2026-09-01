@@ -317,6 +317,8 @@ class Compiler extends AbstractCompiler
                     ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $this->info->getIndex(), 0, $data)
                     : PdfSecurity\ObjectCipher::encryptAes256($fileKey, $data);
             });
+
+            $this->encryptEmbeddedFontStrings($fileKey, $algorithm);
         }
 
         // Loop through the rest of the objects, calculate their size and length
@@ -452,6 +454,73 @@ class Compiler extends AbstractCompiler
                 ? PdfSecurity\ObjectCipher::encryptAes128($fileKey, $objectIndex, 0, $data)
                 : PdfSecurity\ObjectCipher::encryptAes256($fileKey, $data);
         };
+    }
+
+    /**
+     * Encrypt an embedded CID font's /CIDSystemInfo strings (the CID font
+     * dictionary's /Registry /Ordering pair) to match /StrF /StdCF.
+     *
+     * Build\Font\Parser builds these objects inside Document::embedFont(),
+     * long before this method's caller (finalize()) knows encryption is even
+     * configured - unlike annotations/fields, there is no live callback-hook
+     * opportunity here. The value is always one of a small set of fixed
+     * constants ("Adobe"/"Identity" for the CID font dictionary), so a
+     * targeted find-and-replace over the already-built object definition
+     * text - using that object's own index for per-object key derivation -
+     * is sufficient and avoids retrofitting Font\Parser's already-eager
+     * construction path.
+     *
+     * The ToUnicode CMap stream's own copy of /CIDSystemInfo
+     * ("Adobe"/"UCS") is NOT handled here: StreamObject::parse() splits that
+     * object into a bare "<</Length N>>" definition and a separate $stream
+     * holding the actual CMap program text (including that /CIDSystemInfo),
+     * so it never appears in getDefinition() here - it is already correctly
+     * encrypted as opaque stream bytes by the per-object stream-encryption
+     * pass above, and decrypts back to valid plaintext on read.
+     *
+     * @param  ?string $fileKey
+     * @param  ?string $algorithm
+     * @return void
+     */
+    private function encryptEmbeddedFontStrings(?string $fileKey, ?string $algorithm): void
+    {
+        if ($fileKey === null) {
+            return;
+        }
+
+        $pattern = '/\/CIDSystemInfo\s*<<\s*\/Registry\s*\(([^)]*)\)\s*\/Ordering\s*\(([^)]*)\)\s*\/Supplement\s+(\d+)\s*>>/';
+
+        foreach ($this->objects as $object) {
+            if (!($object instanceof PdfObject\StreamObject)) {
+                continue;
+            }
+
+            $definition = (string)$object->getDefinition();
+            if (preg_match($pattern, $definition) !== 1) {
+                continue;
+            }
+
+            $encryptor = $this->stringEncryptor($fileKey, $algorithm, $object->getIndex());
+
+            // preg_replace_callback(), not preg_replace(), is required here:
+            // the encrypted+escaped values below are essentially random
+            // ciphertext bytes, which can coincidentally contain a literal
+            // "$1"/"$2"-looking (or "\1"/"\2") sequence. preg_replace()
+            // treats its $replacement argument as a backreference template
+            // and would silently substitute (or blank out) such a sequence,
+            // corrupting the ciphertext. A callback's return value is used
+            // verbatim, with no backreference interpretation.
+            $object->setDefinition(preg_replace_callback(
+                $pattern,
+                function (array $matches) use ($encryptor): string {
+                    $registry = Text::escape($encryptor($matches[1]));
+                    $ordering = Text::escape($encryptor($matches[2]));
+                    return "/CIDSystemInfo <</Registry ({$registry}) /Ordering ({$ordering}) /Supplement {$matches[3]}>>";
+                },
+                $definition,
+                1
+            ) ?? $definition);
+        }
     }
 
     /**

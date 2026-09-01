@@ -1087,19 +1087,20 @@ class CompilerTest extends TestCase
     }
 
     // An embedded font's /CIDSystemInfo carries literal strings
-    // ("(Adobe)"/"(Identity)"). Restoring /StrF /StdCF (this task) without
-    // also encrypting those strings (a later task in this plan -
-    // encryptEmbeddedFontStrings(), not yet implemented) is a KNOWN,
-    // temporary regression: a conforming reader now dutifully "decrypts"
-    // that plaintext, consuming its first 16 bytes as an AES IV and emptying
-    // it out. This is intentional and expected at this point in the plan -
-    // /StrF /StdCF must be truthful for every OTHER string category (/Info,
-    // fixed by this task) to stop poppler/Chrome from misdetecting the
-    // cipher and refusing the whole file, which is a strictly worse, more
-    // common failure than this narrower one. The task that adds
-    // encryptEmbeddedFontStrings() must flip this assertion back to
-    // "survives intact".
-    public function testFinalizeCorruptsEmbeddedFontCidSystemInfoStringsThroughQpdfPendingFontStringEncryption()
+    // ("(Adobe)"/"(Identity)") in the CID font dictionary. Restoring
+    // /StrF /StdCF without also encrypting that string used to be a KNOWN,
+    // temporary regression: a conforming reader dutifully "decrypted" that
+    // plaintext, consuming its first 16 bytes as an AES IV and emptying it
+    // out. Compiler::encryptEmbeddedFontStrings() now finds-and-replaces
+    // that fixed pattern in the CID font dictionary's already-compiled
+    // definition text (using that object's own index for per-object key
+    // derivation) before serialization, so it is emitted as real ciphertext
+    // and now correctly round-trips through qpdf's decrypt just like every
+    // other literal string this library emits. This test was originally
+    // named ...CorruptsEmbeddedFontCidSystemInfoStringsThroughQpdfPending...
+    // and asserted the corruption; renamed and flipped now that the fix
+    // has landed.
+    public function testFinalizeEncryptsEmbeddedFontCidSystemInfoStrings()
     {
         if (shell_exec('which qpdf') === null) {
             $this->markTestSkipped('qpdf is not installed - install it to run this interoperability check.');
@@ -1118,25 +1119,79 @@ class CompilerTest extends TestCase
             $compiler->finalize($doc);
             $output = $compiler->getOutput();
 
-            // Plaintext going in ...
-            $this->assertStringContainsString('/Registry (Adobe) /Ordering (Identity)', $output);
-
-            // ... and, until encryptEmbeddedFontStrings() lands, corrupted by
-            // qpdf's decrypt round-trip because /StrF /StdCF is now truthful
-            // for /Info but not yet for embedded-font strings. Note: an
-            // embedded TrueType font's ToUnicode CMap *stream* also contains
-            // a textual "/Registry (Adobe) /Ordering (UCS)" - that one is
-            // stream-encrypted (unaffected by this gap) and survives
-            // correctly, so this asserts against the dict-only marker
-            // "(Identity)" (only the CIDSystemInfo dict says Identity; the
-            // CMap stream says UCS) rather than "(Adobe)", which appears in
-            // both places and would give a false pass.
-            $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
+            // No longer plaintext going in ...
             $this->assertStringNotContainsString(
-                '/Ordering (Identity)', $decrypted,
-                "{$algorithm}: /CIDSystemInfo /Ordering unexpectedly survived - " .
-                "has encryptEmbeddedFontStrings() been implemented? Update this test."
+                '/Registry (Adobe) /Ordering (Identity)', $output,
+                "{$algorithm}: the CID font dictionary's /CIDSystemInfo strings were emitted as plaintext."
             );
+
+            // ... and it now decrypts back to the correct, uncorrupted
+            // plaintext. Note: an embedded TrueType font's ToUnicode CMap
+            // *stream* also contains a textual "/Registry (Adobe) /Ordering
+            // (UCS)" - that one is stream-encrypted (a separate, pre-existing
+            // code path) and always survived correctly, so this asserts
+            // against the dict-only marker "(Identity)" (only the
+            // CIDSystemInfo dict says Identity; the CMap stream says UCS)
+            // rather than "(Adobe)", which appears in both places and would
+            // give a false pass either way.
+            $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
+            $this->assertStringContainsString(
+                '/Ordering (Identity)', $decrypted,
+                "{$algorithm}: /CIDSystemInfo /Ordering did not survive the encrypt/decrypt round trip intact."
+            );
+        }
+    }
+
+    // The whole point of encryptEmbeddedFontStrings(): a corrupted
+    // /CIDSystemInfo dictionary or ToUnicode CMap breaks glyph-to-Unicode
+    // mapping even where visual rendering still works, so the only real
+    // proof is that an embedded font's text still extracts correctly via
+    // poppler's pdftotext (which walks that exact mapping) after encryption.
+    public function testFinalizeEncryptsEmbeddedFontAndTextStillExtractsCorrectlyViaPoppler()
+    {
+        if ((shell_exec('which qpdf') === null) || (shell_exec('which pdftotext') === null)
+            || (shell_exec('which pdfinfo') === null)) {
+            $this->markTestSkipped('qpdf and poppler-utils are required for this test.');
+        }
+
+        foreach ([Document\Security::AES_128, Document\Security::AES_256] as $algorithm) {
+            $doc = new Document();
+            $doc->embedFont(new Font(__DIR__ . '/../tmp/fonts/DejaVuSans.ttf'));
+            $doc->setSecurity(new Document\Security('open-me', 'admin123', null, $algorithm));
+
+            $page = new Page(Page::LETTER);
+            $page->addText(new Page\Text('Embedded font text', 12), $doc->getCurrentFont(), 50, 700);
+            $doc->addPage($page);
+
+            $compiler = new Compiler();
+            $compiler->finalize($doc);
+            $output = $compiler->getOutput();
+
+            $this->assertPassesQpdfCheck($output, 'open-me');
+
+            $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_cid_enc_test_') . '.pdf';
+            file_put_contents($tmpFile, $output);
+
+            $info = shell_exec('pdfinfo -upw open-me ' . escapeshellarg($tmpFile) . ' 2>&1');
+            $textOutput = [];
+            exec('pdftotext -upw open-me ' . escapeshellarg($tmpFile) . ' - 2>&1', $textOutput, $textStatus);
+
+            unlink($tmpFile);
+
+            // poppler reports AES-128/V4 as plain "algorithm:AES", not
+            // "algorithm:AES-128" - so the RC4-absence check (rather than
+            // asserting a literal "AES-128"/"AES-256" substring) is what
+            // covers both algorithms here.
+            $this->assertStringNotContainsString('algorithm:RC4', $info, "{$algorithm}: {$info}");
+            $this->assertEquals(0, $textStatus, implode("\n", $textOutput));
+            $this->assertStringContainsString(
+                'Embedded font text', implode("\n", $textOutput),
+                "{$algorithm}: embedded font text failed to extract correctly - the /CIDSystemInfo " .
+                "or ToUnicode CMap fix may not be working as intended."
+            );
+            foreach ($textOutput as $line) {
+                $this->assertStringNotContainsString('Syntax Error', $line);
+            }
         }
     }
 
