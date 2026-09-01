@@ -205,7 +205,8 @@ class Choice extends AbstractField
         // Return the stream
         return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Ch\n    /Rect [{$x} {$y} " .
             ($this->width + $x) . " " . ($this->height + $y) . "]{$value}{$default}\n    /P {$pageIndex} 0 R\n" .
-            "    \n{$text}\n{$name}\n{$flags}\n{$options}>>\nendobj\n\n";
+            "    \n{$text}\n{$name}\n{$flags}\n{$options}" .
+            $this->getAppearanceCharacteristics() . $this->getBorderStyle() . ">>\nendobj\n\n";
     }
 
 }

@@ -178,7 +178,8 @@ class Text extends AbstractField
 
         // Return the stream
         return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Tx\n    /Rect [{$x} {$y} " .
-            ($this->width + $x) . " " . ($this->height + $y) . "]{$value}{$default}\n    /P {$pageIndex} 0 R\n{$text}\n{$name}\n{$flags}>>\nendobj\n\n";
+            ($this->width + $x) . " " . ($this->height + $y) . "]{$value}{$default}\n    /P {$pageIndex} 0 R\n{$text}\n{$name}\n{$flags}\n" .
+            $this->getAppearanceCharacteristics() . $this->getBorderStyle() . ">>\nendobj\n\n";
     }
 
 }

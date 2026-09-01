@@ -344,4 +344,51 @@ class FieldTest extends TestCase
         $this->assertStringContainsString('/T(Name \(With\) \\\\Parens)', $stream);
     }
 
+    public function testTextAppearanceRendersBorderAndBackground()
+    {
+        $field = new Field\Text('name', 'Arial', 14);
+        $field->setWidth(200);
+        $field->setHeight(24);
+        $field->setBorderWidth(2);
+        $field->setBorderColor([204, 204, 204]);
+        $field->setBackgroundColor([255, 255, 0]);
+
+        $stream = $field->getStream(10, 2, null, 20, 200);
+
+        $this->assertEquals(2, $field->getBorderWidth());
+        $this->assertEquals([204, 204, 204], $field->getBorderColor());
+        $this->assertEquals([255, 255, 0], $field->getBackgroundColor());
+        $this->assertStringContainsString('/MK <<', $stream);
+        $this->assertStringContainsString('/BC [0.8 0.8 0.8]', $stream);
+        $this->assertStringContainsString('/BG [1 1 0]', $stream);
+        $this->assertStringContainsString('/BS << /W 2 >>', $stream);
+    }
+
+    public function testTextAppearanceOmittedWhenNotSet()
+    {
+        $field = new Field\Text('name', 'Arial', 14);
+        $field->setWidth(200);
+        $field->setHeight(24);
+
+        $stream = $field->getStream(10, 2, null, 20, 200);
+
+        $this->assertStringNotContainsString('/MK', $stream);
+        $this->assertStringNotContainsString('/BS', $stream);
+    }
+
+    public function testChoiceAndButtonAlsoRenderAppearance()
+    {
+        $choice = new Field\Choice('name');
+        $choice->setWidth(150);
+        $choice->setHeight(20);
+        $choice->setBorderColor([0, 0, 0]);
+        $this->assertStringContainsString('/BC [0 0 0]', $choice->getStream(1, 1, null, 0, 0));
+
+        $button = new Field\Button('name');
+        $button->setWidth(14);
+        $button->setHeight(14);
+        $button->setBackgroundColor([255, 255, 255]);
+        $this->assertStringContainsString('/BG [1 1 1]', $button->getStream(2, 1, null, 0, 0));
+    }
+
 }

@@ -85,6 +85,24 @@ abstract class AbstractField implements FieldInterface
     protected array $flagBits = [];
 
     /**
+     * Field border width, in points (0 = no border)
+     * @var int
+     */
+    protected int $borderWidth = 0;
+
+    /**
+     * Field border color, as an [r, g, b] array (0-255 each)
+     * @var ?array
+     */
+    protected ?array $borderColor = null;
+
+    /**
+     * Field background color, as an [r, g, b] array (0-255 each)
+     * @var ?array
+     */
+    protected ?array $backgroundColor = null;
+
+    /**
      * String encryptor callable, set by encryptWith() and applied lazily
      * by encryptLiteral()
      * @var ?callable
@@ -322,6 +340,118 @@ abstract class AbstractField implements FieldInterface
     public function getHeight(): ?int
     {
         return $this->height;
+    }
+
+    /**
+     * Set the border width
+     *
+     * @param  int $width
+     * @return static
+     */
+    public function setBorderWidth(int $width): static
+    {
+        $this->borderWidth = $width;
+        return $this;
+    }
+
+    /**
+     * Get the border width
+     *
+     * @return int
+     */
+    public function getBorderWidth(): int
+    {
+        return $this->borderWidth;
+    }
+
+    /**
+     * Set the border color
+     *
+     * @param  array $rgb
+     * @return static
+     */
+    public function setBorderColor(array $rgb): static
+    {
+        $this->borderColor = $rgb;
+        return $this;
+    }
+
+    /**
+     * Get the border color
+     *
+     * @return ?array
+     */
+    public function getBorderColor(): ?array
+    {
+        return $this->borderColor;
+    }
+
+    /**
+     * Set the background color
+     *
+     * @param  array $rgb
+     * @return static
+     */
+    public function setBackgroundColor(array $rgb): static
+    {
+        $this->backgroundColor = $rgb;
+        return $this;
+    }
+
+    /**
+     * Get the background color
+     *
+     * @return ?array
+     */
+    public function getBackgroundColor(): ?array
+    {
+        return $this->backgroundColor;
+    }
+
+    /**
+     * Build this field's /MK appearance-characteristics dictionary fragment,
+     * or an empty string when neither border nor background color is set
+     *
+     * @return string
+     */
+    protected function getAppearanceCharacteristics(): string
+    {
+        if (($this->borderColor === null) && ($this->backgroundColor === null)) {
+            return '';
+        }
+
+        $mk = '    /MK <<';
+        if ($this->borderColor !== null) {
+            $mk .= ' /BC [' . $this->rgbToPdfArray($this->borderColor) . ']';
+        }
+        if ($this->backgroundColor !== null) {
+            $mk .= ' /BG [' . $this->rgbToPdfArray($this->backgroundColor) . ']';
+        }
+        $mk .= " >>\n";
+
+        return $mk;
+    }
+
+    /**
+     * Build this field's /BS border-style dictionary fragment, or an empty
+     * string when no border width is set
+     *
+     * @return string
+     */
+    protected function getBorderStyle(): string
+    {
+        return ($this->borderWidth > 0) ? "    /BS << /W {$this->borderWidth} >>\n" : '';
+    }
+
+    /**
+     * Convert an [r, g, b] (0-255) array into a PDF DeviceRGB component array (0-1)
+     *
+     * @param  array $rgb
+     * @return string
+     */
+    protected function rgbToPdfArray(array $rgb): string
+    {
+        return round($rgb[0] / 255, 3) . ' ' . round($rgb[1] / 255, 3) . ' ' . round($rgb[2] / 255, 3);
     }
 
     /**
