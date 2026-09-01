@@ -784,6 +784,78 @@ class CompilerTest extends TestCase
         $this->assertEquals(['a', 'b', 'c'], $apMatches[1], 'Each kid must have its own distinct on-state name.');
     }
 
+    // Round-2 regression test: a 3-option radio group where NONE of the
+    // options has an HTML value set - only the middle one is setChecked().
+    // Before this fix, all three valueless options resolved their on-state
+    // export name via the identical shared fallback ('Yes'), so the parent's
+    // /V (also derived from the same 'Yes' fallback) matched every kid's /AP
+    // /N key at once - every kid rendered checked simultaneously, which is
+    // worse than the original "last value wins" bug and newly reachable
+    // through the setChecked() API round 1 introduced. Each option must now
+    // resolve to a distinct per-index fallback name so only the actually-
+    // checked kid's /AS matches the parent's /V.
+    public function testRadioGroupWithNoValuesOnlyChecksTheSetCheckedOption()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $optionA = new Page\Field\Button('plan');
+        $optionA->setRadio();
+        $optionA->setWidth(14);
+        $optionA->setHeight(14);
+        $page->addField($optionA, 'form1', 50, 700);
+
+        $optionB = new Page\Field\Button('plan');
+        $optionB->setRadio();
+        $optionB->setWidth(14);
+        $optionB->setHeight(14);
+        $optionB->setChecked();
+        $page->addField($optionB, 'form1', 50, 680);
+
+        $optionC = new Page\Field\Button('plan');
+        $optionC->setRadio();
+        $optionC->setWidth(14);
+        $optionC->setHeight(14);
+        $page->addField($optionC, 'form1', 50, 660);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        // The three kids must resolve to three distinct on-state names (the
+        // per-index fallback), never collapsing onto a shared 'Yes'.
+        preg_match_all('/\/AP << \/N << \/(\w+) (\d+) 0 R \/Off (\d+) 0 R >> >>/', $output, $apMatches);
+        $this->assertCount(3, $apMatches[1], 'Expected exactly three AP dicts, one per radio kid.');
+        $onNames = $apMatches[1];
+        $this->assertEquals(array_unique($onNames), $onNames, 'Each valueless kid must have its own distinct on-state name.');
+
+        // The parent's /V must match exactly one of those on-state names -
+        // the one belonging to the kid that called setChecked().
+        preg_match('/\/V \/(\w+)\n/', $output, $vMatch);
+        $this->assertNotEmpty($vMatch, 'Expected the shared parent field to declare /V.');
+        $checkedName = $vMatch[1];
+        $this->assertContains($checkedName, $onNames);
+
+        // Exactly one kid's /AS matches the checked name; the other two must
+        // be /AS /Off.
+        preg_match_all('/\/AS \/(\w+)\n/', $output, $asMatches);
+        $this->assertCount(3, $asMatches[1], 'Expected exactly three /AS entries, one per radio kid.');
+        $checkedCount = 0;
+        $offCount     = 0;
+        foreach ($asMatches[1] as $asValue) {
+            if ($asValue === $checkedName) {
+                $checkedCount++;
+            } elseif ($asValue === 'Off') {
+                $offCount++;
+            }
+        }
+        $this->assertEquals(1, $checkedCount, 'Exactly one kid must be checked (/AS matching the parent /V).');
+        $this->assertEquals(2, $offCount, 'The other two kids must be /AS /Off.');
+    }
+
     public function testPrepareFieldsThrowsWhenFontNotAdded()
     {
         $this->expectException(Exception::class);

@@ -462,15 +462,22 @@ class Compiler extends AbstractCompiler
      * them - does not set 'checked', callers fill that in themselves since
      * a radio group's checked state depends on its sibling widgets too.
      *
+     * The export name is resolved entirely by the caller and passed in here
+     * rather than derived internally - a solo checkbox/radio and a group of
+     * siblings need different fallback rules when no HTML value was set (see
+     * prepareSingleField() and prepareRadioGroup()), and deriving the same
+     * fallback here for every caller previously made every valueless option
+     * in a radio group collapse onto the identical on-state name.
+     *
      * @param  Button $field
      * @param  float  $width
      * @param  float  $height
+     * @param  string $exportName
      * @return array
      */
-    private function createCheckableAppearance(Button $field, float $width, float $height): array
+    private function createCheckableAppearance(Button $field, float $width, float $height, string $exportName): array
     {
-        $exportName = $this->sanitizeExportName($field->getValue() ?? 'Yes');
-        $onContent  = ($field->isRadio())
+        $onContent = ($field->isRadio())
             ? $this->radioDotAppearanceStream($width, $height)
             : $this->checkMarkAppearanceStream($width, $height);
 
@@ -1012,8 +1019,11 @@ class Compiler extends AbstractCompiler
         // addObject($i, ...) ran.
         $appearance = null;
         if (($field['field'] instanceof Button) && (!$field['field']->isPushButton())) {
+            // No sibling can ever collide here (this is the solo-widget
+            // path), so the simple shared 'Yes' fallback is safe.
+            $exportName = $this->sanitizeExportName($field['field']->getValue() ?? 'Yes');
             $appearance = $this->createCheckableAppearance(
-                $field['field'], (float) $field['field']->getWidth(), (float) $field['field']->getHeight()
+                $field['field'], (float) $field['field']->getWidth(), (float) $field['field']->getHeight(), $exportName
             );
             $appearance['checked'] = $field['field']->isChecked();
         }
@@ -1054,14 +1064,21 @@ class Compiler extends AbstractCompiler
         }
 
         $representative = $groupFields[0]['field'];
-        $checkedValue   = null;
-        foreach ($groupFields as $field) {
-            if ($field['field']->isChecked()) {
-                // Sanitized the same way createCheckableAppearance() derives
-                // each kid's own on-state export name, so the parent's /V
-                // always matches the actually-checked kid's /AP /N key - not
-                // just whichever kid happened to have a non-null value.
-                $checkedValue = $this->sanitizeExportName($field['field']->getValue() ?? 'Yes');
+
+        // Resolve every kid's export name once, up front, using a
+        // per-index fallback ('Option1', 'Option2', ...) so that
+        // valueless siblings never collide on the same shared fallback
+        // name the way a single shared 'Yes' fallback would - otherwise
+        // every valueless option in the group would resolve to the same
+        // on-state name and the parent's /V would match (and therefore
+        // visually check) all of them at once.
+        $exportNames  = [];
+        $checkedValue = null;
+        foreach ($groupFields as $index => $field) {
+            $kid                  = $field['field'];
+            $exportNames[$index] = $this->sanitizeExportName($kid->getValue() ?? ('Option' . ($index + 1)));
+            if ($kid->isChecked()) {
+                $checkedValue = $exportNames[$index];
             }
         }
 
@@ -1074,7 +1091,7 @@ class Compiler extends AbstractCompiler
         ));
         $this->document->getForm($formName)->addFieldIndex($parentIndex);
 
-        foreach ($groupFields as $field) {
+        foreach ($groupFields as $index => $field) {
             $kid = $field['field'];
 
             // Same ordering fix as prepareSingleField(): the kid's "on"
@@ -1083,8 +1100,8 @@ class Compiler extends AbstractCompiler
             // computed, or the kid's own widget dict would silently clobber
             // the appearance XObject once both reused the same reserved
             // lastIndex()+1 number.
-            $appearance = $this->createCheckableAppearance($kid, (float) $kid->getWidth(), (float) $kid->getHeight());
-            $appearance['checked'] = ($checkedValue !== null) && ($this->sanitizeExportName((string) $kid->getValue()) === $checkedValue);
+            $appearance = $this->createCheckableAppearance($kid, (float) $kid->getWidth(), (float) $kid->getHeight(), $exportNames[$index]);
+            $appearance['checked'] = ($checkedValue !== null) && ($exportNames[$index] === $checkedValue);
 
             $i           = $this->lastIndex() + 1;
             $pageObject->addAnnotIndex($i);
