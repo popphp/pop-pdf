@@ -251,9 +251,18 @@ class StandardSecurityHandler
      * digest, so silently accepting a wrong length would yield a wrong key
      * and an "incorrect password" error pointing at the wrong problem.
      *
-     * @param  array<string, string|int> $encryptDict must contain O, U, P (as built by buildRevision4())
-     * @param  string                    $fileId raw bytes of the PDF's first /ID element
-     * @param  string                    $candidatePassword
+     * /EncryptMetadata, if present and explicitly false, changes the key
+     * itself (Algorithm 2 step (f)), not just how metadata is handled - so it
+     * is read from the dictionary here rather than being a caller's concern.
+     * Omitting it derives a different, wrong key, which surfaces as a bogus
+     * "the password provided is incorrect" for a perfectly correct password;
+     * a document written with qpdf's --cleartext-metadata is exactly that
+     * case. Absent (the overwhelmingly common case) means true.
+     *
+     * @param  array<string, string|int|bool> $encryptDict must contain O, U, P (as built by buildRevision4()),
+     *                                                     and may carry EncryptMetadata
+     * @param  string                         $fileId raw bytes of the PDF's first /ID element
+     * @param  string                         $candidatePassword
      * @throws Exception
      * @return string 16 raw bytes
      */
@@ -268,11 +277,14 @@ class StandardSecurityHandler
             );
         }
 
-        $p        = (int)$encryptDict['P'];
-        $expected = substr($u, 0, 16);
+        $p               = (int)$encryptDict['P'];
+        $expected        = substr($u, 0, 16);
+        $encryptMetadata = (($encryptDict['EncryptMetadata'] ?? true) !== false);
 
         // Algorithm 6 - the candidate treated as the user password.
-        $fileKey = self::deriveRevision4FileKeyFromUserPassword($candidatePassword, $o, $p, $fileId);
+        $fileKey = self::deriveRevision4FileKeyFromUserPassword(
+            $candidatePassword, $o, $p, $fileId, $encryptMetadata
+        );
         if (hash_equals($expected, substr(self::computeURevision4($fileKey, $fileId), 0, 16))) {
             return $fileKey;
         }
@@ -280,7 +292,7 @@ class StandardSecurityHandler
         // Algorithm 7 - the candidate treated as the owner password. Peel the
         // padded user password out of /O, then re-run the user path on it.
         $fileKey = self::deriveRevision4FileKey(
-            self::recoverPaddedUserPassword($candidatePassword, $o), $o, $p, $fileId
+            self::recoverPaddedUserPassword($candidatePassword, $o), $o, $p, $fileId, 16, $encryptMetadata
         );
         if (hash_equals($expected, substr(self::computeURevision4($fileKey, $fileId), 0, 16))) {
             return $fileKey;
@@ -356,13 +368,16 @@ class StandardSecurityHandler
      * @param  string $oValue 32 raw bytes
      * @param  int    $p
      * @param  string $fileId raw bytes of the PDF's first /ID element
+     * @param  bool   $encryptMetadata the document's /EncryptMetadata (Algorithm 2 step (f))
      * @return string 16 raw bytes
      */
     public static function deriveRevision4FileKeyFromUserPassword(
-        string $userPassword, string $oValue, int $p, string $fileId
+        string $userPassword, string $oValue, int $p, string $fileId, bool $encryptMetadata = true
     ): string
     {
-        return self::deriveRevision4FileKey(self::padPassword($userPassword), $oValue, $p, $fileId);
+        return self::deriveRevision4FileKey(
+            self::padPassword($userPassword), $oValue, $p, $fileId, 16, $encryptMetadata
+        );
     }
 
     /**
@@ -381,19 +396,25 @@ class StandardSecurityHandler
      * key the two happen to coincide (16 bytes is the whole digest); for a
      * 40-bit key they do not, so the distinction is kept explicit here.
      *
-     * EncryptMetadata is always true for documents this component writes
-     * (see spec Non-goals), so Algorithm 2's optional step (f) - appending
-     * 0xFFFFFFFF for unencrypted metadata - is never applicable.
+     * Step (f) then appends four 0xFF bytes when - and only when - the
+     * document declares /EncryptMetadata false (this is a revision >= 4 rule,
+     * and openRevision4() is revision 4 by construction). Documents this
+     * component WRITES always encrypt their metadata, so the build direction
+     * never passes anything but the default here; documents it READS may not,
+     * and skipping the step for one of those derives a wrong key that then
+     * misreports a correct password as incorrect.
      *
      * @param  string $paddedUserPassword exactly 32 bytes
      * @param  string $oValue 32 raw bytes
      * @param  int    $p
      * @param  string $fileId raw bytes of the PDF's first /ID element
      * @param  int    $keyLength file key length in bytes
+     * @param  bool   $encryptMetadata the document's /EncryptMetadata
      * @return string $keyLength raw bytes
      */
     protected static function deriveRevision4FileKey(
-        string $paddedUserPassword, string $oValue, int $p, string $fileId, int $keyLength = 16
+        string $paddedUserPassword, string $oValue, int $p, string $fileId, int $keyLength = 16,
+        bool $encryptMetadata = true
     ): string
     {
         $hash = hash_init('md5');
@@ -401,6 +422,11 @@ class StandardSecurityHandler
         hash_update($hash, $oValue);
         hash_update($hash, pack('V', $p & 0xFFFFFFFF));
         hash_update($hash, $fileId);
+
+        if (!$encryptMetadata) {
+            hash_update($hash, "\xFF\xFF\xFF\xFF");
+        }
+
         $digest = hash_final($hash, true);
 
         for ($i = 0; $i < self::KEY_ROUNDS; $i++) {

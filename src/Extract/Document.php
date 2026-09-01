@@ -153,6 +153,15 @@ class Document
     protected ?string $encryptionAlgorithm = null;
 
     /**
+     * Whether this document's STRINGS are encrypted (i.e. it declares a
+     * non-/Identity /StrF). Nothing in Extract\* decrypts strings, so when
+     * this is true every string value this document hands back - /Info
+     * metadata above all - is raw ciphertext rather than readable text.
+     * @var bool
+     */
+    protected bool $encryptedStrings = false;
+
+    /**
      * Constructor
      *
      * Instantiate a document from raw PDF data.
@@ -213,6 +222,22 @@ class Document
     public function isEncrypted(): bool
     {
         return ($this->fileKey !== null);
+    }
+
+    /**
+     * Determine if this document's STRING values are encrypted.
+     *
+     * Extract\* has no string-decryption layer at all (see the read-path
+     * plan's disclosed non-goal), so when this is true every string this
+     * document returns is raw ciphertext. A caller that would otherwise
+     * present those bytes as text - Build\Parser copying /Info into
+     * Document\Metadata, most notably - should skip them instead.
+     *
+     * @return bool
+     */
+    public function hasEncryptedStrings(): bool
+    {
+        return $this->encryptedStrings;
     }
 
     /**
@@ -467,6 +492,24 @@ class Document
             if (!isset($trailer['Encrypt'])) {
                 $trailer = $this->recoverEncryptionTrailerKeys($offsets) + $trailer;
             }
+
+            // Backstop for every repair shape the recovery above cannot cover -
+            // a CLASSIC-xref document damaged badly enough to lose both its
+            // literal "trailer" keyword and its "startxref" has no surviving
+            // /Encrypt anywhere the repair scan looks, even though the raw
+            // bytes plainly still carry one. Proceeding would report the
+            // document as unencrypted and hand back undecrypted ciphertext -
+            // in practice, silently empty page content even when the caller
+            // supplied the CORRECT password, indistinguishable from a
+            // legitimately text-free PDF. Saying so is strictly better than
+            // that, so this refuses rather than guesses.
+            if (!isset($trailer['Encrypt']) && str_contains($this->data, '/Encrypt')) {
+                throw new Exception(
+                    'Error: This PDF appears to be encrypted (its raw data contains an /Encrypt entry), but its ' .
+                    'cross-reference data is damaged badly enough that the encryption dictionary could not be ' .
+                    'located, so its contents cannot be decrypted.'
+                );
+            }
         }
 
         // Encryption has to be set up before anything reads an object's stream
@@ -577,6 +620,10 @@ class Document
         $id     = is_array($trailer['ID'] ?? null) ? ($trailer['ID'][0] ?? null) : null;
         $fileId = is_string($id) ? $id : '';
 
+        // Anything other than an explicit /Identity leaves this document's
+        // strings as ciphertext, since nothing in Extract\* decrypts strings.
+        $this->encryptedStrings = ((string)($encryptDict['StrCFM'] ?? '') !== 'Identity');
+
         try {
             $this->fileKey = ($revision === 6)
                 ? StandardSecurityHandler::openRevision6($encryptDict, $this->password)
@@ -648,19 +695,28 @@ class Document
             }
         }
 
-        $raw['CFM'] = $this->streamCryptFilterMethod($dict);
+        // ISO 32000-1 Table 21: /EncryptMetadata defaults to true when absent,
+        // and only an explicit `false` turns it off. It is load-bearing for
+        // revision 4 key derivation (Algorithm 2 step (f)), not just metadata
+        // handling, so it has to be read here and threaded through.
+        $raw['EncryptMetadata'] = !(($dict['EncryptMetadata'] ?? true) === false);
+
+        $raw['CFM']    = $this->cryptFilterMethod($dict, 'StmF');
+        $raw['StrCFM'] = $this->cryptFilterMethod($dict, 'StrF');
 
         return $raw;
     }
 
     /**
-     * Determine the crypt filter method (/CFM) that applies to this document's
-     * stream content, per the /StmF name and the /CF crypt filter map
+     * Determine the crypt filter method (/CFM) that applies to one category of
+     * this document's content, per the named filter entry (/StmF for streams,
+     * /StrF for strings) and the /CF crypt filter map
      *
-     * @param  array $dict
+     * @param  array  $dict
+     * @param  string $filterKey 'StmF' or 'StrF'
      * @return string 'AESV2', 'AESV3', 'Identity', 'V2' (RC4), or '' if undeterminable
      */
-    protected function streamCryptFilterMethod(array $dict): string
+    protected function cryptFilterMethod(array $dict, string $filterKey): string
     {
         $v = (isset($dict['V']) && is_int($dict['V'])) ? $dict['V'] : 0;
 
@@ -670,8 +726,8 @@ class Document
             return ($v === 0) ? '' : 'V2';
         }
 
-        $stmF = $dict['StmF'] ?? null;
-        $name = ($stmF instanceof Value\Name) ? $stmF->name : 'Identity'; // ISO 32000-1 Table 20 default
+        $filter = $dict[$filterKey] ?? null;
+        $name   = ($filter instanceof Value\Name) ? $filter->name : 'Identity'; // ISO 32000-1 Table 20 default
 
         if ($name === 'Identity') {
             return 'Identity';

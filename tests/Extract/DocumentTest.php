@@ -877,6 +877,28 @@ class DocumentTest extends TestCase
     }
 
     /**
+     * Write an encrypted PDF with this library's OWN write path, which
+     * deliberately declares /StrF /Identity - the opposite of what a
+     * third-party encryptor emits, and the case hasEncryptedStrings() has to
+     * tell apart from it.
+     */
+    protected function writeOurOwnEncryptedPdf(): string
+    {
+        $document = new \Pop\Pdf\Document();
+        $document->addFont(new \Pop\Pdf\Document\Font('Arial'));
+        $document->setSecurity(new \Pop\Pdf\Document\Security('open-me', 'admin123'));
+
+        $page = new \Pop\Pdf\Document\Page(\Pop\Pdf\Document\Page::LETTER);
+        $page->addText(new \Pop\Pdf\Document\Page\Text('Our own output', 12), 'Arial', 50, 700);
+        $document->addPage($page);
+
+        $path = $this->tempPdfPath();
+        \Pop\Pdf\Pdf::writeToFile($document, $path);
+
+        return $path;
+    }
+
+    /**
      * The repair path bypasses both the xref AND getObject() (it pre-expands
      * /ObjStm containers itself), so it needs its own decryption wiring. It
      * also has to FIND the /Encrypt reference: a repair scan only recovers a
@@ -1136,28 +1158,163 @@ class DocumentTest extends TestCase
     public function testStreamCryptFilterMethodResolvesTheStmFCryptFilter()
     {
         $doc    = new Document($this->buildSimplePdf());
-        $method = new \ReflectionMethod(Document::class, 'streamCryptFilterMethod');
+        $method = new \ReflectionMethod(Document::class, 'cryptFilterMethod');
 
         // /V below 4 has no /CF map at all - always RC4.
-        $this->assertEquals('V2', $method->invoke($doc, ['V' => 2]));
-        $this->assertEquals('', $method->invoke($doc, []));
+        $this->assertEquals('V2', $method->invoke($doc, ['V' => 2], 'StmF'));
+        $this->assertEquals('', $method->invoke($doc, [], 'StmF'));
 
         // /StmF defaults to /Identity when absent (ISO 32000-1 Table 20).
-        $this->assertEquals('Identity', $method->invoke($doc, ['V' => 4]));
-        $this->assertEquals('Identity', $method->invoke($doc, ['V' => 5, 'StmF' => new Value\Name('Identity')]));
+        $this->assertEquals('Identity', $method->invoke($doc, ['V' => 4], 'StmF'));
+        $this->assertEquals('Identity', $method->invoke($doc, ['V' => 5, 'StmF' => new Value\Name('Identity')], 'StmF'));
 
         // A named crypt filter is looked up in /CF, not assumed from /R.
         $this->assertEquals('AESV2', $method->invoke($doc, [
             'V' => 4, 'StmF' => new Value\Name('StdCF'),
             'CF' => ['StdCF' => ['CFM' => new Value\Name('AESV2')]],
-        ]));
+        ], 'StmF'));
         $this->assertEquals('AESV3', $method->invoke($doc, [
             'V' => 5, 'StmF' => new Value\Name('StdCF'),
             'CF' => ['StdCF' => ['CFM' => new Value\Name('AESV3')]],
-        ]));
+        ], 'StmF'));
 
         // A /StmF naming a crypt filter that isn't in /CF is undeterminable.
-        $this->assertEquals('', $method->invoke($doc, ['V' => 5, 'StmF' => new Value\Name('StdCF')]));
+        $this->assertEquals('', $method->invoke($doc, ['V' => 5, 'StmF' => new Value\Name('StdCF')], 'StmF'));
+    }
+
+    public function testCryptFilterMethodResolvesTheStrFCryptFilterIndependentlyOfStmF()
+    {
+        // /StrF and /StmF are separate entries and a document can legally set
+        // them differently - this library's own write path is exactly that
+        // case (/StmF /StdCF with /StrF /Identity), so the two must not be
+        // conflated.
+        $doc    = new Document($this->buildSimplePdf());
+        $method = new \ReflectionMethod(Document::class, 'cryptFilterMethod');
+
+        $dict = [
+            'V'    => 4,
+            'StmF' => new Value\Name('StdCF'),
+            'StrF' => new Value\Name('Identity'),
+            'CF'   => ['StdCF' => ['CFM' => new Value\Name('AESV2')]],
+        ];
+
+        $this->assertEquals('AESV2', $method->invoke($doc, $dict, 'StmF'));
+        $this->assertEquals('Identity', $method->invoke($doc, $dict, 'StrF'));
+
+        // An absent /StrF is /Identity by the same Table 20 default.
+        $this->assertEquals('Identity', $method->invoke($doc, ['V' => 4], 'StrF'));
+    }
+
+    public function testHasEncryptedStringsReportsWhetherStringValuesAreCiphertext()
+    {
+        // A plain document has nothing encrypted at all.
+        $this->assertFalse((new Document($this->buildSimplePdf()))->hasEncryptedStrings());
+
+        // A document this library wrote declares /StrF /Identity, so its
+        // strings are readable even though it is encrypted.
+        $ours = new Document(file_get_contents($this->writeOurOwnEncryptedPdf()), 'open-me');
+
+        $this->assertTrue($ours->isEncrypted());
+        $this->assertFalse($ours->hasEncryptedStrings());
+
+        // A third-party encryptor's default is /StrF /StdCF, which this
+        // library has no way to decrypt - every string it returns from such a
+        // document is raw ciphertext.
+        $theirs = new Document(file_get_contents($this->qpdfEncrypt('test-extract.pdf', '128')), 'open-me');
+
+        $this->assertTrue($theirs->isEncrypted());
+        $this->assertTrue($theirs->hasEncryptedStrings());
+    }
+
+    public function testOpensAnAes128PdfWithEncryptMetadataFalseGivenTheCorrectPassword()
+    {
+        // Regression pin: ISO 32000-1 Algorithm 2 step (f) appends four 0xFF
+        // bytes to the key digest when /EncryptMetadata is false. Skipping it
+        // derives a different key, whose /U check then fails - reporting a
+        // perfectly CORRECT password as incorrect, the worst possible
+        // misdiagnosis for a password feature. qpdf's --cleartext-metadata is
+        // how a real producer emits that configuration.
+        $encrypted = $this->runQpdf([
+            '--encrypt', 'open-me', 'admin123', '128', '--use-aes=y', '--cleartext-metadata',
+            '--', __DIR__ . '/../tmp/test-extract.pdf',
+        ]);
+
+        $data = file_get_contents($encrypted);
+
+        $this->assertStringContainsString('/EncryptMetadata false', $data);
+
+        // Both the user and the owner password must open it - step (f) sits in
+        // the shared Algorithm 2 both paths end in, not in either one alone.
+        foreach (['open-me', 'admin123'] as $password) {
+            $doc = new Document($data, $password);
+
+            $this->assertTrue($doc->isEncrypted());
+            $this->assertNotSame('', trim($this->extractText($doc)));
+        }
+
+        // And a genuinely wrong password must still be rejected, so the fix
+        // above can't be "everything opens now".
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('password provided is incorrect');
+
+        new Document($data, 'not-the-password');
+    }
+
+    public function testEncryptMetadataFalseDecryptsToTheSameContentAsTheUnencryptedSource()
+    {
+        $encrypted = $this->runQpdf([
+            '--encrypt', 'open-me', 'admin123', '128', '--use-aes=y', '--cleartext-metadata',
+            '--', __DIR__ . '/../tmp/test-extract.pdf',
+        ]);
+
+        $plainDoc = new Document(file_get_contents($this->qpdfNormalize('test-extract.pdf')));
+        $encDoc   = new Document(file_get_contents($encrypted), 'open-me');
+
+        $plainText = $this->extractText($plainDoc);
+
+        $this->assertNotSame('', trim($plainText));
+        $this->assertSame($plainText, $this->extractText($encDoc));
+    }
+
+    public function testARepairedClassicXrefEncryptedPdfRefusesRatherThanReturningEmptyContent()
+    {
+        // A classic-xref document damaged badly enough to lose BOTH its
+        // literal "trailer" keyword and its "startxref" leaves the repair scan
+        // with no /Encrypt anywhere it looks - the xref-stream recovery can't
+        // help, because there is no xref stream. Before the guard this loaded
+        // "successfully" as an UNENCRYPTED document and handed back zero bytes
+        // of page content even with the correct password supplied, which is
+        // indistinguishable from a legitimately text-free PDF.
+        $encrypted = $this->runQpdf([
+            '--encrypt', 'open-me', 'admin123', '128', '--use-aes=y',
+            '--', '--object-streams=disable', __DIR__ . '/../tmp/test-extract.pdf',
+        ]);
+
+        $data = file_get_contents($encrypted);
+
+        $this->assertStringContainsString('trailer', $data);
+        $this->assertStringContainsString('startxref', $data);
+
+        $damaged = str_replace(['trailer', 'startxref'], ['trai1er', 'startxr3f'], $data);
+
+        // Sanity: the raw bytes still plainly say the document is encrypted.
+        $this->assertStringContainsString('/Encrypt', $damaged);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('appears to be encrypted');
+
+        new Document($damaged, 'open-me');
+    }
+
+    public function testTheRepairEncryptionGuardDoesNotFireForADamagedUnencryptedDocument()
+    {
+        // The guard keys off /Encrypt appearing in the raw bytes, so it must
+        // stay completely inert for a damaged document that has none - repair
+        // of an ordinary broken PDF is unaffected.
+        $doc = new Document($this->breakXref(file_get_contents(__DIR__ . '/../tmp/test-extract.pdf')));
+
+        $this->assertFalse($doc->isEncrypted());
+        $this->assertNotSame('', trim($this->extractText($doc)));
     }
 
     public function testParseAtReportsTheObjectGenerationNumber()

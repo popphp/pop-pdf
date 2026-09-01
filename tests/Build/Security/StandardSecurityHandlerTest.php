@@ -903,6 +903,58 @@ class StandardSecurityHandlerTest extends TestCase
         $this->assertEquals($built['fileKey'], $recovered);
     }
 
+    /**
+     * ISO 32000-1 Algorithm 2 step (f): when /EncryptMetadata is false, four
+     * 0xFF bytes are appended to the key digest's input. That makes the flag
+     * part of the KEY, not just of how metadata is handled, so honoring it is
+     * the difference between opening such a document and telling its owner
+     * their correct password is wrong.
+     */
+    public function testOpenRevision4HonorsEncryptMetadataFalseInTheKeyDerivation()
+    {
+        $security = new Security('open-me', 'admin123');
+        $fileId   = random_bytes(16);
+
+        // buildRevision4() always encrypts metadata, so its /U was computed
+        // WITHOUT step (f). Claiming /EncryptMetadata false over that dict
+        // must therefore derive a different key and be rejected - which is
+        // only possible if the flag actually reaches the derivation.
+        $built = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        $this->assertEquals(
+            $built['fileKey'],
+            StandardSecurityHandler::openRevision4($built['dict'] + ['EncryptMetadata' => true], $fileId, 'open-me')
+        );
+
+        $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
+        $this->expectExceptionMessage('password provided is incorrect');
+
+        StandardSecurityHandler::openRevision4($built['dict'] + ['EncryptMetadata' => false], $fileId, 'open-me');
+    }
+
+    public function testDeriveRevision4FileKeyFromUserPasswordChangesWithEncryptMetadata()
+    {
+        $security = new Security('open-me', 'admin123');
+        $fileId   = random_bytes(16);
+        $built    = StandardSecurityHandler::buildRevision4($security, $fileId);
+
+        $withMetadata = StandardSecurityHandler::deriveRevision4FileKeyFromUserPassword(
+            'open-me', $built['dict']['O'], $built['dict']['P'], $fileId, true
+        );
+        $without = StandardSecurityHandler::deriveRevision4FileKeyFromUserPassword(
+            'open-me', $built['dict']['O'], $built['dict']['P'], $fileId, false
+        );
+
+        // The default must stay "metadata is encrypted", so no existing
+        // caller's behavior changes.
+        $this->assertEquals($built['fileKey'], $withMetadata);
+        $this->assertEquals($withMetadata, StandardSecurityHandler::deriveRevision4FileKeyFromUserPassword(
+            'open-me', $built['dict']['O'], $built['dict']['P'], $fileId
+        ));
+        $this->assertEquals(16, strlen($without));
+        $this->assertNotEquals($withMetadata, $without);
+    }
+
     public function testOpenRevision4ThrowsForAnIncorrectPassword()
     {
         $this->expectException(\Pop\Pdf\Build\Security\Exception::class);
