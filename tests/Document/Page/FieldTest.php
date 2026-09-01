@@ -356,6 +356,9 @@ class FieldTest extends TestCase
 
         $this->assertStringContainsString('/AP << /N << /Yes 15 0 R /Off 16 0 R >> >>', $stream);
         $this->assertStringContainsString('/AS /Yes', $stream);
+        // /V must agree with /AS - both are the same sanitized Name - so a
+        // conforming reader renders the widget as checked.
+        $this->assertStringContainsString('/V /Yes', $stream);
     }
 
     public function testButtonAppearanceStateUncheckedUsesOffState()
@@ -369,6 +372,41 @@ class FieldTest extends TestCase
         ]);
 
         $this->assertStringContainsString('/AS /Off', $stream);
+        $this->assertStringContainsString('/V /Off', $stream);
+    }
+
+    public function testButtonAppearanceValueMatchesAsWhenOnNameHasMultipleWords()
+    {
+        $field = new Field\Button('choice');
+        $field->setWidth(14);
+        $field->setHeight(14);
+        // A raw value like "Option A" is sanitized (e.g. by the compiler)
+        // into a single-token Name before it ever reaches getStream() -
+        // /V and /AS must both use that sanitized token, never the raw
+        // multi-word string, since a bare "/V Option A" is not valid PDF
+        // dictionary syntax.
+        $stream = $field->getStream(10, 2, null, 20, 200, [
+            'onName' => 'Option_A', 'onRef' => '15 0 R', 'offRef' => '16 0 R', 'checked' => true
+        ]);
+
+        $this->assertStringContainsString('/AS /Option_A', $stream);
+        $this->assertStringContainsString('/V /Option_A', $stream);
+        $this->assertStringNotContainsString('/V Option A', $stream);
+    }
+
+    public function testButtonPushButtonValueIsUnaffectedByAppearanceFix()
+    {
+        // Push buttons never pass an $appearance array, so their /V must
+        // keep rendering the raw (bare-Name) $this->value exactly as before.
+        $field = new Field\Button('submit');
+        $field->setWidth(14);
+        $field->setHeight(14);
+        $field->setPushButton();
+        $field->setValue('/PlainNameValue');
+
+        $stream = $field->getStream(10, 2, null, 20, 200);
+
+        $this->assertStringContainsString('/V /PlainNameValue', $stream);
     }
 
     public function testButtonWithParentIndexOmitsNameAndFlags()

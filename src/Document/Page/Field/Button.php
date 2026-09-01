@@ -178,7 +178,6 @@ class Button extends AbstractField
         $parent = ($parentIndex !== null) ? "    /Parent {$parentIndex} 0 R\n" : '';
         // /V and /DV are bare PDF Names here (no parens/escaping), not
         // string literals - left untouched by encryptLiteral() on purpose.
-        $value   = ($this->value !== null) ? "\n    /V " . $this->value . "\n" : null;
         $default = ($this->defaultValue !== null) ? "\n    /DV " . $this->defaultValue . "\n" : null;
 
         if (count($this->options) > 0) {
@@ -191,11 +190,19 @@ class Button extends AbstractField
 
         $ap = '';
         $as = '';
+        $stateName = null;
         if ($appearance !== null) {
             $stateName = ($appearance['checked']) ? $appearance['onName'] : 'Off';
             $ap = "    /AP << /N << /" . $appearance['onName'] . " " . $appearance['onRef'] . " /Off " . $appearance['offRef'] . " >> >>\n";
             $as = "    /AS /" . $stateName . "\n";
         }
+
+        // For checkboxes/radios, /V must be the same sanitized Name /AS uses
+        // so the widget's value agrees with its appearance state. Push
+        // buttons (no $appearance) keep the original bare /V behavior.
+        $value = ($appearance !== null)
+            ? "\n    /V /" . $stateName . "\n"
+            : (($this->value !== null) ? "\n    /V " . $this->value . "\n" : null);
 
         // Return the stream
         return "{$i} 0 obj\n<<\n    /Type /Annot\n    /Subtype /Widget\n    /FT /Btn\n    /Rect [{$x} {$y} " .
