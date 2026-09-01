@@ -17,6 +17,7 @@ namespace Pop\Pdf\Build\Html;
 use Pop\Css;
 use Pop\Color\Color;
 use Pop\Dom\Child;
+use Pop\Pdf\Build\Html\Form;
 use Pop\Pdf\Build\Html\Table;
 use Pop\Pdf\Document;
 
@@ -831,6 +832,14 @@ class Parser
         } else if ($child->getNodeName() == 'table') {
             $tableWidth = $this->page->getWidth() - $this->pageMargins['left'] - $this->pageMargins['right'];
             Table\Layout::render($this, $child, $styles, $this->pageMargins['left'], (int) $tableWidth, (float) $currentY);
+
+        // Form node
+        } else if ($child->getNodeName() == 'form') {
+            Form\Layout::render($this, $child, $styles, $currentX, (float) $currentY);
+
+        // Bare form control node (no <form> ancestor)
+        } else if (in_array($child->getNodeName(), ['input', 'select', 'textarea', 'button'])) {
+            Form\Layout::renderBareControl($this, $child, $currentX, (float) $currentY);
 
         // Text node
         } else {
