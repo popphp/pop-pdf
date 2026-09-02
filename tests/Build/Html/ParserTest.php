@@ -1317,4 +1317,92 @@ class ParserTest extends TestCase
         $this->assertGreaterThan(1, $doc->getNumberOfPages());
     }
 
+    public function testFullFormHtmlCompilesToPdfWithAcroFormAndRadioGroup()
+    {
+        $html = '<html><body>' .
+            '<form id="signup">' .
+            '<label>Name:</label><input type="text" name="name" style="border-width:1px;border-color:#999;">' .
+            '<input type="radio" name="plan" value="a" checked>' .
+            '<input type="radio" name="plan" value="b">' .
+            '<input type="checkbox" name="agree" checked>' .
+            '<select name="country"><option value="us">United States</option></select>' .
+            '<button type="submit">Send</button>' .
+            '</form>' .
+            '</body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('/AcroForm', $output);
+        $this->assertStringContainsString('/FT /Tx', $output);
+        $this->assertStringContainsString('/FT /Ch', $output);
+        $this->assertStringContainsString('/FT /Btn', $output);
+        $this->assertMatchesRegularExpression('/\/Parent \d+ 0 R/', $output);
+        $this->assertStringContainsString('/BC [', $output);
+    }
+
+    public function testFullFormHtmlProducesStructurallyValidPdf()
+    {
+        // Robust qpdf availability check: not just 'which qpdf', but actually
+        // run 'qpdf --version' to confirm it works (catches broken wrapper
+        // scripts that exist but fail at runtime).
+        $versionOutput = shell_exec('qpdf --version 2>&1');
+        if ($versionOutput === null || strpos($versionOutput, 'No such file or directory') !== false ||
+            !preg_match('/qpdf\s+\d/', $versionOutput)) {
+            $this->markTestSkipped('qpdf is required for this test.');
+        }
+
+        $html = '<html><body><form id="signup">' .
+            '<input type="text" name="name">' .
+            '<input type="radio" name="plan" value="a" checked>' .
+            '<input type="radio" name="plan" value="b">' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_form_test_') . '.pdf';
+        file_put_contents($tmpFile, $compiler->getOutput());
+
+        $checkOutput = shell_exec('qpdf --check ' . escapeshellarg($tmpFile) . ' 2>&1');
+        unlink($tmpFile);
+
+        $this->assertStringContainsString('No syntax or stream encoding errors found', (string) $checkOutput);
+    }
+
+    public function testFullFormHtmlTextIsExtractableByPoppler()
+    {
+        if ((shell_exec('which pdftotext') === null)) {
+            $this->markTestSkipped('poppler-utils (pdftotext) is required for this test.');
+        }
+
+        $html = '<html><body><form id="signup"><label>Full Name</label><input type="text" name="name"></form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_form_test_') . '.pdf';
+        file_put_contents($tmpFile, $compiler->getOutput());
+
+        $textOutput = [];
+        exec('pdftotext ' . escapeshellarg($tmpFile) . ' - 2>&1', $textOutput, $status);
+        unlink($tmpFile);
+
+        $this->assertEquals(0, $status);
+        $this->assertStringContainsString('Full Name', implode("\n", $textOutput));
+        foreach ($textOutput as $line) {
+            $this->assertStringNotContainsString('Syntax Error', $line);
+        }
+    }
+
 }
