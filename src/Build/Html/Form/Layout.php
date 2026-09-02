@@ -61,8 +61,16 @@ class Layout
         $consumedY = (float) $parser->getY();
         $currentY  = $startY;
 
+        // Precomputed once per <form>, so a radio group's total size is
+        // known before its first option is rendered - see renderControl()'s
+        // page-break-ahead-of-a-group check and its own docblock.
+        $radioGroups        = self::collectRadioGroups($formNode);
+        $handledRadioGroups = [];
+
         foreach ($formNode->getChildNodes() as $child) {
-            [$consumedY, $currentY] = self::renderNode($parser, $child, $formName, $startX, $consumedY, $currentY);
+            [$consumedY, $currentY] = self::renderNode(
+                $parser, $child, $formName, $startX, $consumedY, $currentY, $radioGroups, $handledRadioGroups
+            );
         }
 
         $parser->setY((int) round($consumedY));
@@ -100,12 +108,17 @@ class Layout
      * @param  int    $x
      * @param  float  $consumedY
      * @param  float  $currentY
+     * @param  array  $radioGroups
+     * @param  array  $handledRadioGroups
      * @return array
      */
-    protected static function renderNode(Parser $parser, Child $node, string $formName, int $x, float $consumedY, float $currentY): array
+    protected static function renderNode(
+        Parser $parser, Child $node, string $formName, int $x, float $consumedY, float $currentY,
+        array $radioGroups = [], array &$handledRadioGroups = []
+    ): array
     {
         if (in_array($node->getNodeName(), ['input', 'select', 'textarea', 'button'])) {
-            return self::renderControl($parser, $node, $formName, $x, $consumedY, $currentY);
+            return self::renderControl($parser, $node, $formName, $x, $consumedY, $currentY, $radioGroups, $handledRadioGroups);
         }
 
         $text = trim((string) $node->getNodeValue());
@@ -115,7 +128,9 @@ class Layout
 
         if ($node->hasChildNodes()) {
             foreach ($node->getChildNodes() as $child) {
-                [$consumedY, $currentY] = self::renderNode($parser, $child, $formName, $x, $consumedY, $currentY);
+                [$consumedY, $currentY] = self::renderNode(
+                    $parser, $child, $formName, $x, $consumedY, $currentY, $radioGroups, $handledRadioGroups
+                );
             }
         }
 
@@ -166,10 +181,48 @@ class Layout
      * @param  int    $x
      * @param  float  $consumedY
      * @param  float  $currentY
+     * @param  array  $radioGroups
+     * @param  array  $handledRadioGroups
      * @return array
      */
-    protected static function renderControl(Parser $parser, Child $node, string $formName, int $x, float $consumedY, float $currentY): array
+    protected static function renderControl(
+        Parser $parser, Child $node, string $formName, int $x, float $consumedY, float $currentY,
+        array $radioGroups = [], array &$handledRadioGroups = []
+    ): array
     {
+        // Keep an HTML radio group intact on one page rather than letting it
+        // straddle a page break - a split group produces two same-named
+        // top-level AcroForm fields (invalid PDF field naming, and it breaks
+        // radio exclusivity across the split), since groupRadioFields() only
+        // ever sees one page's worth of fields at a time. This look-ahead
+        // only runs once, at the FIRST not-yet-handled option of a given
+        // group (tracked via $handledRadioGroups, threaded by reference
+        // through the render recursion the same way $consumedY/$currentY are
+        // threaded by value) - not once per option. If a single group is
+        // larger than one full page's usable height, it is still allowed to
+        // split (a narrow, accepted limitation - see the design spec's Error
+        // Handling section) - forcing a page break here doesn't prevent
+        // that, it only prevents an AVOIDABLE split.
+        $isRadio = ($node->getNodeName() === 'input') && $node->hasAttribute('type')
+            && (strtolower($node->getAttribute('type')) === 'radio') && $node->hasAttribute('name');
+
+        if ($isRadio) {
+            $groupName = $node->getAttribute('name');
+            if (!isset($handledRadioGroups[$groupName]) && isset($radioGroups[$groupName]) && (count($radioGroups[$groupName]) >= 2)) {
+                $handledRadioGroups[$groupName] = true;
+
+                $groupHeight = 0.0;
+                foreach ($radioGroups[$groupName] as $groupNode) {
+                    $groupHeight += self::resolveHeight($parser, $groupNode, 14) + self::CONTROL_GAP;
+                }
+
+                if ($currentY - $groupHeight <= $parser->getPageBottomMargin()) {
+                    $currentY  = $parser->newPage();
+                    $consumedY = 0;
+                }
+            }
+        }
+
         [$field, $width, $height] = self::buildField($parser, $node);
         self::applyAppearance($field, $parser, $node);
 
@@ -185,6 +238,44 @@ class Layout
         $currentY  -= $height + self::CONTROL_GAP;
 
         return [$consumedY, $currentY];
+    }
+
+    /**
+     * Walk an entire <form> subtree (all descendants, not just direct
+     * children) and collect every <input type="radio"> node that has a
+     * `name` attribute, keyed by that name, in document order - used by
+     * renderControl()'s look-ahead page-break check so a radio group's total
+     * size is known before its first option is rendered, without having to
+     * re-walk the subtree once per option
+     *
+     * @param  Child $formNode
+     * @return array
+     */
+    protected static function collectRadioGroups(Child $formNode): array
+    {
+        $groups = [];
+        self::collectRadioGroupsRecursive($formNode, $groups);
+        return $groups;
+    }
+
+    /**
+     * Recursive worker for collectRadioGroups()
+     *
+     * @param  Child $node
+     * @param  array $groups
+     * @return void
+     */
+    private static function collectRadioGroupsRecursive(Child $node, array &$groups): void
+    {
+        foreach ($node->getChildNodes() as $child) {
+            if (($child->getNodeName() === 'input') && $child->hasAttribute('type')
+                && (strtolower($child->getAttribute('type')) === 'radio') && $child->hasAttribute('name')) {
+                $groups[$child->getAttribute('name')][] = $child;
+            }
+            if ($child->hasChildNodes()) {
+                self::collectRadioGroupsRecursive($child, $groups);
+            }
+        }
     }
 
     /**

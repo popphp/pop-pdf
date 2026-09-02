@@ -1376,6 +1376,55 @@ class ParserTest extends TestCase
         $nonOff = array_filter($asMatches[1], fn ($v) => $v !== 'Off');
         $this->assertCount(1, $nonOff, 'Exactly one of the three valueless HTML radios must be checked.');
     }
+
+    // Final whole-branch review, finding I4: groupRadioFields() only ever
+    // sees one page's worth of fields at a time, so a radio group whose
+    // options straddle a page break used to produce TWO same-named
+    // top-level AcroForm fields (invalid PDF field naming, and it breaks
+    // radio exclusivity across the split) - one grouped parent field for
+    // whichever options landed on the first page, plus one lone ungrouped
+    // field for whatever spilled onto the next page. Form\Layout now looks
+    // ahead and keeps an entire radio group together on one page when it
+    // fits, forcing a page break before the group's first option instead of
+    // letting it split mid-group.
+    //
+    // A filler text field is sized to leave just enough room on the current
+    // page for two of a 3-option radio group's options but not all three -
+    // exactly the vertical budget the OLD per-node page-break check would
+    // split under.
+    public function testRadioGroupSpanningPageBreakStaysAsOneParentFieldOnOnePage()
+    {
+        $html = '<html><body><form id="survey">' .
+            '<input type="text" name="filler" height="316">' .
+            '<input type="radio" name="plan" value="a">' .
+            '<input type="radio" name="plan" value="b" checked>' .
+            '<input type="radio" name="plan" value="c">' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $parser->setPageSize(200, 400);
+        $parser->setPageMargins(20, 20, 20, 20);
+        $document = $parser->process();
+
+        $this->assertEquals(
+            2, $document->getNumberOfPages(),
+            'The filler plus the full group must land on two pages, not overflow further.'
+        );
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        // Exactly one top-level "plan" field - the shared parent - not two
+        // (one grouped-on-page-1 parent plus one lone ungrouped field on
+        // page 2, which is what the OLD per-node page-break logic produced).
+        $this->assertEquals(1, substr_count($output, '/T(plan)'));
+
+        // All three kid widgets must reference the SAME page.
+        preg_match_all('/\/FT \/Btn\n\s*\/Rect \[[^\]]*\][\s\S]*?\/P (\d+) 0 R/', $output, $matches);
+        $this->assertCount(3, $matches[1], 'Expected all three radio kid widgets.');
+        $this->assertCount(1, array_unique($matches[1]), 'All three kids must land on the same page.');
+    }
     public function testFullFormHtmlProducesStructurallyValidPdf()
     {
         // Robust qpdf availability check: not just 'which qpdf', but actually
