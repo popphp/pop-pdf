@@ -24,7 +24,7 @@ use Pop\Color\Color;
  * @author     Nick Sagona, III <nick@popphp.org>
  * @copyright  Copyright (c) 2009-2026 Nick Sagona, III
  * @license    https://www.popphp.org/license     New BSD License
- * @version    6.1.0
+ * @version    6.2.0
  */
 class Button extends AbstractField
 {
