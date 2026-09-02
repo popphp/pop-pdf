@@ -225,4 +225,37 @@ class LayoutTest extends TestCase
 
         $this->assertEquals(0, $field->getBorderWidth());
     }
+
+    // Follow-up fix to the radio-group page-break look-ahead (now measured
+    // via a dry-run linearization of the whole <form>, see Layout::
+    // linearizeForm()/measureRadioGroupSpan()): a form with NO radio group
+    // near a page boundary must paginate exactly as before - the new
+    // measurement pass only changes what happens inside the `$isRadio`
+    // look-ahead branch, so a form with no radio inputs at all takes the
+    // same code path it always has.
+    public function testFormWithNoRadioGroupPaginatesUnaffectedByTheLookAhead()
+    {
+        $html = '<html><body><form id="survey">' .
+            '<input type="text" name="one" height="150">' .
+            '<input type="text" name="two" height="150">' .
+            '<input type="text" name="three" height="150">' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $parser->setPageSize(200, 400);
+        $parser->setPageMargins(20, 20, 20, 20);
+        $document = $parser->process();
+
+        // Page 1 (starting at Y=380, 20pt bottom margin) fits "one" and
+        // "two" (154pt each, including the 4pt control gap - 380-154=226,
+        // 226-154=72, both still above the 20pt margin); "three" doesn't
+        // fit (72-150 <= 20) and moves to page 2.
+        $this->assertEquals(2, $document->getNumberOfPages());
+
+        $page1Names = array_map(fn ($f) => $f['field']->getName(), $document->getPage(1)->getFields());
+        $page2Names = array_map(fn ($f) => $f['field']->getName(), $document->getPage(2)->getFields());
+
+        $this->assertEquals(['one', 'two'], $page1Names);
+        $this->assertEquals(['three'], $page2Names);
+    }
 }

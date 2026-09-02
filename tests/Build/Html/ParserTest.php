@@ -1426,6 +1426,91 @@ class ParserTest extends TestCase
         $this->assertCount(1, array_unique($matches[1]), 'All three kids must land on the same page.');
     }
 
+    // Follow-up fix to the look-ahead above: it measured a radio group's
+    // needed height as the SUM OF EACH RADIO OPTION'S OWN HEIGHT ONLY,
+    // ignoring any <label> (or other text) rendered between/around the
+    // options - which is how radio-button HTML is almost always actually
+    // written. That under-measurement meant the group could still straddle
+    // a page break whenever labels were present, reproducing the exact
+    // "two top-level fields sharing one name" bug the look-ahead exists to
+    // prevent. Form\Layout now measures a group's real footprint as
+    // everything rendered from its first option through its last option,
+    // inclusive - not just the radio entries.
+    //
+    // Same page geometry as the test above (200x400 page, 20pt margins),
+    // but the filler is sized so the OLD (radio-only) sum of the group's
+    // three 18pt (14 height + 4 gap) options - 54pts - still appears to
+    // fit in the space left on page one, while the REAL sequence (which
+    // also includes the two labels sitting between the first and last
+    // radio, 14pts of line-height each) does not. Under the old logic this
+    // let two of the three radios render on page one and the third spill
+    // onto page two - the split this whole look-ahead is meant to prevent.
+    public function testRadioGroupWithLabelsBetweenOptionsStaysAsOneParentFieldOnOnePage()
+    {
+        $html = '<html><body><form id="survey">' .
+            '<input type="text" name="filler" height="272">' .
+            '<label>Alpha</label><input type="radio" name="plan" value="a">' .
+            '<label>Beta</label><input type="radio" name="plan" value="b" checked>' .
+            '<label>Gamma</label><input type="radio" name="plan" value="c">' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $parser->setPageSize(200, 400);
+        $parser->setPageMargins(20, 20, 20, 20);
+        $document = $parser->process();
+
+        $this->assertEquals(
+            2, $document->getNumberOfPages(),
+            'The filler plus the full labeled group must land on two pages, not overflow further.'
+        );
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertEquals(1, substr_count($output, '/T(plan)'));
+
+        preg_match_all('/\/FT \/Btn\n\s*\/Rect \[[^\]]*\][\s\S]*?\/P (\d+) 0 R/', $output, $matches);
+        $this->assertCount(3, $matches[1], 'Expected all three radio kid widgets.');
+        $this->assertCount(1, array_unique($matches[1]), 'All three kids must land on the same page.');
+    }
+
+    // Same bug, the other canonical way radio-button markup wraps a label -
+    // the <label> wraps its <input> instead of preceding it. Form\Layout's
+    // traversal renders a <label>'s own leaf text and then recurses into
+    // its children, so this produces the same node sequence (label text,
+    // then its radio) as the sibling-markup case above and must be
+    // measured identically.
+    public function testRadioGroupWithLabelsWrappingOptionsStaysAsOneParentFieldOnOnePage()
+    {
+        $html = '<html><body><form id="survey">' .
+            '<input type="text" name="filler" height="272">' .
+            '<label>Alpha<input type="radio" name="plan" value="a"></label>' .
+            '<label>Beta<input type="radio" name="plan" value="b" checked></label>' .
+            '<label>Gamma<input type="radio" name="plan" value="c"></label>' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $parser->setPageSize(200, 400);
+        $parser->setPageMargins(20, 20, 20, 20);
+        $document = $parser->process();
+
+        $this->assertEquals(
+            2, $document->getNumberOfPages(),
+            'The filler plus the full labeled group must land on two pages, not overflow further.'
+        );
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertEquals(1, substr_count($output, '/T(plan)'));
+
+        preg_match_all('/\/FT \/Btn\n\s*\/Rect \[[^\]]*\][\s\S]*?\/P (\d+) 0 R/', $output, $matches);
+        $this->assertCount(3, $matches[1], 'Expected all three radio kid widgets.');
+        $this->assertCount(1, array_unique($matches[1]), 'All three kids must land on the same page.');
+    }
+
     // Final whole-branch review, finding I5: push buttons rendered as
     // invisible, captionless widgets - contradicting the spec's "renders but
     // performs no action" (it didn't render at all). A <button> gets its

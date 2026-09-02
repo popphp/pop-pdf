@@ -63,13 +63,18 @@ class Layout
 
         // Precomputed once per <form>, so a radio group's total size is
         // known before its first option is rendered - see renderControl()'s
-        // page-break-ahead-of-a-group check and its own docblock.
+        // page-break-ahead-of-a-group check and its own docblock. $sequence
+        // is a dry-run linearization of the whole subtree (see
+        // linearizeForm()) used to measure a group's REAL footprint -
+        // everything rendered between its first and last option, not just
+        // the options themselves.
         $radioGroups        = self::collectRadioGroups($formNode);
         $handledRadioGroups = [];
+        $sequence           = self::linearizeForm($parser, $formNode, $startX);
 
         foreach ($formNode->getChildNodes() as $child) {
             [$consumedY, $currentY] = self::renderNode(
-                $parser, $child, $formName, $startX, $consumedY, $currentY, $radioGroups, $handledRadioGroups
+                $parser, $child, $formName, $startX, $consumedY, $currentY, $radioGroups, $handledRadioGroups, $sequence
             );
         }
 
@@ -110,15 +115,16 @@ class Layout
      * @param  float  $currentY
      * @param  array  $radioGroups
      * @param  array  $handledRadioGroups
+     * @param  array  $sequence
      * @return array
      */
     protected static function renderNode(
         Parser $parser, Child $node, string $formName, int $x, float $consumedY, float $currentY,
-        array $radioGroups = [], array &$handledRadioGroups = []
+        array $radioGroups = [], array &$handledRadioGroups = [], array $sequence = []
     ): array
     {
         if (in_array($node->getNodeName(), ['input', 'select', 'textarea', 'button'])) {
-            return self::renderControl($parser, $node, $formName, $x, $consumedY, $currentY, $radioGroups, $handledRadioGroups);
+            return self::renderControl($parser, $node, $formName, $x, $consumedY, $currentY, $radioGroups, $handledRadioGroups, $sequence);
         }
 
         $text = trim((string) $node->getNodeValue());
@@ -129,7 +135,7 @@ class Layout
         if ($node->hasChildNodes()) {
             foreach ($node->getChildNodes() as $child) {
                 [$consumedY, $currentY] = self::renderNode(
-                    $parser, $child, $formName, $x, $consumedY, $currentY, $radioGroups, $handledRadioGroups
+                    $parser, $child, $formName, $x, $consumedY, $currentY, $radioGroups, $handledRadioGroups, $sequence
                 );
             }
         }
@@ -153,10 +159,7 @@ class Layout
      */
     protected static function renderText(Parser $parser, Child $node, string $text, int $x, float $consumedY, float $currentY): array
     {
-        $styles     = $parser->prepareNodeStyles($node->getNodeName(), $node->getAttributes());
-        $fontObject = $parser->document()->getFont($styles['currentFont']);
-        $wrapLength = $parser->getPage()->getWidth() - $parser->getPageRightMargin() - $x;
-        $lines      = $parser->getStringLines($text, $styles['fontSize'], (int) $wrapLength, $fontObject);
+        [$lines, $styles] = self::resolveTextLines($parser, $node, $text, $x);
 
         foreach ($lines as $line) {
             if ($currentY <= $parser->getPageBottomMargin()) {
@@ -172,6 +175,45 @@ class Layout
     }
 
     /**
+     * Resolve a leaf-text node's wrapped lines and the styles used to draw
+     * them - the shared calculation behind both renderText()'s actual
+     * drawing and measureTextHeight()'s dry-run measurement, so the two
+     * passes can never disagree about how a node's text wraps
+     *
+     * @param  Parser $parser
+     * @param  Child  $node
+     * @param  string $text
+     * @param  int    $x
+     * @return array
+     */
+    protected static function resolveTextLines(Parser $parser, Child $node, string $text, int $x): array
+    {
+        $styles     = $parser->prepareNodeStyles($node->getNodeName(), $node->getAttributes());
+        $fontObject = $parser->document()->getFont($styles['currentFont']);
+        $wrapLength = $parser->getPage()->getWidth() - $parser->getPageRightMargin() - $x;
+        $lines      = $parser->getStringLines($text, $styles['fontSize'], (int) $wrapLength, $fontObject);
+
+        return [$lines, $styles];
+    }
+
+    /**
+     * Dry-run counterpart to renderText() - the total height a leaf-text
+     * node's wrapped lines will consume, without drawing anything; used by
+     * linearizeNode() to build the measurement sequence
+     *
+     * @param  Parser $parser
+     * @param  Child  $node
+     * @param  string $text
+     * @param  int    $x
+     * @return float
+     */
+    protected static function measureTextHeight(Parser $parser, Child $node, string $text, int $x): float
+    {
+        [$lines, $styles] = self::resolveTextLines($parser, $node, $text, $x);
+        return count($lines) * $styles['lineHeight'];
+    }
+
+    /**
      * Convert one form-control node into a Field object, size and position
      * it, and add it to the current page
      *
@@ -183,11 +225,12 @@ class Layout
      * @param  float  $currentY
      * @param  array  $radioGroups
      * @param  array  $handledRadioGroups
+     * @param  array  $sequence
      * @return array
      */
     protected static function renderControl(
         Parser $parser, Child $node, string $formName, int $x, float $consumedY, float $currentY,
-        array $radioGroups = [], array &$handledRadioGroups = []
+        array $radioGroups = [], array &$handledRadioGroups = [], array $sequence = []
     ): array
     {
         // Keep an HTML radio group intact on one page rather than letting it
@@ -203,6 +246,15 @@ class Layout
         // split (a narrow, accepted limitation - see the design spec's Error
         // Handling section) - forcing a page break here doesn't prevent
         // that, it only prevents an AVOIDABLE split.
+        //
+        // The group's needed height is measured via measureRadioGroupSpan()
+        // against $sequence - a dry-run linearization of the whole <form>
+        // (see linearizeForm()) - as everything rendered from the group's
+        // first option through its last, INCLUSIVE. Real radio-button HTML
+        // almost always has a <label> (or other text) between/around each
+        // option, so summing only the options' own heights (the original,
+        // buggy version of this look-ahead) under-measured the group and
+        // still let it straddle a page break whenever labels were present.
         $isRadio = ($node->getNodeName() === 'input') && $node->hasAttribute('type')
             && (strtolower($node->getAttribute('type')) === 'radio') && $node->hasAttribute('name');
 
@@ -211,10 +263,7 @@ class Layout
             if (!isset($handledRadioGroups[$groupName]) && isset($radioGroups[$groupName]) && (count($radioGroups[$groupName]) >= 2)) {
                 $handledRadioGroups[$groupName] = true;
 
-                $groupHeight = 0.0;
-                foreach ($radioGroups[$groupName] as $groupNode) {
-                    $groupHeight += self::resolveHeight($parser, $groupNode, 14) + self::CONTROL_GAP;
-                }
+                $groupHeight = self::measureRadioGroupSpan($sequence, $radioGroups[$groupName]);
 
                 if ($currentY - $groupHeight <= $parser->getPageBottomMargin()) {
                     $currentY  = $parser->newPage();
@@ -279,6 +328,106 @@ class Layout
     }
 
     /**
+     * Build a dry-run, ordered linearization of an entire <form> subtree -
+     * one [node, heightContribution] pair per node that would either be
+     * rendered as a control or contribute its own leaf text - mirroring
+     * renderNode()'s traversal exactly, but only accumulating height instead
+     * of drawing anything (no side effects: never touches $parser's page or
+     * cursor state). Built ONCE per <form>, before the real render loop
+     * starts, so it can be reused by measureRadioGroupSpan() without
+     * re-walking the subtree per group/option. Same "measure separately from
+     * render" idea as Table\Layout::measureRowHeight() vs. drawRow().
+     *
+     * @param  Parser $parser
+     * @param  Child  $formNode
+     * @param  int    $x
+     * @return array
+     */
+    protected static function linearizeForm(Parser $parser, Child $formNode, int $x): array
+    {
+        $sequence = [];
+        foreach ($formNode->getChildNodes() as $child) {
+            self::linearizeNode($parser, $child, $x, $sequence);
+        }
+        return $sequence;
+    }
+
+    /**
+     * Recursive worker for linearizeForm() - mirrors renderNode()'s own
+     * branching (control tag vs. leaf text vs. recurse into children)
+     * exactly, appending a [node, heightContribution] pair per accounted-for
+     * node instead of rendering it
+     *
+     * @param  Parser $parser
+     * @param  Child  $node
+     * @param  int    $x
+     * @param  array  $sequence
+     * @return void
+     */
+    private static function linearizeNode(Parser $parser, Child $node, int $x, array &$sequence): void
+    {
+        if (in_array($node->getNodeName(), ['input', 'select', 'textarea', 'button'])) {
+            $sequence[] = [$node, self::resolveControlHeight($parser, $node) + self::CONTROL_GAP];
+            return;
+        }
+
+        $text = trim((string) $node->getNodeValue());
+        if ($text !== '') {
+            $sequence[] = [$node, self::measureTextHeight($parser, $node, $text, $x)];
+        }
+
+        if ($node->hasChildNodes()) {
+            foreach ($node->getChildNodes() as $child) {
+                self::linearizeNode($parser, $child, $x, $sequence);
+            }
+        }
+    }
+
+    /**
+     * Measure a radio group's real vertical span against a linearized
+     * $sequence (see linearizeForm()): the index of the FIRST entry whose
+     * node belongs to the group through the index of the LAST such entry,
+     * summing every entry's height contribution in between INCLUSIVE - not
+     * just the radio entries, everything interleaved (labels, other text,
+     * anything else). Any content BEFORE the group's first option is
+     * excluded on purpose - it has already been rendered (and already
+     * reflected in the caller's $currentY) by the time renderControl()'s
+     * look-ahead runs at that first option.
+     *
+     * @param  array $sequence
+     * @param  array $groupNodes
+     * @return float
+     */
+    protected static function measureRadioGroupSpan(array $sequence, array $groupNodes): float
+    {
+        $groupIds = [];
+        foreach ($groupNodes as $groupNode) {
+            $groupIds[spl_object_id($groupNode)] = true;
+        }
+
+        $firstIndex = null;
+        $lastIndex  = null;
+
+        foreach ($sequence as $index => $entry) {
+            if (isset($groupIds[spl_object_id($entry[0])])) {
+                $firstIndex ??= $index;
+                $lastIndex = $index;
+            }
+        }
+
+        if ($firstIndex === null) {
+            return 0.0;
+        }
+
+        $span = 0.0;
+        for ($i = $firstIndex; $i <= $lastIndex; $i++) {
+            $span += $sequence[$i][1];
+        }
+
+        return $span;
+    }
+
+    /**
      * Apply CSS border/background appearance onto a field, reusing the same
      * styles Parser::prepareNodeStyles() already resolves for boxed text -
      * border-width is the real gate (matching normal CSS semantics and
@@ -324,7 +473,7 @@ class Layout
             if ($value !== '') {
                 $field->setValue($value);
             }
-            return [$field, self::resolveWidth($parser, $node, 300), self::resolveHeight($parser, $node, 60)];
+            return [$field, self::resolveWidth($parser, $node, 300), self::resolveControlHeight($parser, $node)];
         }
 
         if ($tag === 'select') {
@@ -345,7 +494,7 @@ class Layout
                     $field->setValue($optionValue);
                 }
             }
-            return [$field, self::resolveWidth($parser, $node, 150), self::resolveHeight($parser, $node, 20)];
+            return [$field, self::resolveWidth($parser, $node, 150), self::resolveControlHeight($parser, $node)];
         }
 
         if (($tag === 'button') || ($type === 'submit') || ($type === 'reset')) {
@@ -368,7 +517,7 @@ class Layout
             if ($caption !== '') {
                 $field->setCaption($caption);
             }
-            return [$field, self::resolveWidth($parser, $node, 80), self::resolveHeight($parser, $node, 24)];
+            return [$field, self::resolveWidth($parser, $node, 80), self::resolveControlHeight($parser, $node)];
         }
 
         if ($type === 'checkbox') {
@@ -381,7 +530,7 @@ class Layout
             if ($node->hasAttribute('checked')) {
                 $field->setChecked();
             }
-            return [$field, self::resolveWidth($parser, $node, 14), self::resolveHeight($parser, $node, 14)];
+            return [$field, self::resolveWidth($parser, $node, 14), self::resolveControlHeight($parser, $node)];
         }
 
         if ($type === 'radio') {
@@ -401,7 +550,7 @@ class Layout
             if ($node->hasAttribute('checked')) {
                 $field->setChecked();
             }
-            return [$field, self::resolveWidth($parser, $node, 14), self::resolveHeight($parser, $node, 14)];
+            return [$field, self::resolveWidth($parser, $node, 14), self::resolveControlHeight($parser, $node)];
         }
 
         if ($type === 'hidden') {
@@ -409,7 +558,7 @@ class Layout
             if ($node->hasAttribute('value')) {
                 $field->setValue($node->getAttribute('value'));
             }
-            return [$field, 0.0, 0.0];
+            return [$field, 0.0, self::resolveControlHeight($parser, $node)];
         }
 
         // text, email, password, file, tel, url, search, or any unrecognized type
@@ -422,7 +571,66 @@ class Layout
         if ($node->hasAttribute('value')) {
             $field->setValue($node->getAttribute('value'));
         }
-        return [$field, self::resolveWidth($parser, $node, 200), self::resolveHeight($parser, $node, 20)];
+        return [$field, self::resolveWidth($parser, $node, 200), self::resolveControlHeight($parser, $node)];
+    }
+
+    /**
+     * Resolve a form-control node's own height, honoring its rows/height
+     * HTML attribute or CSS height the same way resolveHeight() always has,
+     * but falling back to the RIGHT per-tag/type default (see
+     * controlDefaultHeight()) instead of a single hardcoded number - the
+     * single source of truth buildField() (real render) and
+     * linearizeNode()'s dry-run measurement pass both call, so the two can
+     * never disagree about how tall a control is
+     *
+     * @param  Parser $parser
+     * @param  Child  $node
+     * @return float
+     */
+    protected static function resolveControlHeight(Parser $parser, Child $node): float
+    {
+        // A hidden field never renders, so - like the original hardcoded
+        // buildField() branch - its height is always 0, regardless of any
+        // height attribute/CSS a caller might have set on it.
+        if (($node->getNodeName() === 'input') && $node->hasAttribute('type')
+            && (strtolower($node->getAttribute('type')) === 'hidden')) {
+            return 0.0;
+        }
+
+        return self::resolveHeight($parser, $node, self::controlDefaultHeight($node));
+    }
+
+    /**
+     * The sane per-tag/type default height buildField() has always used per
+     * control kind, factored out so resolveControlHeight() is the only place
+     * that needs to know it
+     *
+     * @param  Child $node
+     * @return int
+     */
+    protected static function controlDefaultHeight(Child $node): int
+    {
+        $tag  = $node->getNodeName();
+        $type = $node->hasAttribute('type') ? strtolower($node->getAttribute('type')) : 'text';
+
+        if ($tag === 'textarea') {
+            return 60;
+        }
+        if ($tag === 'select') {
+            return 20;
+        }
+        if (($tag === 'button') || ($type === 'submit') || ($type === 'reset')) {
+            return 24;
+        }
+        if (($type === 'checkbox') || ($type === 'radio')) {
+            return 14;
+        }
+        if ($type === 'hidden') {
+            return 0;
+        }
+
+        // text, email, password, file, tel, url, search, or any unrecognized type
+        return 20;
     }
 
     /**
