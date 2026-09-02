@@ -61,6 +61,15 @@ class Layout
         $consumedY = (float) $parser->getY();
         $currentY  = $startY;
 
+        // Registers every font any node in the subtree could ever need
+        // BEFORE either the dry-run measurement pass or the real render
+        // loop below reads a single style - see warmUpFonts()'s own
+        // docblock for why this has to happen first, unconditionally, over
+        // the whole subtree.
+        foreach ($formNode->getChildNodes() as $child) {
+            self::warmUpFonts($parser, $child);
+        }
+
         // Precomputed once per <form>, so a radio group's total size is
         // known before its first option is rendered - see renderControl()'s
         // page-break-ahead-of-a-group check and its own docblock. $sequence
@@ -323,6 +332,56 @@ class Layout
             }
             if ($child->hasChildNodes()) {
                 self::collectRadioGroupsRecursive($child, $groups);
+            }
+        }
+    }
+
+    /**
+     * Walk an entire <form> subtree and call Parser::prepareNodeStyles()
+     * UNCONDITIONALLY on every single node - text nodes and control nodes
+     * alike, regardless of any early-return branch elsewhere (e.g.
+     * resolveHeight()'s explicit height/width attribute check) that would
+     * otherwise skip it for that node.
+     *
+     * This exists because prepareNodeStyles() is NOT read-only: for any
+     * comma-separated font-family stack (e.g. "Courier, Arial"), it resolves
+     * to whichever stack entry is ALREADY registered on the document at the
+     * moment it runs (order-sensitive), and it registers (addFont()) any
+     * standard CSS font it resolves to that isn't registered yet - a real,
+     * permanent side effect on $parser->document(). linearizeForm() (the
+     * dry-run measurement pass) and the real render loop below both call
+     * prepareNodeStyles() - directly or via resolveTextLines()/
+     * resolveControlHeight()/applyAppearance() - but NOT on the same set of
+     * nodes (resolveHeight() skips it for a control with an explicit
+     * height/width, while applyAppearance() always calls it) and NOT at the
+     * same point in time (the measurement pass runs to completion before the
+     * render loop starts). Two passes, two different moments to resolve the
+     * same font stack against a document whose registered-fonts set can
+     * change in between: a node could measure against one font and render
+     * against another, changing its wrapped line count and therefore its
+     * real height out from under the measurement that was supposed to
+     * account for it - silently reproducing the exact "group's real
+     * footprint under-measured, group still splits across a page" bug this
+     * whole look-ahead exists to prevent, through a new mechanism.
+     *
+     * Warming up every node's fonts ONCE, before either pass begins, makes
+     * every font resolution in both passes read from the SAME, already-final
+     * registered-fonts set - so the two passes can never disagree, no matter
+     * what order anything else happens in. Must call prepareNodeStyles() on
+     * a superset of whatever either pass calls it on for styling purposes;
+     * this walks the whole subtree, so it always is.
+     *
+     * @param  Parser $parser
+     * @param  Child  $node
+     * @return void
+     */
+    protected static function warmUpFonts(Parser $parser, Child $node): void
+    {
+        $parser->prepareNodeStyles($node->getNodeName(), $node->getAttributes());
+
+        if ($node->hasChildNodes()) {
+            foreach ($node->getChildNodes() as $child) {
+                self::warmUpFonts($parser, $child);
             }
         }
     }

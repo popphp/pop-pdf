@@ -1511,6 +1511,177 @@ class ParserTest extends TestCase
         $this->assertCount(1, array_unique($matches[1]), 'All three kids must land on the same page.');
     }
 
+    // Reviewer finding (Critical, follow-up to the two fixes above):
+    // Parser::prepareNodeStyles() is NOT read-only - for a comma-separated
+    // font-family stack, it resolves to whichever stack entry is ALREADY
+    // registered on the document at the moment it runs, and registers
+    // (addFont()) any standard font it resolves to that isn't registered
+    // yet. Form\Layout::linearizeForm() (the dry-run measurement pass built
+    // in the fix above) calls prepareNodeStyles() for every node it visits,
+    // so by the time it finishes it has already registered every font any
+    // node in the form will ever need - permanently, on the shared document.
+    // Two passes (the dry run, then the real render loop), two different
+    // points in time to resolve the SAME stack: a label styled
+    // "font-family:Courier, Arial" can measure as Arial (Courier not
+    // registered yet, at that point in the dry run) but render as Courier
+    // (some OTHER node, visited later in the SAME dry run, already
+    // registered Courier by the time the dry run finished - and that
+    // registration persists into the real render pass, which starts fresh
+    // from the beginning of the form). Different font -> different
+    // character widths -> different wrapped-line count -> a real rendered
+    // height bigger than what was measured -> the group's real footprint is
+    // under-measured all over again, through a brand-new mechanism -
+    // reproducing the exact "two top-level fields sharing one name" bug
+    // Form\Layout's page-break look-ahead exists to prevent.
+    //
+    // This test's node order is deliberate: the font-stack labels are the
+    // group's own between-option content, and the plain (non-stack)
+    // "Courier" trigger node sits AFTER the whole group, so it never
+    // registers Courier during the dry run until the group's own labels
+    // have already been measured against Arial - but it HAS registered
+    // Courier by the time the dry run completes, before the real render
+    // loop (which starts over from the top) reaches those same labels.
+    //
+    // Geometry: 140x400 page, 20pt margins (giving a 100pt text wrap width),
+    // each label's text ("iiii iiii iiii iiii") measures as a single 43.86pt
+    // line under Arial but wraps to two lines under Courier - a real, 14pt
+    // per-label height difference between what the dry run measured and
+    // what the real render pass actually draws. The filler's height (232)
+    // was found by sweeping a small range against the pre-fix code: it is
+    // NOT close enough to a page boundary to trip the look-ahead using the
+    // (buggy) Arial-measured span, but the Courier-actual span pushes the
+    // group past the bottom margin mid-render, splitting it across pages.
+    public function testFontStackOrderDependencyNoLongerUnderMeasuresARadioGroupsSpan()
+    {
+        $html = '<html><body><form id="survey">' .
+            '<input type="text" name="filler" height="232">' .
+            '<label style="font-family:Courier, Arial;">iiii iiii iiii iiii</label><input type="radio" name="plan" value="a">' .
+            '<label style="font-family:Courier, Arial;">iiii iiii iiii iiii</label><input type="radio" name="plan" value="b" checked>' .
+            '<label style="font-family:Courier, Arial;">iiii iiii iiii iiii</label><input type="radio" name="plan" value="c">' .
+            '<p style="font-family:Courier;">Trigger</p>' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $parser->setPageSize(140, 400);
+        $parser->setPageMargins(20, 20, 20, 20);
+        $document = $parser->process();
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        // Exactly one top-level "plan" field - not two (one grouped parent
+        // on whichever page the split landed on, plus one lone ungrouped
+        // field for whatever spilled onto the other page).
+        $this->assertEquals(1, substr_count($output, '/T(plan)'));
+
+        preg_match_all('/\/FT \/Btn\n\s*\/Rect \[[^\]]*\][\s\S]*?\/P (\d+) 0 R/', $output, $matches);
+        $this->assertCount(3, $matches[1], 'Expected all three radio kid widgets.');
+        $this->assertCount(1, array_unique($matches[1]), 'All three kids must land on the same page.');
+    }
+
+    // Second, independent trigger for the same Critical finding: a CONTROL
+    // node with an explicit `height` HTML attribute. Form\Layout::
+    // resolveHeight() returns early for a control with an explicit height
+    // (skipping its own prepareNodeStyles() call) during the dry-run
+    // measurement pass, but the REAL render pass's applyAppearance() calls
+    // prepareNodeStyles() UNCONDITIONALLY for every control regardless of
+    // whether it has an explicit height - so a height-attribute control can
+    // register a font during render that it never registered during
+    // measurement, independent of (and via a different code path than) the
+    // font-stack-ordering trigger above: here, both passes visit the form's
+    // nodes in the SAME order every time (nothing spans two separate passes
+    // the way the test above does) - the mismatch is entirely that
+    // buildField()/resolveControlHeight() (measurement AND render) skip
+    // styling a height-attribute control, while applyAppearance() (render
+    // only) does not.
+    //
+    // Same page geometry as the test above. The "courierctrl" text input
+    // carries both an explicit height="20" (so resolveHeight() never
+    // consults CSS for it) and style="font-family:Courier;" (so its
+    // applyAppearance() call, during the real render pass only, registers
+    // Courier right before the group's own font-stack labels render) - the
+    // filler height (208) was found by sweeping a small range against the
+    // pre-fix code.
+    public function testHeightAttributeControlNoLongerUnderMeasuresARadioGroupsSpan()
+    {
+        $html = '<html><body><form id="survey">' .
+            '<input type="text" name="filler" height="208">' .
+            '<input type="text" name="courierctrl" height="20" style="font-family:Courier;">' .
+            '<label style="font-family:Courier, Arial;">iiii iiii iiii iiii</label><input type="radio" name="plan" value="a">' .
+            '<label style="font-family:Courier, Arial;">iiii iiii iiii iiii</label><input type="radio" name="plan" value="b" checked>' .
+            '<label style="font-family:Courier, Arial;">iiii iiii iiii iiii</label><input type="radio" name="plan" value="c">' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $parser->setPageSize(140, 400);
+        $parser->setPageMargins(20, 20, 20, 20);
+        $document = $parser->process();
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertEquals(1, substr_count($output, '/T(plan)'));
+
+        preg_match_all('/\/FT \/Btn\n\s*\/Rect \[[^\]]*\][\s\S]*?\/P (\d+) 0 R/', $output, $matches);
+        $this->assertCount(3, $matches[1], 'Expected all three radio kid widgets.');
+        $this->assertCount(1, array_unique($matches[1]), 'All three kids must land on the same page.');
+    }
+
+    // The reviewer also confirmed the same underlying side effect silently
+    // changes which font a label renders in for ANY form using a font
+    // stack, whether or not it has radio groups - an undisclosed
+    // rendering-behavior change, not just a pagination bug. This proves it
+    // is resolved: two labels sharing the IDENTICAL "font-family:Courier,
+    // Arial" style, with a plain (non-stack) "font-family:Courier" control
+    // sitting between them, must render in the SAME font as each other -
+    // not one in the fallback (Arial) and the other in the stack's
+    // preferred font (Courier), which is what the pre-fix ordering
+    // accident produced (the first label rendered before anything had
+    // registered Courier; the second rendered after the between-them
+    // control's applyAppearance() had already registered it).
+    public function testFontStackLabelsResolveToTheSameFontRegardlessOfPosition()
+    {
+        $html = '<html><body><form id="survey">' .
+            '<label style="font-family:Courier, Arial;">FirstLabel</label>' .
+            '<input type="text" name="ctrl" height="20" style="font-family:Courier;">' .
+            '<label style="font-family:Courier, Arial;">SecondLabel</label>' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        // Map each /MFn font resource name compiled into this document to
+        // its /BaseFont, then resolve which resource each label's /Tf
+        // operator selected - both must resolve to the same /BaseFont.
+        preg_match_all('/(\d+) 0 obj\s*<<\s*\/Type \/Font.*?\/Name \/(MF\d+).*?\/BaseFont \/([A-Za-z,]+)/s', $output, $fontMatches, PREG_SET_ORDER);
+        $baseFontByResource = [];
+        foreach ($fontMatches as $fontMatch) {
+            $baseFontByResource[$fontMatch[2]] = $fontMatch[3];
+        }
+        $this->assertNotEmpty($baseFontByResource, 'Expected at least one named font resource in the compiled output.');
+
+        preg_match('/\/(MF\d+) [\d.]+ Tf\s*\n[^\n]*\n[^\n]*\n\s*\(FirstLabel\)/', $output, $firstMatch);
+        preg_match('/\/(MF\d+) [\d.]+ Tf\s*\n[^\n]*\n[^\n]*\n\s*\(SecondLabel\)/', $output, $secondMatch);
+
+        $this->assertNotEmpty($firstMatch, 'Expected to find the font resource used to draw FirstLabel.');
+        $this->assertNotEmpty($secondMatch, 'Expected to find the font resource used to draw SecondLabel.');
+
+        $firstFont  = $baseFontByResource[$firstMatch[1]];
+        $secondFont = $baseFontByResource[$secondMatch[1]];
+
+        $this->assertEquals(
+            $firstFont, $secondFont,
+            'Both labels share the identical font-family style and must resolve to the same font, ' .
+            'regardless of what registered fonts in between them during rendering.'
+        );
+    }
+
     // Final whole-branch review, finding I5: push buttons rendered as
     // invisible, captionless widgets - contradicting the spec's "renders but
     // performs no action" (it didn't render at all). A <button> gets its
