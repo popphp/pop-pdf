@@ -1345,6 +1345,37 @@ class ParserTest extends TestCase
         $this->assertStringContainsString('/BC [', $output);
     }
 
+    // Final whole-branch review, finding I2: Form\Layout::buildField()'s
+    // radio branch used to default a valueless HTML radio's value to the
+    // literal 'Yes', bypassing Compiler::prepareRadioGroup()'s per-index
+    // fallback naming ('Option' . ($index + 1)) - that fallback only
+    // engages when getValue() === null. Every valueless radio in the group
+    // collapsed onto the same on-state name, so a real viewer would render
+    // ALL of them checked at once, not just the one HTML marked `checked`.
+    // Three plain, valueless <input type=radio> elements (ordinary,
+    // hand-written HTML) with only the middle one checked must compile to
+    // exactly one non-'Off' /AS state.
+    public function testValuelessHtmlRadioGroupOnlyCheckedOptionIsNonOff()
+    {
+        $html = '<html><body><form id="survey">' .
+            '<input type="radio" name="plan">' .
+            '<input type="radio" name="plan" checked>' .
+            '<input type="radio" name="plan">' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        preg_match_all('/\/AS \/(\w+)\n/', $output, $asMatches);
+        $this->assertCount(3, $asMatches[1], 'Expected exactly three /AS entries, one per radio kid.');
+
+        $nonOff = array_filter($asMatches[1], fn ($v) => $v !== 'Off');
+        $this->assertCount(1, $nonOff, 'Exactly one of the three valueless HTML radios must be checked.');
+    }
     public function testFullFormHtmlProducesStructurallyValidPdf()
     {
         // Robust qpdf availability check: not just 'which qpdf', but actually

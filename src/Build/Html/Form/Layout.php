@@ -279,7 +279,17 @@ class Layout
         if ($type === 'radio') {
             $field = new Field\Button($name);
             $field->setRadio();
-            $field->setValue($node->hasAttribute('value') ? $node->getAttribute('value') : 'Yes');
+            // Unlike checkbox (which has no siblings to collide with, so a
+            // shared 'Yes' default is harmless), a valueless radio MUST be
+            // left with a null value here - Compiler::prepareRadioGroup()'s
+            // per-index fallback naming ('Option' . ($index + 1)) only
+            // engages when getValue() === null. Defaulting to 'Yes' here
+            // would give every valueless sibling in the group the same
+            // export name, reproducing the exact all-options-checked bug
+            // that fallback was added to prevent.
+            if ($node->hasAttribute('value')) {
+                $field->setValue($node->getAttribute('value'));
+            }
             if ($node->hasAttribute('checked')) {
                 $field->setChecked();
             }
