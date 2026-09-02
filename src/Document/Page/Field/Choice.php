@@ -190,10 +190,17 @@ class Choice extends AbstractField
         $name    = ($this->name !== null) ? '    /T(' . $this->encryptLiteral($this->name) . ')/TU(' . $this->encryptLiteral($this->name) .
             ')/TM(' . $this->encryptLiteral($this->name) . ')' : '';
         $flags   = (count($this->flagBits) > 0) ? "\n    /Ff " . $this->getFlags() . "\n" : null;
-        // /V and /DV are bare PDF Names here (no parens/escaping), not
-        // string literals - left untouched by encryptLiteral() on purpose.
-        $value   = ($this->value !== null) ? "\n    /V " . $this->value . "\n" : null;
-        $default = ($this->defaultValue !== null) ? "\n    /DV " . $this->defaultValue . "\n" : null;
+        // Per PDF 32000-1 12.7.4.4, a choice field's /V (and /DV) is a text
+        // string, not a bare Name - unlike Button, where /V is a Name that
+        // must agree with /AS. Emitting it as a parenthesized, escaped (and,
+        // if configured, encrypted) literal via encryptLiteral() is both the
+        // spec-correct form and closes a dictionary-injection hole: this
+        // value can come directly from untrusted HTML (<option value>) via
+        // Build\Html\Form\Layout, and a raw, unescaped value could inject
+        // arbitrary dictionary keys or simply produce malformed syntax for
+        // any multi-word value.
+        $value   = ($this->value !== null) ? "\n    /V (" . $this->encryptLiteral($this->value) . ")\n" : null;
+        $default = ($this->defaultValue !== null) ? "\n    /DV (" . $this->encryptLiteral($this->defaultValue) . ")\n" : null;
 
         if (count($this->options) > 0) {
             $options = "    /Opt [ ";

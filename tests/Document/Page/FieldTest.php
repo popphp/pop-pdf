@@ -282,24 +282,88 @@ class FieldTest extends TestCase
         $this->assertStringContainsString('/TM(Name \(With\) \\\\Parens)', $stream);
     }
 
-    public function testChoiceEncryptWithEncryptsNameAndOptionsButNotValue()
+    public function testChoiceEncryptWithEncryptsNameOptionsAndValue()
     {
         $field = new Field\Choice('choice-name');
         $field->setWidth(200);
         $field->setHeight(24);
         $field->addOption('secret-option');
-        $field->setValue('/PlainNameValue');
+        $field->setValue('secret-value');
+        $field->setDefaultValue('secret-default');
         $field->encryptWith(fn (string $data) => strrev($data));
 
         $stream = $field->getStream(5, 3, 'MF1 1 0 R', 10, 20);
 
         $this->assertStringNotContainsString('choice-name', $stream);
         $this->assertStringNotContainsString('secret-option', $stream);
+        $this->assertStringNotContainsString('secret-value', $stream);
+        $this->assertStringNotContainsString('secret-default', $stream);
         $this->assertStringContainsString(strrev('choice-name'), $stream);
         $this->assertStringContainsString(strrev('secret-option'), $stream);
-        // /V is a bare PDF Name here, not a string literal - must never be
-        // routed through encryptLiteral().
-        $this->assertStringContainsString('/V /PlainNameValue', $stream);
+        // /V and /DV are text strings for a choice field (unlike Button,
+        // where /V is a bare Name that must agree with /AS) - so they ARE
+        // routed through encryptLiteral() and come out parenthesized.
+        $this->assertStringContainsString('/V (' . strrev('secret-value') . ')', $stream);
+        $this->assertStringContainsString('/DV (' . strrev('secret-default') . ')', $stream);
+    }
+
+    // C1 (final whole-branch review): Choice::$value/$defaultValue can come
+    // directly from untrusted HTML (<option value="...">) via
+    // Build\Html\Form\Layout. Before this fix, /V and /DV were emitted raw -
+    // no parens, no escaping - so a hostile value could inject arbitrary PDF
+    // dictionary keys (or simply break dictionary syntax for any ordinary
+    // multi-word value). This proves a value designed to look like it is
+    // closing the dictionary and injecting a new key comes out as a single,
+    // safely-escaped literal string instead.
+    public function testChoiceValueWithHostileContentIsSafelyEscapedNotInjected()
+    {
+        $field = new Field\Choice('name');
+        $field->setWidth(200);
+        $field->setHeight(24);
+        $hostile = ') /V (evil) /AA << /D (evil) >> /X (';
+        $field->setValue($hostile);
+        $field->setDefaultValue('back\\slash (and) parens');
+
+        $stream = $field->getStream(10, 2, null, 20, 200);
+
+        $this->assertStringContainsString(
+            '/V (' . \Pop\Pdf\Document\Page\Text::escape($hostile) . ')', $stream
+        );
+        $this->assertStringContainsString(
+            '/DV (' . \Pop\Pdf\Document\Page\Text::escape('back\\slash (and) parens') . ')', $stream
+        );
+        // The raw, un-escaped hostile value must never appear verbatim - it
+        // must always be escaped first, so the unescaped ")" that would
+        // otherwise close the /V literal early and let "/AA << ... >>" be
+        // parsed as a sibling dictionary key never reaches the output.
+        $this->assertStringNotContainsString($hostile, $stream);
+        // The dictionary closes exactly once, right after the field's own
+        // trailing appearance/border fragments - proving the hostile value's
+        // embedded ")" and "<<"/">>" tokens never escaped the /V literal to
+        // prematurely (or repeatedly) close the object's dictionary.
+        $this->assertEquals(1, substr_count($stream, ">>\nendobj"));
+    }
+
+    // Normal-case coverage: an ordinary single-word value and an ordinary
+    // multi-word value (e.g. a <select> option like "United States") must
+    // still render correctly as plain parenthesized literals.
+    public function testChoiceValueNormalCasesRenderAsPlainLiterals()
+    {
+        $field = new Field\Choice('country');
+        $field->setWidth(200);
+        $field->setHeight(24);
+        $field->setValue('us');
+
+        $stream = $field->getStream(10, 2, null, 20, 200);
+        $this->assertStringContainsString('/V (us)', $stream);
+
+        $field2 = new Field\Choice('country2');
+        $field2->setWidth(200);
+        $field2->setHeight(24);
+        $field2->setValue('United States');
+
+        $stream2 = $field2->getStream(11, 2, null, 20, 200);
+        $this->assertStringContainsString('/V (United States)', $stream2);
     }
 
     public function testChoiceNameIsEscapedEvenWhenNotEncrypted()
