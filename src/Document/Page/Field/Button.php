@@ -177,11 +177,12 @@ class Button extends AbstractField
      * @param  int     $y
      * @param  ?array  $appearance
      * @param  ?int    $parentIndex
+     * @param  ?string $captionAppearanceRef
      * @return string
      */
     public function getStream(
         int $i, int $pageIndex, ?string $fontReference, int $x, int $y,
-        ?array $appearance = null, ?int $parentIndex = null
+        ?array $appearance = null, ?int $parentIndex = null, ?string $captionAppearanceRef = null
     ): string
     {
         $text    = null;
@@ -226,6 +227,10 @@ class Button extends AbstractField
             $stateName = ($appearance['checked']) ? $appearance['onName'] : 'Off';
             $ap = "    /AP << /N << /" . $appearance['onName'] . " " . $appearance['onRef'] . " /Off " . $appearance['offRef'] . " >> >>\n";
             $as = "    /AS /" . $stateName . "\n";
+        } else if ($captionAppearanceRef !== null) {
+            // A push button has one static appearance, not an on/off state
+            // dictionary - /N points directly at the caption XObject.
+            $ap = "    /AP << /N " . $captionAppearanceRef . " >>\n";
         }
 
         // For checkboxes/radios, /V must be the same sanitized Name /AS uses

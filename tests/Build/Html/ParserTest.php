@@ -1756,7 +1756,7 @@ class ParserTest extends TestCase
         // scripts that exist but fail at runtime).
         $versionOutput = shell_exec('qpdf --version 2>&1');
         if ($versionOutput === null || strpos($versionOutput, 'No such file or directory') !== false ||
-            !preg_match('/qpdf\s+\d/', $versionOutput)) {
+            !preg_match('/qpdf\s+version\s+\d/i', $versionOutput)) {
             $this->markTestSkipped('qpdf is required for this test.');
         }
 

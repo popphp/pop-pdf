@@ -477,21 +477,111 @@ class Compiler extends AbstractCompiler
      */
     private function createCheckableAppearance(Button $field, float $width, float $height, string $exportName): array
     {
-        $onContent = ($field->isRadio())
+        // Once a widget has an explicit /AP appearance stream, most viewers
+        // treat it as authoritative and stop drawing /MK's border/background
+        // for that widget entirely - /MK becomes decoration-only metadata a
+        // conformant reader MAY use when synthesizing its own appearance,
+        // which it no longer needs to do once /AP exists. Both states must
+        // draw the border/background themselves, not just the "on" content,
+        // since either one may be the widget's currently-displayed state.
+        $decoration = $this->appearanceDecorationStream($field, $width, $height);
+        $onContent  = $decoration . (($field->isRadio())
             ? $this->radioDotAppearanceStream($width, $height)
-            : $this->checkMarkAppearanceStream($width, $height);
+            : $this->checkMarkAppearanceStream($width, $height));
 
         $onIndex = $this->lastIndex() + 1;
         $this->addObject($onIndex, $this->buildAppearanceXObject($onIndex, $width, $height, $onContent));
 
         $offIndex = $this->lastIndex() + 1;
-        $this->addObject($offIndex, $this->buildAppearanceXObject($offIndex, $width, $height, ''));
+        $this->addObject($offIndex, $this->buildAppearanceXObject($offIndex, $width, $height, $decoration));
 
         return [
             'onName' => $exportName,
             'onRef'  => "{$onIndex} 0 R",
             'offRef' => "{$offIndex} 0 R",
         ];
+    }
+
+    /**
+     * Content stream fragment that draws a field's own border/background
+     * (the same /BC/BG/BS values getAppearanceCharacteristics()/
+     * getBorderStyle() would otherwise declare via /MK) directly into an
+     * appearance stream - needed because /MK is only ever honored by a
+     * reader synthesizing its OWN appearance, which it stops doing the
+     * moment an explicit /AP exists for that widget.
+     *
+     * @param  Button $field
+     * @param  float  $width
+     * @param  float  $height
+     * @return string
+     */
+    private function appearanceDecorationStream(Button $field, float $width, float $height): string
+    {
+        $content = '';
+
+        if ($field->getBackgroundColor() !== null) {
+            $bg = $field->getBackgroundColor();
+            $content .= sprintf(
+                "%.3F %.3F %.3F rg\n0 0 %.2F %.2F re\nf\n",
+                $bg[0] / 255, $bg[1] / 255, $bg[2] / 255, $width, $height
+            );
+        }
+
+        if ($field->getBorderWidth() > 0) {
+            $bw     = $field->getBorderWidth();
+            $bc     = $field->getBorderColor() ?? [0, 0, 0];
+            $inset  = $bw / 2;
+            $content .= sprintf(
+                "%.3F %.3F %.3F RG\n%.2F w\n%.2F %.2F %.2F %.2F re\nS\n",
+                $bc[0] / 255, $bc[1] / 255, $bc[2] / 255, $bw, $inset, $inset, $width - $bw, $height - $bw
+            );
+        }
+
+        return $content;
+    }
+
+    /**
+     * Build a static appearance-stream XObject that draws a push button's
+     * caption text, and return its object reference for Button::getStream()
+     * to place into /AP /N. Unlike a checkbox/radio's on/off appearance, a
+     * push button has one fixed appearance and needs its own /Font resource
+     * (reusing the same font object the rest of the document already
+     * embeds, by name and reference) so its Tj operator has something to
+     * draw with - relying on /MK /CA alone is not reliably synthesized into
+     * visible text by most viewers.
+     *
+     * @param  Button $field
+     * @param  string $fontReference
+     * @param  float  $width
+     * @param  float  $height
+     * @return string
+     */
+    private function createPushButtonAppearance(Button $field, string $fontReference, float $width, float $height): string
+    {
+        $resourceName  = substr($fontReference, 0, strpos($fontReference, ' '));
+        $fontObjectRef = substr($fontReference, strpos($fontReference, ' ') + 1);
+        $caption       = (string) $field->getCaption();
+        $size          = $field->getSize();
+        $fontName      = $field->getFont();
+
+        $textWidth = (($fontName !== null) && isset($this->fonts[$fontName]))
+            ? (float) $this->fonts[$fontName]->getStringWidth($caption, $size)
+            : (strlen($caption) * $size * 0.5);
+
+        $tx = max(2.0, ($width - $textWidth) / 2);
+        $ty = max(2.0, ($height - $size) / 2);
+
+        $content = $this->appearanceDecorationStream($field, $width, $height) .
+            "BT\n{$resourceName} {$size} Tf\n0 g\n" . round($tx, 2) . " " . round($ty, 2) .
+            " Td\n(" . Text::escape($caption) . ") Tj\nET\n";
+
+        $i      = $this->lastIndex() + 1;
+        $length = strlen($content);
+        $stream = "{$i} 0 obj\n<< /Type /XObject /Subtype /Form /FormType 1 /BBox [0 0 {$width} {$height}] " .
+            "/Resources << /Font << {$resourceName} {$fontObjectRef} >> >> /Length {$length} >>\nstream\n{$content}\nendstream\nendobj\n\n";
+        $this->addObject($i, PdfObject\StreamObject::parse($stream));
+
+        return "{$i} 0 R";
     }
 
     /**
@@ -1028,6 +1118,17 @@ class Compiler extends AbstractCompiler
             $appearance['checked'] = $field['field']->isChecked();
         }
 
+        // Same allocation-ordering requirement as the checkbox/radio case
+        // above: the caption XObject must be registered via addObject()
+        // before $i is reserved for the button's own widget object.
+        $captionRef = null;
+        if (($field['field'] instanceof Button) && $field['field']->isPushButton() &&
+            ($field['field']->getCaption() !== null) && ($fontRef !== null)) {
+            $captionRef = $this->createPushButtonAppearance(
+                $field['field'], $fontRef, (float) $field['field']->getWidth(), (float) $field['field']->getHeight()
+            );
+        }
+
         $i           = $this->lastIndex() + 1;
         $pageObject->addAnnotIndex($i);
         $coordinates = $this->getCoordinates($field['x'], $field['y'], $pageObject);
@@ -1039,7 +1140,7 @@ class Compiler extends AbstractCompiler
 
         $stream = ($appearance !== null)
             ? $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'], $appearance)
-            : $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y']);
+            : $field['field']->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'], null, null, $captionRef);
 
         $this->addObject($i, PdfObject\StreamObject::parse($stream));
     }

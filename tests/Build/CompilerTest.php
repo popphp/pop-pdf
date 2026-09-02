@@ -507,6 +507,64 @@ class CompilerTest extends TestCase
         $this->assertStringContainsString('/AS /Yes', $output);
     }
 
+    public function testPushButtonGetsCaptionDrawnIntoARealAppearanceStream()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $button = new Page\Field\Button('submit');
+        $button->setWidth(80);
+        $button->setHeight(24);
+        $button->setPushButton();
+        $button->setCaption('Sign Up');
+        $button->setFont('Arial');
+        $page->addField($button, 'form1', 50, 700);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        // The widget references a standalone appearance object (not an
+        // on/off sub-dictionary, since a push button has one static state).
+        $this->assertMatchesRegularExpression('/\/AP << \/N \d+ 0 R >>/', $output);
+        $this->assertStringNotContainsString('/AS', $output);
+
+        preg_match('/\/AP << \/N (\d+) 0 R >>/', $output, $matches);
+        $apObject = $matches[1] . ' 0 obj';
+        $apPos    = strpos($output, $apObject);
+        $this->assertNotFalse($apPos);
+
+        $apChunk = substr($output, $apPos, 400);
+        $this->assertStringContainsString('/Subtype /Form', $apChunk);
+        $this->assertStringContainsString('/Resources << /Font <<', $apChunk);
+        $this->assertStringContainsString('Tf', $apChunk);
+        $this->assertStringContainsString('(Sign Up) Tj', $apChunk);
+    }
+
+    public function testPushButtonWithNoCaptionGetsNoAppearanceStream()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $button = new Page\Field\Button('submit');
+        $button->setWidth(80);
+        $button->setHeight(24);
+        $button->setPushButton();
+        $page->addField($button, 'form1', 50, 700);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertStringNotContainsString('/AP', $output);
+    }
+
     // A plain (non-grouped) checkbox's checked state must come from
     // isChecked(), independent of whether a value happens to be set -
     // setValue() alone must never be treated as "checked".
@@ -2100,6 +2158,15 @@ class CompilerTest extends TestCase
         $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_encrypt_test_') . '.pdf';
         file_put_contents($tmpFile, $pdfData);
 
+        // Ubuntu's qpdf package ships an AppArmor profile that confines qpdf
+        // to only reading/writing paths ending in .pdf/.json/.in/.out - a
+        // '.dec'-suffixed output path is silently denied ("Permission
+        // denied") under that profile, even though the same user can write
+        // there directly. Keeping the decrypted output's own tempnam() with
+        // a .pdf extension (rather than appending '.dec' to the input's
+        // name) stays inside the profile's allowed pattern.
+        $decFile = tempnam(sys_get_temp_dir(), 'pop_pdf_encrypt_test_dec_') . '.pdf';
+
         exec(
             'qpdf --password=' . escapeshellarg($password) . ' --check ' . escapeshellarg($tmpFile) . ' 2>&1',
             $checkOutput, $checkStatus
@@ -2110,15 +2177,15 @@ class CompilerTest extends TestCase
         // it directly rather than qpdf's own re-flate-compressed bytes.
         exec(
             'qpdf --password=' . escapeshellarg($password) . ' --decrypt --decode-level=generalized ' .
-            '--compress-streams=n ' . escapeshellarg($tmpFile) . ' ' . escapeshellarg($tmpFile . '.dec') . ' 2>&1',
+            '--compress-streams=n ' . escapeshellarg($tmpFile) . ' ' . escapeshellarg($decFile) . ' 2>&1',
             $decryptOutput, $decryptStatus
         );
 
-        $decrypted = file_exists($tmpFile . '.dec') ? (string)file_get_contents($tmpFile . '.dec') : '';
+        $decrypted = file_exists($decFile) ? (string)file_get_contents($decFile) : '';
 
         unlink($tmpFile);
-        if (file_exists($tmpFile . '.dec')) {
-            unlink($tmpFile . '.dec');
+        if (file_exists($decFile)) {
+            unlink($decFile);
         }
 
         $this->assertEquals(0, $checkStatus, implode("\n", $checkOutput));

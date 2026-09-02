@@ -599,6 +599,10 @@ class Layout
             }
             if ($caption !== '') {
                 $field->setCaption($caption);
+                // A caption needs a real font resource before Compiler can
+                // draw it into an appearance stream - /MK /CA alone is not
+                // reliably synthesized into visible text by most viewers.
+                $field->setFont('Arial');
             }
             return [$field, self::resolveWidth($parser, $node, 80), self::resolveControlHeight($parser, $node)];
         }

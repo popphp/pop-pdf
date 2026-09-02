@@ -408,6 +408,32 @@ class FieldTest extends TestCase
         $this->assertStringContainsString('/T(Name \(With\) \\\\Parens)', $stream);
     }
 
+    public function testButtonWithCaptionAppearanceRefRendersApN()
+    {
+        $field = new Field\Button('submit');
+        $field->setWidth(80);
+        $field->setHeight(24);
+        $field->setPushButton();
+        $field->setCaption('Sign Up');
+
+        $stream = $field->getStream(10, 2, '/MF1 1 0 R', 20, 200, null, null, '15 0 R');
+
+        $this->assertStringContainsString('/AP << /N 15 0 R >>', $stream);
+        $this->assertStringNotContainsString('/AS', $stream);
+    }
+
+    public function testButtonWithoutCaptionAppearanceRefOmitsAp()
+    {
+        $field = new Field\Button('submit');
+        $field->setWidth(80);
+        $field->setHeight(24);
+        $field->setPushButton();
+
+        $stream = $field->getStream(10, 2, null, 20, 200);
+
+        $this->assertStringNotContainsString('/AP', $stream);
+    }
+
     public function testButtonAppearanceStateRendersApAndAs()
     {
         $field = new Field\Button('subscribe');
