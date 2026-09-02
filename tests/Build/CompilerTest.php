@@ -856,6 +856,56 @@ class CompilerTest extends TestCase
         $this->assertEquals(2, $offCount, 'The other two kids must be /AS /Off.');
     }
 
+    // Final whole-branch review, finding I3: sanitizeExportName() is
+    // many-to-one (e.g. '9-5' and '9/5' both sanitize to '9_5'), so two
+    // genuinely different HTML values could still collide onto one export
+    // name within a radio group, reproducing the "multiple options checked"
+    // symptom through a narrower path than the per-index-fallback fix
+    // (I2/round 2) closed. Two Button fields whose values sanitize to the
+    // same name, only the second one setChecked() - the compiled output
+    // must show two DISTINCT /AP /N keys, and the parent /V must match only
+    // the checked one's distinct (disambiguated) name.
+    public function testRadioGroupDisambiguatesValuesThatSanitizeToTheSameName()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        $optionA = new Page\Field\Button('shift');
+        $optionA->setRadio();
+        $optionA->setWidth(14);
+        $optionA->setHeight(14);
+        $optionA->setValue('9-5');
+        $page->addField($optionA, 'form1', 50, 700);
+
+        $optionB = new Page\Field\Button('shift');
+        $optionB->setRadio();
+        $optionB->setWidth(14);
+        $optionB->setHeight(14);
+        $optionB->setValue('9/5');
+        $optionB->setChecked();
+        $page->addField($optionB, 'form1', 50, 680);
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        preg_match_all('/\/AP << \/N << \/(\w+) (\d+) 0 R \/Off (\d+) 0 R >> >>/', $output, $apMatches);
+        $this->assertCount(2, $apMatches[1], 'Expected exactly two AP dicts, one per radio kid.');
+        $onNames = $apMatches[1];
+        $this->assertEquals(array_unique($onNames), $onNames, 'The two colliding values must resolve to two distinct on-state names.');
+        $this->assertEquals('9_5', $onNames[0]);
+        $this->assertEquals('9_5_2', $onNames[1]);
+
+        // The parent's /V must match only the checked kid's (disambiguated)
+        // export name.
+        preg_match('/\/V \/(\w+)\n/', $output, $vMatch);
+        $this->assertNotEmpty($vMatch, 'Expected the shared parent field to declare /V.');
+        $this->assertEquals('9_5_2', $vMatch[1]);
+    }
+
     public function testPrepareFieldsThrowsWhenFontNotAdded()
     {
         $this->expectException(Exception::class);

@@ -1072,12 +1072,33 @@ class Compiler extends AbstractCompiler
         // every valueless option in the group would resolve to the same
         // on-state name and the parent's /V would match (and therefore
         // visually check) all of them at once.
-        $exportNames  = [];
-        $checkedValue = null;
+        $exportNames = [];
         foreach ($groupFields as $index => $field) {
             $kid                  = $field['field'];
             $exportNames[$index] = $this->sanitizeExportName($kid->getValue() ?? ('Option' . ($index + 1)));
-            if ($kid->isChecked()) {
+        }
+
+        // sanitizeExportName() is many-to-one (e.g. '9-5' and '9/5' both
+        // sanitize to '9_5'), so two genuinely different HTML values can
+        // still collide onto one export name within the same group,
+        // reproducing the same "multiple options checked" symptom the
+        // per-index fallback above already fixed for the valueless case.
+        // Disambiguate here, before $exportNames is used for anything else:
+        // the second kid to resolve to a given name gets "_2" appended, the
+        // third "_3", and so on.
+        $seenCounts = [];
+        foreach ($exportNames as $index => $name) {
+            if (!isset($seenCounts[$name])) {
+                $seenCounts[$name] = 1;
+            } else {
+                $seenCounts[$name]++;
+                $exportNames[$index] = $name . '_' . $seenCounts[$name];
+            }
+        }
+
+        $checkedValue = null;
+        foreach ($groupFields as $index => $field) {
+            if ($field['field']->isChecked()) {
                 $checkedValue = $exportNames[$index];
             }
         }
