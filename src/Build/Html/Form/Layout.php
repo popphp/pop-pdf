@@ -351,6 +351,23 @@ class Layout
         if (($tag === 'button') || ($type === 'submit') || ($type === 'reset')) {
             $field = new Field\Button($name);
             $field->setPushButton();
+            // Without a caption, a push button rendered as an unnamed,
+            // captionless widget with nothing visible on the page (no CSS
+            // border meant literally nothing rendered) - contradicting the
+            // spec's "renders but performs no action" (it didn't render at
+            // all). <button>...</button> uses its own text content;
+            // <input type=submit|reset> uses its value attribute, falling
+            // back to a sensible per-type default when absent.
+            if ($tag === 'button') {
+                $caption = trim((string) $node->getNodeValue());
+            } else {
+                $caption = $node->hasAttribute('value')
+                    ? $node->getAttribute('value')
+                    : (($type === 'reset') ? 'Reset' : 'Submit');
+            }
+            if ($caption !== '') {
+                $field->setCaption($caption);
+            }
             return [$field, self::resolveWidth($parser, $node, 80), self::resolveHeight($parser, $node, 24)];
         }
 

@@ -103,6 +103,14 @@ abstract class AbstractField implements FieldInterface
     protected ?array $backgroundColor = null;
 
     /**
+     * Push-button caption text, rendered as the widget's /MK /CA entry.
+     * Harmless (simply never set) on Text/Choice fields - only a push
+     * button's appearance actually uses it.
+     * @var ?string
+     */
+    protected ?string $caption = null;
+
+    /**
      * String encryptor callable, set by encryptWith() and applied lazily
      * by encryptLiteral()
      * @var ?callable
@@ -409,14 +417,36 @@ abstract class AbstractField implements FieldInterface
     }
 
     /**
+     * Set the push-button caption (rendered as the widget's /MK /CA entry)
+     *
+     * @param  string $caption
+     * @return static
+     */
+    public function setCaption(string $caption): static
+    {
+        $this->caption = $caption;
+        return $this;
+    }
+
+    /**
+     * Get the push-button caption
+     *
+     * @return ?string
+     */
+    public function getCaption(): ?string
+    {
+        return $this->caption;
+    }
+
+    /**
      * Build this field's /MK appearance-characteristics dictionary fragment,
-     * or an empty string when neither border nor background color is set
+     * or an empty string when no border, background color, or caption is set
      *
      * @return string
      */
     protected function getAppearanceCharacteristics(): string
     {
-        if (($this->borderColor === null) && ($this->backgroundColor === null)) {
+        if (($this->borderColor === null) && ($this->backgroundColor === null) && ($this->caption === null)) {
             return '';
         }
 
@@ -426,6 +456,15 @@ abstract class AbstractField implements FieldInterface
         }
         if ($this->backgroundColor !== null) {
             $mk .= ' /BG [' . $this->rgbToPdfArray($this->backgroundColor) . ']';
+        }
+        if ($this->caption !== null) {
+            // /CA is a /MK sub-entry, not one of this class's independently-
+            // encrypted literal strings (/T, /V, /TU, /TM) - so it is always
+            // parenthesized/escaped via Text::escape() for safety (the same
+            // C1-class dictionary-injection concern applies to any literal
+            // string embedded in a getStream() template), but never routed
+            // through encryptLiteral()/the document's string encryptor.
+            $mk .= ' /CA (' . TextHelper::escape($this->caption) . ')';
         }
         $mk .= " >>\n";
 

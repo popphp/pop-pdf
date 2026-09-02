@@ -1425,6 +1425,30 @@ class ParserTest extends TestCase
         $this->assertCount(3, $matches[1], 'Expected all three radio kid widgets.');
         $this->assertCount(1, array_unique($matches[1]), 'All three kids must land on the same page.');
     }
+
+    // Final whole-branch review, finding I5: push buttons rendered as
+    // invisible, captionless widgets - contradicting the spec's "renders but
+    // performs no action" (it didn't render at all). A <button> gets its
+    // caption from its own text content; an <input type=submit> gets it
+    // from its value attribute.
+    public function testPushButtonsCompileWithCaptionsInMkDict()
+    {
+        $html = '<html><body><form id="signup">' .
+            '<button type="submit">Send</button>' .
+            '<input type="submit" value="Go">' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('/CA (Send)', $output);
+        $this->assertStringContainsString('/CA (Go)', $output);
+    }
+
     public function testFullFormHtmlProducesStructurallyValidPdf()
     {
         // Robust qpdf availability check: not just 'which qpdf', but actually

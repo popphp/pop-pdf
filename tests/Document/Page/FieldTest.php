@@ -570,6 +570,54 @@ class FieldTest extends TestCase
         $this->assertStringContainsString('/BG [1 1 1]', $button->getStream(2, 1, null, 0, 0));
     }
 
+    // I5 (final whole-branch review): a push button with no caption rendered
+    // as an invisible, empty rectangle - contradicting the spec's "renders
+    // but performs no action" (it didn't render at all). setCaption()/
+    // getCaption() add the missing /MK /CA entry.
+    public function testButtonCaptionRendersInAppearanceCharacteristics()
+    {
+        $field = new Field\Button('submit');
+        $field->setWidth(80);
+        $field->setHeight(24);
+        $field->setPushButton();
+        $field->setCaption('Send');
+
+        $this->assertEquals('Send', $field->getCaption());
+
+        $stream = $field->getStream(10, 2, null, 20, 200);
+
+        $this->assertStringContainsString('/MK <<', $stream);
+        $this->assertStringContainsString('/CA (Send)', $stream);
+    }
+
+    public function testButtonCaptionIsEscapedForSafety()
+    {
+        $field = new Field\Button('submit');
+        $field->setWidth(80);
+        $field->setHeight(24);
+        $field->setPushButton();
+        $field->setCaption('Go (Now)');
+
+        $stream = $field->getStream(10, 2, null, 20, 200);
+
+        $this->assertStringContainsString('/CA (Go \(Now\))', $stream);
+    }
+
+    public function testCaptionAloneIsSufficientToRenderTheMkDict()
+    {
+        // No border/background set at all - the caption alone must still
+        // trigger /MK, or a push button with only a caption (the common
+        // case) would render with no /MK at all.
+        $field = new Field\Button('submit');
+        $field->setWidth(80);
+        $field->setHeight(24);
+        $field->setCaption('Go');
+
+        $stream = $field->getStream(10, 2, null, 20, 200);
+
+        $this->assertStringContainsString('/MK << /CA (Go) >>', $stream);
+    }
+
     public function testChoiceAddOptionWithSeparateLabel()
     {
         $field = new Field\Choice('country');
