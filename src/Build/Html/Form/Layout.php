@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Pop\Pdf\Build\Html\Form;
 
 use Pop\Dom\Child;
+use Pop\Pdf\Build\Html\Exception;
 use Pop\Pdf\Build\Html\Parser;
 use Pop\Pdf\Document;
 use Pop\Pdf\Document\Page\Field;
@@ -371,13 +372,36 @@ class Layout
      * a superset of whatever either pass calls it on for styling purposes;
      * this walks the whole subtree, so it always is.
      *
+     * "Superset", not "exact set", is the operative word: this visits nodes
+     * (wrapper elements, <option>s) that neither pass ever actually styles
+     * for real, because they never render leaf text and aren't a control.
+     * Before this method existed, such a node's own bad font-family
+     * declaration was simply never looked at, so it was silently harmless.
+     * prepareNodeStyles() throws (Html\Exception) when a declared
+     * font-family can't resolve to any registered/standard font - every
+     * addFont() call inside it happens in the same branch as the
+     * corresponding throw (never after), so a call that throws never
+     * partially registers a font. Swallowing that exception here is
+     * therefore safe and lossless: it only stops THIS warm-up call from
+     * failing the whole document over a style nothing ever draws. A node
+     * that genuinely renders text or is a control still calls
+     * prepareNodeStyles() for real later (via the actual measurement/render
+     * pass) and throws exactly as it always has - this catch only guards the
+     * warm-up call, never the recursion into the node's children, since a
+     * node's own bad style says nothing about whether its children's styles
+     * are resolvable.
+     *
      * @param  Parser $parser
      * @param  Child  $node
      * @return void
      */
     protected static function warmUpFonts(Parser $parser, Child $node): void
     {
-        $parser->prepareNodeStyles($node->getNodeName(), $node->getAttributes());
+        try {
+            $parser->prepareNodeStyles($node->getNodeName(), $node->getAttributes());
+        } catch (Exception) {
+            // Intentionally swallowed - see docblock above.
+        }
 
         if ($node->hasChildNodes()) {
             foreach ($node->getChildNodes() as $child) {

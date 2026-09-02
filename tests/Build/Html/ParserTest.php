@@ -1682,6 +1682,50 @@ class ParserTest extends TestCase
         );
     }
 
+    // Round 2 re-review: warmUpFonts() (added above to fix the font-ordering
+    // Critical finding) calls prepareNodeStyles() UNCONDITIONALLY on every
+    // node in the <form> subtree - including wrapper nodes like this <div>
+    // that neither render leaf text nor are a form control, and were
+    // therefore NEVER visited for styling purposes by either the old
+    // measurement pass or the real render pass. Before warmUpFonts()
+    // existed, a wrapper node with an unresolvable font-family was simply
+    // never styled, so the bad declaration was silently ignored and this
+    // ordinary markup compiled fine. warmUpFonts() must not be the thing
+    // that turns a style declaration on a node nothing ever draws into a
+    // whole-document failure.
+    public function testWrapperNodeWithUnresolvableFontDoesNotBreakFormCompilation()
+    {
+        $html = '<html><body><form id="signup">' .
+            '<div style="font-family:Roboto;"><input type="text" name="a"></div>' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $compiler = new \Pop\Pdf\Build\Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('/T(a)', $output);
+    }
+
+    // Counterpart to the wrapper-node test above: a node that genuinely
+    // renders text with an unresolvable font must still throw, exactly as
+    // it did before round 1's warmUpFonts() existed - the label's own
+    // leaf-text rendering pass hits the same unresolvable font for real,
+    // independent of warmUpFonts()'s now-swallowed warm-up call.
+    public function testLabelWithUnresolvableFontStillThrowsException()
+    {
+        $this->expectException('Pop\Pdf\Build\Html\Exception');
+
+        $html = '<html><body><form id="signup">' .
+            '<label style="font-family:Roboto;">Some text</label>' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $parser->process();
+    }
+
     // Final whole-branch review, finding I5: push buttons rendered as
     // invisible, captionless widgets - contradicting the spec's "renders but
     // performs no action" (it didn't render at all). A <button> gets its
