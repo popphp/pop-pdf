@@ -75,4 +75,154 @@ class LayoutTest extends TestCase
         $this->assertTrue($page->hasFields());
         $this->assertNotNull($page->getFields()[0]['field']->getName());
     }
+
+    public function testControlAndLabelNestedInsideWrapperAreNotDropped()
+    {
+        $html = '<html><body><form id="f"><div><label>Name</label><input type="text" name="nested"></div></form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $page = $document->getPage(1);
+        $this->assertTrue($page->hasFields());
+
+        $fieldNames = array_map(fn ($f) => $f['field']->getName(), $page->getFields());
+        $this->assertContains('nested', $fieldNames);
+
+        $textStrings = array_map(fn ($t) => $t['text']->getString(), $page->getText());
+        $this->assertContains('Name', $textStrings);
+    }
+
+    public function testNodeWithOwnLeafTextAndChildElementRendersBoth()
+    {
+        $html = '<html><body><form id="f"><label>Name: <input type="text" name="withLabelText"></label></form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $page = $document->getPage(1);
+        $fieldNames = array_map(fn ($f) => $f['field']->getName(), $page->getFields());
+        $this->assertContains('withLabelText', $fieldNames);
+
+        $textStrings = array_map(fn ($t) => $t['text']->getString(), $page->getText());
+        $this->assertContains('Name:', $textStrings);
+    }
+
+    public function testDeeplyNestedControlIsStillFound()
+    {
+        $html = '<html><body><form id="f"><div><p><span><input type="text" name="deep"></span></p></div></form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $page = $document->getPage(1);
+        $fieldNames = array_map(fn ($f) => $f['field']->getName(), $page->getFields());
+        $this->assertContains('deep', $fieldNames);
+    }
+
+    public function testCssPercentWidthResolvesAgainstPageWidth()
+    {
+        $html = '<html><body><form id="f"><input type="text" name="pctWidth" style="width:50%;"></form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $page = $document->getPage(1);
+        $field = $page->getFields()[0]['field'];
+
+        // LETTER page width is 612pt - 50% should resolve to 306, not the
+        // literal (and absurd) 50pt a raw numeric cast would produce.
+        $this->assertEquals(306, $field->getWidth());
+    }
+
+    public function testHtmlWidthAttributePercentResolvesAgainstPageWidth()
+    {
+        $html = '<html><body><form id="f"><input type="text" name="pctAttrWidth" width="50%"></form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $page = $document->getPage(1);
+        $field = $page->getFields()[0]['field'];
+
+        $this->assertEquals(306, $field->getWidth());
+    }
+
+    public function testCssPercentHeightResolvesAgainstPageHeight()
+    {
+        $html = '<html><body><form id="f"><input type="text" name="pctHeight" style="height:50%;"></form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $page = $document->getPage(1);
+        $field = $page->getFields()[0]['field'];
+
+        // LETTER page height is 792pt - 50% should resolve to 396.
+        $this->assertEquals(396, $field->getHeight());
+    }
+
+    public function testUncheckedCheckboxRetainsValueButIsNotChecked()
+    {
+        $html = '<html><body><form id="f"><input type="checkbox" name="agree" value="yes"></form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $page = $document->getPage(1);
+        $field = $page->getFields()[0]['field'];
+
+        $this->assertEquals('yes', $field->getValue());
+        $this->assertFalse($field->isChecked());
+    }
+
+    public function testUncheckedRadioInAGroupRetainsValueButOnlyCheckedOneReportsChecked()
+    {
+        $html = '<html><body><form id="f">' .
+            '<input type="radio" name="plan" value="a" checked>' .
+            '<input type="radio" name="plan" value="b">' .
+            '</form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $page = $document->getPage(1);
+        $radios = array_values(array_filter($page->getFields(), fn ($f) => $f['field']->getName() === 'plan'));
+        $this->assertCount(2, $radios);
+
+        $checkedField   = $radios[0]['field'];
+        $uncheckedField = $radios[1]['field'];
+
+        $this->assertEquals('a', $checkedField->getValue());
+        $this->assertTrue($checkedField->isChecked());
+
+        $this->assertEquals('b', $uncheckedField->getValue());
+        $this->assertFalse($uncheckedField->isChecked());
+    }
+
+    public function testBorderWidthCssSetsFieldBorder()
+    {
+        $html = '<html><body><form id="f"><input type="text" name="bordered" style="border-width:2px;"></form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $page = $document->getPage(1);
+        $field = $page->getFields()[0]['field'];
+
+        $this->assertGreaterThan(0, $field->getBorderWidth());
+    }
+
+    public function testBackgroundColorAloneDoesNotSetFieldBorder()
+    {
+        $html = '<html><body><form id="f"><input type="text" name="bgOnly" style="background-color:#ff0000;"></form></body></html>';
+
+        $parser = Parser::parseString($html);
+        $document = $parser->process();
+
+        $page = $document->getPage(1);
+        $field = $page->getFields()[0]['field'];
+
+        $this->assertEquals(0, $field->getBorderWidth());
+    }
 }

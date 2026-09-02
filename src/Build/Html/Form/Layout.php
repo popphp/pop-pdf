@@ -88,8 +88,11 @@ class Layout
     }
 
     /**
-     * Render one child of a <form> - either a control (converted to a
-     * field) or text content (rendered as simple per-line text)
+     * Render one child of a <form> node - a control is converted to a
+     * field; any other node has its own leaf text (if any) rendered, then
+     * is recursed into so that controls/labels nested below wrapper
+     * elements (a <div> or <p> wrapping a <label>+<input> pair, say) are
+     * not silently dropped
      *
      * @param  Parser $parser
      * @param  Child  $node
@@ -106,10 +109,35 @@ class Layout
         }
 
         $text = trim((string) $node->getNodeValue());
-        if ($text === '') {
-            return [$consumedY, $currentY];
+        if ($text !== '') {
+            [$consumedY, $currentY] = self::renderText($parser, $node, $text, $x, $consumedY, $currentY);
         }
 
+        if ($node->hasChildNodes()) {
+            foreach ($node->getChildNodes() as $child) {
+                [$consumedY, $currentY] = self::renderNode($parser, $child, $formName, $x, $consumedY, $currentY);
+            }
+        }
+
+        return [$consumedY, $currentY];
+    }
+
+    /**
+     * Render a node's own leaf text as simple, single-style per-line text,
+     * baseline-aligned the same way Table\Layout::drawRow() places its own
+     * cell text (one line-height below the cursor's top edge, not at the
+     * raw, unadjusted cursor position)
+     *
+     * @param  Parser $parser
+     * @param  Child  $node
+     * @param  string $text
+     * @param  int    $x
+     * @param  float  $consumedY
+     * @param  float  $currentY
+     * @return array
+     */
+    protected static function renderText(Parser $parser, Child $node, string $text, int $x, float $consumedY, float $currentY): array
+    {
         $styles     = $parser->prepareNodeStyles($node->getNodeName(), $node->getAttributes());
         $fontObject = $parser->document()->getFont($styles['currentFont']);
         $wrapLength = $parser->getPage()->getWidth() - $parser->getPageRightMargin() - $x;
@@ -120,7 +148,7 @@ class Layout
                 $currentY  = $parser->newPage();
                 $consumedY = 0;
             }
-            $parser->getPage()->addText(new Document\Page\Text($line, $styles['fontSize']), $styles['currentFont'], $x, (int) round($currentY));
+            $parser->getPage()->addText(new Document\Page\Text($line, $styles['fontSize']), $styles['currentFont'], $x, (int) round($currentY - $styles['fontSize']));
             $consumedY += $styles['lineHeight'];
             $currentY  -= $styles['lineHeight'];
         }
@@ -332,7 +360,10 @@ class Layout
 
     /**
      * Resolve a control's width from its size/cols/width HTML attribute,
-     * CSS width, or a sane default
+     * CSS width, or a sane default - the width HTML attribute and CSS width
+     * are both percent-aware (e.g. "50%"), resolved against the page width,
+     * matching how Parser::addNodeToDocument()'s <img> handling already
+     * treats a trailing '%' on width/height
      *
      * @param  Parser $parser
      * @param  Child  $node
@@ -347,16 +378,20 @@ class Layout
         if (($node->getNodeName() === 'textarea') && $node->hasAttribute('cols')) {
             return ((float) $node->getAttribute('cols')) * 7.0;
         }
+        $pageWidth = $parser->getPage()->getWidth();
         if ($node->hasAttribute('width')) {
-            return (float) $node->getAttribute('width');
+            return self::resolvePercentValue((string) $node->getAttribute('width'), $pageWidth);
         }
         $styles = $parser->prepareNodeStyles($node->getNodeName(), $node->getAttributes());
-        return ($styles['width'] !== null) ? (float) $styles['width'] : (float) $default;
+        return ($styles['width'] !== null) ? self::resolvePercentValue((string) $styles['width'], $pageWidth) : (float) $default;
     }
 
     /**
      * Resolve a control's height from its rows/height HTML attribute, CSS
-     * height, or a sane default
+     * height, or a sane default - the height HTML attribute and CSS height
+     * are both percent-aware (e.g. "50%"), resolved against the page
+     * height, matching how Parser::addNodeToDocument()'s <img> handling
+     * already treats a trailing '%' on width/height
      *
      * @param  Parser $parser
      * @param  Child  $node
@@ -368,11 +403,30 @@ class Layout
         if (($node->getNodeName() === 'textarea') && $node->hasAttribute('rows')) {
             return ((float) $node->getAttribute('rows')) * 16.0;
         }
+        $pageHeight = $parser->getPage()->getHeight();
         if ($node->hasAttribute('height')) {
-            return (float) $node->getAttribute('height');
+            return self::resolvePercentValue((string) $node->getAttribute('height'), $pageHeight);
         }
         $styles = $parser->prepareNodeStyles($node->getNodeName(), $node->getAttributes());
-        return ($styles['height'] !== null) ? (float) $styles['height'] : (float) $default;
+        return ($styles['height'] !== null) ? self::resolvePercentValue((string) $styles['height'], $pageHeight) : (float) $default;
+    }
+
+    /**
+     * Resolve a raw HTML-attribute/CSS size value, honoring a trailing '%'
+     * as a percentage of the given basis (page width or height) rather
+     * than a literal point value
+     *
+     * @param  string $value
+     * @param  float  $basis
+     * @return float
+     */
+    protected static function resolvePercentValue(string $value, float $basis): float
+    {
+        $value = trim($value);
+        if (str_ends_with($value, '%')) {
+            return $basis * ((float) rtrim($value, '%') / 100);
+        }
+        return (float) $value;
     }
 
 }
