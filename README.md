@@ -1184,9 +1184,46 @@ The types of fields that are currently supported in Pop PDF are:
 - Single-select choice fields (e.g., an HTML select drop-down)
 - Multi-select choice fields (e.g., an HTML multi-select drop-down)
 - Push buttons (by default, display and act like a checkbox)
-- Radio buttons
+- Radio buttons, including true grouped radio-button behavior (see below)
 
-*NOTE: A group of radio buttons is not supported at this time.*
+### Appearance
+
+`AbstractField` (the base class `Text`, `Choice`, and `Button` all share) supports optional border and
+background appearance, alongside the existing font color support:
+
+```php
+$firstName->setBorderWidth(1)
+    ->setBorderColor([153, 153, 153])    // [r, g, b], 0-255 each
+    ->setBackgroundColor([255, 255, 255]);
+```
+
+`setBorderWidth()` is the gate: a width of `0` (the default) omits both the border style and border
+color entirely, matching ordinary CSS semantics. `setBorderColor()`/`setBackgroundColor()` each take
+an `[r, g, b]` array (0-255 per channel) and are rendered together as the field's `/MK` appearance-
+characteristics dictionary.
+
+### Checkboxes and radio buttons
+
+`Button::setValue()` always represents the field's export/on-state value - the name a conforming PDF
+reader reports for that widget when it IS checked - independent of whether it is checked right now.
+Whether a given `Button` widget is currently checked is tracked by its own, separate flag:
+
+```php
+$agree = new Page\Field\Button('agree');
+$agree->setValue('Yes');    // the export value used once checked
+$agree->setChecked();       // actually check it
+$agree->isChecked();        // => true
+```
+
+Calling `setChecked()` never changes `getValue()`, and calling `setValue()` never implicitly checks
+the field - the two are independent, which matters most for a group of radio buttons: every option
+needs its own `setValue()` (even the ones that start out unchecked) so each has its own distinct
+export name, while `setChecked()` is called on whichever single option should start selected.
+
+A group of `Button` fields that share the same field name and are all marked `setRadio()` compiles to
+a true, grouped PDF radio field - one shared, non-visual parent field plus one child widget per
+option - rather than independent checkboxes standing in for a radio group. In a conforming reader,
+selecting one option in the group automatically deselects the others.
 
 The following script below demonstrates how to add the various fields to a form in a
 PDF object. While lengthy, it includes text and graphic support for field names and
@@ -1441,5 +1478,36 @@ table cells (e.g. a bordered `<div>`). Given a PDF page's fixed size (unlike a b
 a few limitations apply: no `border-collapse` (each cell's border is drawn independently), no nested tables,
 and a single row/cell taller than a full page renders best-effort on that page rather than splitting across a
 page break.
+
+### Form markup
+
+**`<form>` markup is converted into real, interactive PDF form fields (AcroForms) automatically - there is
+no opt-in flag to set.** This is a behavior change to be aware of if you are already parsing HTML that
+happens to contain form markup: previously that markup was simply inert content and produced nothing, and
+it will now produce visible, interactive widgets on the page.
+
+Each control maps onto one of the manual [Forms](#forms) field types described above:
+
+| HTML | Maps to | Notes |
+|---|---|---|
+| `input[type=text\|email\|password\|...]`, `textarea` | `Field\Text` | `type=password` → password field; `textarea` → multiline |
+| `input[type=file]` | `Field\Text` | file-select field |
+| `input[type=hidden]` | `Field\Text` | zero size, not placed in the page flow; value preserved |
+| `input[type=checkbox]` | `Field\Button` | independent, not grouped |
+| `input[type=radio]` | `Field\Button` (grouped) | inputs sharing the same `name` within a `<form>` become one true, grouped PDF radio field - see [Checkboxes and radio buttons](#checkboxes-and-radio-buttons) above |
+| `select` | `Field\Choice` | `<option>` → a choice option; `multiple` attribute → multi-select; otherwise a combo box |
+| `button`, `input[type=submit\|reset]` | `Field\Button` (push) | cosmetic only - renders (including its caption, from the button's own text or its `value` attribute) but performs no action, since Pop PDF has no JavaScript/HTTP-submission engine |
+| any other/unrecognized `input[type]` | `Field\Text` | falls back rather than throwing |
+
+A control's size comes from CSS (`width`/`height`, percentages resolved against the page) or the matching
+HTML attribute (`size`, `rows`/`cols`) when present, falling back to a sane fixed default otherwise - the
+same precedence `<img>` already uses. Border/background CSS on a control (`border-width`, `border-color`,
+`background-color`) carries through automatically onto the compiled field's appearance, the same way it does
+for boxed text and table cells.
+
+A radio group whose options would otherwise straddle a page break is kept together on one page, whenever the
+whole group fits within a single page's usable height - it forces a page break ahead of the group's first
+option rather than splitting the group across two pages, since a split group would otherwise compile to two
+separate, same-named top-level fields instead of one true group.
 
 [Top](#pop-pdf)
