@@ -748,6 +748,25 @@ written as raw UTF-8 bytes into a single-byte string and mojibaked in any PDF vi
 though the font could represent them; text is now transcoded to `/WinAnsiEncoding` before
 being written. Only characters truly outside the font's encoding throw.
 
+#### Symbol and ZapfDingbats
+
+`Symbol` and `ZapfDingbats` are symbolic fonts: they have no Latin letters and use their own
+built-in encoding rather than `/WinAnsiEncoding`. Pass the Unicode character you want, and
+`pop-pdf` writes the byte that font's encoding assigns it:
+
+```php
+$document->addFont(new Font(Font::ZAPF_DINGBATS));
+$document->addFont(new Font(Font::SYMBOL));
+
+$page->addText(new Page\Text("\u{2713} \u{2714} \u{2605}", 12), Font::ZAPF_DINGBATS, 50, 700); // ✓ ✔ ★
+$page->addText(new Page\Text("\u{03B1} + \u{03B2} \u{2264} \u{2211}", 12), Font::SYMBOL, 50, 680); // α + β ≤ ∑
+```
+
+Code written against earlier versions, which passed the font's raw byte instead (`'3'` for
+the ZapfDingbats check mark, `'a'` for a Symbol alpha), keeps working for printable ASCII.
+Characters above ASCII are always read as Unicode, so `'×'` in Symbol is the multiplication
+sign, never whatever glyph sits at byte `0xD7`.
+
 Also note that importing HTML containing non-Latin text (`Pdf::importFromHtml()`) does
 not currently work, due to a double-encoding bug in the upstream `popphp/pop-dom`
 dependency that mangles non-ASCII text before `pop-pdf` receives it.

@@ -370,7 +370,7 @@ class Stream
                 $stream .= "    <" . $curFont->stringToGidHex($this->streams[0]['string']) . ">Tj\n";
             } else if (($curFont instanceof Font) && $curFont->isStandard()) {
                 $curFont->requireGlyphCoverage($this->streams[0]['string']);
-                $stream .= "    (" . $this->encodeWinAnsi($this->streams[0]['string'], $curFont) . ")Tj\n";
+                $stream .= "    (" . $this->encodeStandard($this->streams[0]['string'], $curFont) . ")Tj\n";
             } else {
                 $stream .= "    (" . Text::escape($this->streams[0]['string']) . ")Tj\n";
             }
@@ -423,7 +423,7 @@ class Stream
                         $stream .= "    <" . $curFont->stringToGidHex($string) . ">Tj\n";
                     } else if (($curFont instanceof Font) && $curFont->isStandard()) {
                         $curFont->requireGlyphCoverage($string);
-                        $stream .= "    (" . $this->encodeWinAnsi($string, $curFont) . ")Tj\n";
+                        $stream .= "    (" . $this->encodeStandard($string, $curFont) . ")Tj\n";
                     } else {
                         $stream .= "    (" . Text::escape($string) . ")Tj\n";
                     }
@@ -626,28 +626,19 @@ class Stream
     }
 
     /**
-     * Transcode a raw UTF-8 string to WinAnsiEncoding (Windows-1252) bytes and escape it for a literal PDF string
+     * Encode a raw UTF-8 string for a standard font and escape it for a literal PDF string
      *
-     * requireGlyphCoverage() has already confirmed the font's cmap covers
-     * every character in the string, so iconv failing here should never
-     * happen in practice - the exception is a safety net against cmap/
-     * encoding drift, not an expected runtime path.
+     * WinAnsiEncoding (Windows-1252) for most standard fonts, the built-in encoding for the
+     * symbolic ones (Symbol, ZapfDingbats). Escaping runs on the encoded bytes.
      *
      * @param  string $string
      * @param  Font   $font
      * @throws FontException
      * @return string
      */
-    protected function encodeWinAnsi(string $string, Font $font): string
+    protected function encodeStandard(string $string, Font $font): string
     {
-        $encoded = @iconv('UTF-8', 'Windows-1252', $string);
-        if ($encoded === false) {
-            throw new FontException(
-                "Error: The font '" . $font->getName() . "' cannot represent the given text in WinAnsiEncoding."
-            );
-        }
-
-        return Text::escape($encoded);
+        return Text::escape($font->encodeStandardString($string));
     }
 
     /**

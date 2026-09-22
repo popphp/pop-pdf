@@ -220,6 +220,19 @@ class Font
     }
 
     /**
+     * Determine if the font is a symbolic standard font (Symbol, ZapfDingbats)
+     *
+     * Symbolic fonts carry their own built-in encoding, so their text is written in that
+     * encoding and their font dictionary declares no /Encoding of its own.
+     *
+     * @return bool
+     */
+    public function isSymbolic(): bool
+    {
+        return $this->isStandard && $this->standardFontInstance()->isSymbolic();
+    }
+
+    /**
      * Split a UTF-8 string into its UTF-16BE code units
      *
      * Matches the BMP-only convention already used by getStringWidth() and
@@ -296,6 +309,33 @@ class Font
                 ));
             }
         }
+    }
+
+    /**
+     * Encode a UTF-8 string into the single-byte encoding this standard font's text is written in
+     *
+     * WinAnsiEncoding (Windows-1252) for most standard fonts, the font's built-in encoding for the
+     * symbolic ones. Returns raw bytes; escape them before writing a PDF literal string.
+     *
+     * requireGlyphCoverage() normally runs first and reports a missing character by name, so a
+     * failure here is a safety net against cmap/encoding drift rather than an expected path.
+     *
+     * @param  string $string
+     * @throws FontException
+     * @return string
+     */
+    public function encodeStandardString(string $string): string
+    {
+        $encoded = $this->standardFontInstance()->encodeString($string);
+
+        if ($encoded === null) {
+            throw new FontException(
+                "Error: The font '" . $this->getName() . "' cannot represent the given text in " .
+                (($this->isSymbolic()) ? 'its built-in encoding.' : 'WinAnsiEncoding.')
+            );
+        }
+
+        return $encoded;
     }
 
     /**

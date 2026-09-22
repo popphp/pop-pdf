@@ -424,27 +424,19 @@ class Text
     }
 
     /**
-     * Transcode a raw UTF-8 string to WinAnsiEncoding (Windows-1252) bytes and escape it for a literal PDF string
+     * Encode a raw UTF-8 string for a standard font and escape it for a literal PDF string
      *
-     * requireGlyphCoverage() has already confirmed the font's cmap covers
-     * every character in the string, so iconv failing here should never
-     * happen in practice - the exception is a safety net against cmap/
-     * encoding drift, not an expected runtime path.
+     * WinAnsiEncoding (Windows-1252) for most standard fonts, the built-in encoding for the
+     * symbolic ones (Symbol, ZapfDingbats). Escaping runs on the encoded bytes, since an encoded
+     * byte can itself be a string delimiter (ZapfDingbats puts U+2708 at 0x28, '(').
      *
      * @param  string $string
      * @throws FontException
      * @return string
      */
-    protected function encodeWinAnsi(string $string): string
+    protected function encodeStandard(string $string): string
     {
-        $encoded = @iconv('UTF-8', 'Windows-1252', $string);
-        if ($encoded === false) {
-            throw new FontException(
-                "Error: The font '" . $this->font->getName() . "' cannot represent the given text in WinAnsiEncoding."
-            );
-        }
-
-        return $this->escape($encoded);
+        return $this->escape($this->font->encodeStandardString($string));
     }
 
     /**
@@ -810,9 +802,9 @@ class Text
                 }
                 $stream .= "]TJ\n";
             } else if ($isStandard) {
-                $stream .= "    [(" . $this->encodeWinAnsi($this->rawString) . ")";
+                $stream .= "    [(" . $this->encodeStandard($this->rawString) . ")";
                 foreach ($this->stringsWithOffsets as $string) {
-                    $stream .= " " . (0 - $string['offset']) . " (" . $this->encodeWinAnsi($string['string']) . ")";
+                    $stream .= " " . (0 - $string['offset']) . " (" . $this->encodeStandard($string['string']) . ")";
                 }
                 $stream .= "]TJ\n";
             } else {
@@ -839,7 +831,7 @@ class Text
                 } else if ($isStandard) {
                     $strings = explode("\n", $this->mbWordwrap($this->rawString, $this->charWrap));
                     foreach ($strings as $i => $string) {
-                        $stream .= "    (" . $this->encodeWinAnsi($string) . ")Tj\n";
+                        $stream .= "    (" . $this->encodeStandard($string) . ")Tj\n";
                         if ($i < count($strings)) {
                             $stream .= "    0 -" . $this->leading . " Td\n";
                         }
@@ -857,7 +849,7 @@ class Text
                 if ($isCid) {
                     $stream .= "    <" . $this->font->stringToGidHex($this->rawString) . ">Tj\n";
                 } else if ($isStandard) {
-                    $stream .= "    (" . $this->encodeWinAnsi($this->rawString) . ")Tj\n";
+                    $stream .= "    (" . $this->encodeStandard($this->rawString) . ")Tj\n";
                 } else {
                     $stream .= "    ({$this->string})Tj\n";
                 }

@@ -285,4 +285,19 @@ class StreamTest extends TestCase
         $this->assertFalse($stream->hasOrphanIndex());
     }
 
+    public function testGetStreamWithZapfDingbatsWritesBuiltInEncodingBytes()
+    {
+        $font = new Font(Font::ZAPF_DINGBATS);
+
+        $stream = new Page\Text\Stream(50, 700, 500);
+        $stream->setCurrentStyle('ZapfDingbats', 12);
+        $stream->addText("\u{2713} \u{2605}");
+
+        $output = $stream->getStream(['ZapfDingbats' => $font], ['ZapfDingbats' => 'F1 0 R']);
+
+        // Stream writes one Tj per word; U+2713 is byte 0x33 '3' and U+2605 is byte 0x48 'H'
+        $this->assertStringContainsString('(3 )Tj', $output);
+        $this->assertStringContainsString('(H)Tj', $output);
+    }
+
 }

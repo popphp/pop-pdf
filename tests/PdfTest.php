@@ -1101,4 +1101,43 @@ class PdfTest extends TestCase
         $this->assertGreaterThan(1, $doc->getNumberOfPages());
     }
 
+    /**
+     * Symbol and ZapfDingbats text used to fail to compile at all: the glyph check expected
+     * Unicode, and the WinAnsi transcoder that followed could not represent any dingbat. The
+     * document must now compile, and the font dictionaries must leave /Encoding out for those
+     * two fonts so the viewer uses their built-in encoding - declaring /WinAnsiEncoding on them
+     * tells it to look byte 0x33 up as the glyph "three", which ZapfDingbats does not have.
+     */
+    public function testSymbolicStandardFontsCompileWithTheirBuiltInEncoding()
+    {
+        $doc = new Document();
+        $doc->addFont(new Font(Font::ARIAL));
+        $doc->addFont(new Font(Font::ZAPF_DINGBATS));
+        $doc->addFont(new Font(Font::SYMBOL));
+
+        $page = new Document\Page(Document\Page::LETTER);
+        $page->addText(new Document\Page\Text('Checked', 12), Font::ARIAL, 50, 700);
+        $page->addText(new Document\Page\Text("\u{2713}", 12), Font::ZAPF_DINGBATS, 120, 700);
+        $page->addText(new Document\Page\Text('3', 12), Font::ZAPF_DINGBATS, 140, 700);
+        $page->addText(new Document\Page\Text("\u{03B1}\u{03B2}", 12), Font::SYMBOL, 160, 700);
+        $doc->addPage($page);
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'symbolic_font_') . '.pdf';
+        Pdf\Pdf::writeToFile($doc, $tmpFile);
+        $pdf = file_get_contents($tmpFile);
+        unlink($tmpFile);
+
+        $this->assertStringStartsWith('%PDF', $pdf);
+
+        $fontDictionary = function (string $baseFont) use ($pdf): string {
+            $this->assertMatchesRegularExpression('#<<[^>]*/BaseFont /' . $baseFont . '\b[^>]*>>#', $pdf);
+            preg_match('#<<[^>]*/BaseFont /' . $baseFont . '\b[^>]*>>#', $pdf, $match);
+            return $match[0];
+        };
+
+        $this->assertStringContainsString('/Encoding /WinAnsiEncoding', $fontDictionary('Arial'));
+        $this->assertStringNotContainsString('/Encoding', $fontDictionary('ZapfDingbats'));
+        $this->assertStringNotContainsString('/Encoding', $fontDictionary('Symbol'));
+    }
+
 }

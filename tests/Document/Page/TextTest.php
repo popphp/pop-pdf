@@ -438,4 +438,54 @@ class TextTest extends TestCase
         $this->assertEquals(6, $text->getNumberOfWrappedLines());
     }
 
+    /**
+     * ZapfDingbats uses its own built-in encoding: the check mark is byte 0x33, which is what
+     * must reach the content stream. Transcoding it to WinAnsi instead is what used to throw.
+     */
+    public function testGetPartialStreamWithZapfDingbatsWritesBuiltInEncodingBytes()
+    {
+        $text = new Text("\u{2713}\u{2714}", 9);
+        $text->setFont(new Font(Font::ZAPF_DINGBATS));
+
+        $this->assertStringContainsString('(34)Tj', $text->getPartialStream());
+    }
+
+    public function testGetPartialStreamWithZapfDingbatsAcceptsTheLegacyByte()
+    {
+        $text = new Text('3', 9);
+        $text->setFont(new Font(Font::ZAPF_DINGBATS));
+
+        $this->assertStringContainsString('(3)Tj', $text->getPartialStream());
+    }
+
+    /**
+     * An encoded byte can land on a PDF string delimiter - ZapfDingbats puts the airplane
+     * (U+2708) at 0x28 '(' - so escaping has to run on the encoded bytes, not the input.
+     */
+    public function testGetPartialStreamWithZapfDingbatsEscapesEncodedDelimiters()
+    {
+        $text = new Text("\u{2708}\u{2709}", 9);
+        $text->setFont(new Font(Font::ZAPF_DINGBATS));
+
+        $this->assertStringContainsString('(\(\))Tj', $text->getPartialStream());
+    }
+
+    public function testGetPartialStreamWithSymbolWritesBuiltInEncodingBytes()
+    {
+        $text = new Text("\u{03B1} \u{2211}", 12);
+        $text->setFont(new Font(Font::SYMBOL));
+
+        $this->assertStringContainsString("(a \xE5)Tj", $text->getPartialStream());
+    }
+
+    public function testGetPartialStreamWithZapfDingbatsThrowsForCharactersItLacks()
+    {
+        $text = new Text("\u{041F}", 9);
+        $text->setFont(new Font(Font::ZAPF_DINGBATS));
+
+        $this->expectException(\Pop\Pdf\Build\Font\Exception::class);
+        $this->expectExceptionMessage("The font 'ZapfDingbats' does not contain a glyph for character");
+        $text->getPartialStream();
+    }
+
 }

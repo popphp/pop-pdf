@@ -159,4 +159,48 @@ class FontTest extends TestCase
         $this->assertEquals('03B4', $font->stringToGidHex("\u{041F}"));
     }
 
+    public function testSymbolicStandardFonts()
+    {
+        $this->assertTrue((new Font(Font::ZAPF_DINGBATS))->isSymbolic());
+        $this->assertTrue((new Font(Font::SYMBOL))->isSymbolic());
+        $this->assertFalse((new Font(Font::ARIAL))->isSymbolic());
+        $this->assertFalse((new Font(__DIR__ . '/../tmp/fonts/times.ttf'))->isSymbolic());
+    }
+
+    public function testZapfDingbatsCoversItsDingbatsAndLegacyBytes()
+    {
+        $font = new Font(Font::ZAPF_DINGBATS);
+
+        $this->assertTrue($font->hasGlyph(0x2713));
+        $this->assertTrue($font->hasGlyph(0x33));
+
+        // Neither the Unicode check mark nor the legacy byte for it may throw
+        $font->requireGlyphCoverage("\u{2713}\u{2714}");
+        $font->requireGlyphCoverage('34');
+
+        $this->assertGreaterThan(0, $font->getStringWidth("\u{2713}", 10));
+        $this->assertEquals($font->getStringWidth("\u{2713}", 10), $font->getStringWidth('3', 10));
+    }
+
+    public function testEncodeStandardString()
+    {
+        $this->assertSame("\x33\x34", (new Font(Font::ZAPF_DINGBATS))->encodeStandardString("\u{2713}\u{2714}"));
+        $this->assertSame("\x61", (new Font(Font::SYMBOL))->encodeStandardString("\u{03B1}"));
+        $this->assertSame("caf\xE9", (new Font(Font::ARIAL))->encodeStandardString('café'));
+    }
+
+    public function testEncodeStandardStringThrowsWhenTheFontCannotRepresentTheText()
+    {
+        $this->expectException(\Pop\Pdf\Build\Font\Exception::class);
+        $this->expectExceptionMessage("The font 'ZapfDingbats' cannot represent the given text in its built-in encoding.");
+        (new Font(Font::ZAPF_DINGBATS))->encodeStandardString("\u{041F}");
+    }
+
+    public function testEncodeStandardStringThrowsForAWinAnsiFontOutsideWindows1252()
+    {
+        $this->expectException(\Pop\Pdf\Build\Font\Exception::class);
+        $this->expectExceptionMessage("The font 'Arial' cannot represent the given text in WinAnsiEncoding.");
+        (new Font(Font::ARIAL))->encodeStandardString("\u{041F}");
+    }
+
 }

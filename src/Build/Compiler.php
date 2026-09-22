@@ -737,10 +737,14 @@ class Compiler extends AbstractCompiler
                 $i = $this->lastIndex() + 1;
 
                 if ($font->isStandard()) {
+                    // Symbol and ZapfDingbats are written in their own built-in encoding, so they must
+                    // not declare one: /WinAnsiEncoding would have the viewer look their bytes up as
+                    // Latin glyph names (0x33 as "three") that neither font contains.
+                    $encoding = ($font->isSymbolic()) ? '' : "\n    /Encoding /WinAnsiEncoding";
                     $this->fontReferences[$font->getName()] = '/MF' . $f . ' ' . $i . ' 0 R';
                     $this->addObject($i, PdfObject\StreamObject::parse(
                         "{$i} 0 obj\n<<\n    /Type /Font\n    /Subtype /Type1\n    /Name /MF{$f}\n    /BaseFont /" .
-                        $font->getName() . "\n    /Encoding /WinAnsiEncoding\n>>\nendobj\n\n"
+                        $font->getName() . $encoding . "\n>>\nendobj\n\n"
                     ));
                 } else {
                     $parser = $font->parser()
