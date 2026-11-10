@@ -787,14 +787,14 @@ class Text
         $isCid      = ($this->font !== null) && $this->font->isCid();
         $isStandard = ($this->font !== null) && $this->font->isStandard();
 
-        if ($isStandard) {
-            $this->font->requireGlyphCoverage($this->rawString);
-            foreach ($this->stringsWithOffsets as $string) {
-                $this->font->requireGlyphCoverage($string['string']);
-            }
-        }
-
         if (count($this->stringsWithOffsets) > 0) {
+            if ($isStandard) {
+                $this->font->requireGlyphCoverage($this->rawString);
+                foreach ($this->stringsWithOffsets as $string) {
+                    $this->font->requireGlyphCoverage($string['string']);
+                }
+            }
+
             if ($isCid) {
                 $stream .= "    [<" . $this->font->stringToGidHex($this->rawString) . ">";
                 foreach ($this->stringsWithOffsets as $string) {
@@ -829,7 +829,11 @@ class Text
                         }
                     }
                 } else if ($isStandard) {
+                    // Check the wrapped lines, not the raw string - a newline is a paragraph break here, not a glyph
                     $strings = explode("\n", $this->mbWordwrap($this->rawString, $this->charWrap));
+                    foreach ($strings as $string) {
+                        $this->font->requireGlyphCoverage($string);
+                    }
                     foreach ($strings as $i => $string) {
                         $stream .= "    (" . $this->encodeStandard($string) . ")Tj\n";
                         if ($i < count($strings)) {
@@ -849,6 +853,7 @@ class Text
                 if ($isCid) {
                     $stream .= "    <" . $this->font->stringToGidHex($this->rawString) . ">Tj\n";
                 } else if ($isStandard) {
+                    $this->font->requireGlyphCoverage($this->rawString);
                     $stream .= "    (" . $this->encodeStandard($this->rawString) . ")Tj\n";
                 } else {
                     $stream .= "    ({$this->string})Tj\n";

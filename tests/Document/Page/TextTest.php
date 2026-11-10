@@ -431,6 +431,33 @@ class TextTest extends TestCase
         $this->assertStringContainsString("caf\xE9 caf\xE9", $stream);
     }
 
+    /**
+     * A newline is a paragraph break under char wrap - the glyph check has to run on the
+     * wrapped lines, not the raw string, or the newline is rejected as a missing glyph.
+     */
+    public function testGetPartialStreamWithStandardFontCharWrapTreatsNewlineAsParagraphBreak()
+    {
+        $text = new Text("First paragraph of text\nSecond paragraph of text", 12);
+        $text->setFont(new Font('Arial'));
+        $text->setCharWrap(30);
+
+        $stream = $text->getPartialStream();
+
+        $this->assertStringContainsString("(First paragraph of text)Tj", $stream);
+        $this->assertStringContainsString("(Second paragraph of text)Tj", $stream);
+    }
+
+    public function testGetPartialStreamWithStandardFontCharWrapStillThrowsForCharactersItLacks()
+    {
+        $text = new Text("First paragraph of text\nSecond \u{041F} paragraph", 12);
+        $text->setFont(new Font('Arial'));
+        $text->setCharWrap(30);
+
+        $this->expectException(\Pop\Pdf\Build\Font\Exception::class);
+        $this->expectExceptionMessage("The font 'Arial' does not contain a glyph for character");
+        $text->getPartialStream();
+    }
+
     public function testGetNumberOfWrappedLinesCountsCharactersNotBytes()
     {
         $text = new Text(str_repeat('café ', 10), 12);
