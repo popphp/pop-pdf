@@ -250,19 +250,22 @@ class Button extends AbstractField
     /**
      * Get the shared parent field stream for a radio group - has no /Rect
      * since it is not itself a widget annotation, only the field the group's
-     * widgets point back to via their own /Parent
+     * widgets point back to via their own /Parent, and which lists those
+     * widgets in /Kids so they are reachable from /AcroForm
      *
      * @param  int     $i
      * @param  ?string $checkedExportName
+     * @param  array   $kidIndices
      * @return string
      */
-    public function getParentFieldStream(int $i, ?string $checkedExportName = null): string
+    public function getParentFieldStream(int $i, ?string $checkedExportName = null, array $kidIndices = []): string
     {
         $name  = ($this->name !== null) ? '    /T(' . $this->encryptLiteral($this->name) . ')' : '';
         $flags = "    /Ff " . $this->getFlags() . "\n";
         $value = ($checkedExportName !== null) ? "    /V /" . $checkedExportName . "\n" : '';
+        $kids  = (!empty($kidIndices)) ? "    /Kids [" . implode(' 0 R ', $kidIndices) . " 0 R]\n" : '';
 
-        return "{$i} 0 obj\n<<\n    /FT /Btn\n{$name}\n{$flags}{$value}>>\nendobj\n\n";
+        return "{$i} 0 obj\n<<\n    /FT /Btn\n{$name}\n{$flags}{$value}{$kids}>>\nendobj\n\n";
     }
 
 }

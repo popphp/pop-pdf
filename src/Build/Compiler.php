@@ -1208,15 +1208,16 @@ class Compiler extends AbstractCompiler
             }
         }
 
+        // Reserve the parent's index before the kids are numbered - the parent
+        // itself is written after the loop below, once the kid widget indices
+        // it has to list in /Kids are known. This placeholder is overwritten.
         $parentIndex = $this->lastIndex() + 1;
-        if ($fileKey !== null) {
-            $representative->encryptWith($this->stringEncryptor($fileKey, $algorithm, $parentIndex));
-        }
         $this->addObject($parentIndex, PdfObject\StreamObject::parse(
             $representative->getParentFieldStream($parentIndex, $checkedValue)
         ));
         $this->document->getForm($formName)->addFieldIndex($parentIndex);
 
+        $kidIndices = [];
         foreach ($groupFields as $index => $field) {
             $kid = $field['field'];
 
@@ -1240,7 +1241,17 @@ class Compiler extends AbstractCompiler
             $fontRef = $this->resolveFieldFontRef($kid);
             $stream  = $kid->getStream($i, $pageObject->getIndex(), $fontRef, $coordinates['x'], $coordinates['y'], $appearance, $parentIndex);
             $this->addObject($i, PdfObject\StreamObject::parse($stream));
+            $kidIndices[] = $i;
         }
+
+        // The representative is also one of the kids, so the loop above left
+        // its encryptor keyed to a kid's index - re-key it to the parent's
+        if ($fileKey !== null) {
+            $representative->encryptWith($this->stringEncryptor($fileKey, $algorithm, $parentIndex));
+        }
+        $this->addObject($parentIndex, PdfObject\StreamObject::parse(
+            $representative->getParentFieldStream($parentIndex, $checkedValue, $kidIndices)
+        ));
     }
 
     /**

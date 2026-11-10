@@ -527,6 +527,16 @@ class FieldTest extends TestCase
         $this->assertStringNotContainsString('/Rect', $stream);
     }
 
+    public function testButtonGetParentFieldStreamListsKids()
+    {
+        $field = new Field\Button('plan');
+        $field->setRadio();
+
+        $stream = $field->getParentFieldStream(7, 'us', [9, 11]);
+
+        $this->assertStringContainsString('/Kids [9 0 R 11 0 R]', $stream);
+    }
+
     // isChecked()/setChecked() are a genuinely independent flag from
     // getValue()/setValue() - the export/on-state name. A radio group needs
     // every option to carry its own distinct value while only one of them is

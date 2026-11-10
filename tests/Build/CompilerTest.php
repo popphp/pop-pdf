@@ -699,6 +699,48 @@ class CompilerTest extends TestCase
         $this->assertEquals(1, substr_count($fieldsMatch[1], ' 0 R'));
     }
 
+    /**
+     * The parent must list its widgets in /Kids, or they are unreachable from /AcroForm
+     * (qpdf --check: "this widget annotation is not reachable from /AcroForm").
+     */
+    public function testRadioGroupParentListsEveryKidWidgetInKids()
+    {
+        $document = new Document();
+        $document->addFont(Font::ARIAL);
+        $page = new Page(Page::LETTER);
+        $document->addPage($page);
+        $document->addForm(new Document\Form('form1'));
+
+        foreach (['a', 'b'] as $value) {
+            $option = new Page\Field\Button('plan');
+            $option->setRadio();
+            $option->setWidth(14);
+            $option->setHeight(14);
+            $option->setValue($value);
+            $page->addField($option, 'form1', 50, 700);
+        }
+
+        $compiler = new Compiler();
+        $compiler->finalize($document);
+        $output = $compiler->getOutput();
+
+        preg_match_all('/ {4}\/Parent (\d+) 0 R/', $output, $parentRefs);
+        $this->assertCount(2, $parentRefs[1]);
+        $parentIndex = $parentRefs[1][0];
+
+        preg_match('/\n' . $parentIndex . ' 0 obj\s*<<.*?\/Kids \[(.*?)\]/s', $output, $kidsMatch);
+        $this->assertNotEmpty($kidsMatch);
+
+        // Every kid listed in /Kids is a widget pointing back at this parent
+        preg_match_all('/(\d+) 0 R/', $kidsMatch[1], $kidIndices);
+        $this->assertCount(2, $kidIndices[1]);
+        foreach ($kidIndices[1] as $kidIndex) {
+            $this->assertMatchesRegularExpression(
+                '/\n' . $kidIndex . ' 0 obj\s*<<[^>]*?\/Parent ' . $parentIndex . ' 0 R/s', $output
+            );
+        }
+    }
+
     public function testSoloRadioWithNoSiblingUsesSingleWidgetPath()
     {
         $document = new Document();
