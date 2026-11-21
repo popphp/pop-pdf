@@ -1926,7 +1926,7 @@ class CompilerTest extends TestCase
         }
 
         // tests/tmp/doc.pdf's first page carries a real /URI link annotation:
-        // /A <</S /URI /URI (http://www.google.com/)>>.
+        // /A <</S /URI /URI (http://www.moc10media.com/)>>.
         $doc = Pdf\Pdf::importFromFile(__DIR__ . '/../tmp/doc.pdf', 1);
         $doc->setSecurity(new Document\Security('open-me', 'admin123'));
 
@@ -1940,14 +1940,14 @@ class CompilerTest extends TestCase
 
         // The imported URI was never routed through any encryptWith() pass, so it
         // survives as literal plaintext in the still-"encrypted" output.
-        $this->assertStringContainsString('http://www.google.com/', $output);
+        $this->assertStringContainsString('http://www.moc10media.com/', $output);
 
         // qpdf --decrypt applies AES decryption uniformly to every declared string
         // in the document, including this one that was never actually encrypted -
         // so the recovered value is corrupted garbage, not the real URL. This is
         // the known-limitation symptom this test exists to pin.
         $decrypted = $this->assertPassesQpdfCheck($output, 'open-me');
-        $this->assertStringNotContainsString('http://www.google.com/', $decrypted);
+        $this->assertStringNotContainsString('http://www.moc10media.com/', $decrypted);
     }
 
     // Everything else here drives Compiler directly; this drives the public
@@ -2234,6 +2234,61 @@ class CompilerTest extends TestCase
         $this->assertEquals(0, $decryptStatus, implode("\n", $decryptOutput));
 
         return $decrypted;
+    }
+
+    public function testDeletingAnImportedPageDropsItFromThePageTreeAndItsObjects()
+    {
+        [$data, $chunks] = $this->buildThreeImagePdf();
+
+        $doc = Pdf\Pdf::importRawData($data);
+        $doc->deletePage(1);
+        $doc->deletePage(3);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $this->assertStringNotContainsString($chunks[0], $output);
+        $this->assertStringContainsString($chunks[1], $output);
+        $this->assertStringNotContainsString($chunks[2], $output);
+
+        $reparsed = new \Pop\Pdf\Extract\Document($output);
+        $pages    = $reparsed->resolve($reparsed->getRoot()['Pages']);
+        $this->assertEquals(1, $pages['Count']);
+        $this->assertCount(1, $pages['Kids']);
+        $this->assertEquals('Page', $reparsed->resolve($pages['Kids'][0])['Type']->name);
+    }
+
+    /**
+     * A 3-page PDF with a different JPEG on each page, and a chunk of each
+     * JPEG's bytes - JPEGs are embedded as-is, so a chunk being present in
+     * the output means that page's image is in the file
+     */
+    protected function buildThreeImagePdf(): array
+    {
+        $images = [
+            __DIR__ . '/../tmp/images/logo-rgb.jpg',
+            __DIR__ . '/../tmp/images/logo-gray.jpg',
+            __DIR__ . '/../tmp/pop-pdf-form.jpg',
+        ];
+
+        $doc    = new \Pop\Pdf\Document();
+        $chunks = [];
+        foreach ($images as $image) {
+            $page = new \Pop\Pdf\Document\Page(\Pop\Pdf\Document\Page::LETTER);
+            $page->addImage(\Pop\Pdf\Document\Page\Image::createImageFromFile($image), 50, 50);
+            $doc->addPage($page);
+
+            $bytes    = file_get_contents($image);
+            $chunks[] = substr($bytes, intdiv(strlen($bytes), 2), 64);
+        }
+
+        $data = (string)$doc;
+        foreach ($chunks as $chunk) {
+            $this->assertStringContainsString($chunk, $data);
+        }
+
+        return [$data, $chunks];
     }
 
 }

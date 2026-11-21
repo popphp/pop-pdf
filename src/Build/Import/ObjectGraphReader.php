@@ -131,6 +131,9 @@ class ObjectGraphReader
                 $pageObjects[$newObjNum] = self::translatePage(
                     $doc, $newObjNum, is_array($node) ? $node : [], $inheritedByPage[$objNum], $map
                 );
+                $pageObjects[$newObjNum]->setImportedObjectIndices(
+                    self::collectPageObjNums($doc, is_array($node) ? $node : [], $inheritedByPage[$objNum], $map)
+                );
                 continue;
             }
 
@@ -281,6 +284,56 @@ class ObjectGraphReader
                 self::walkFieldTree($doc, $kidRef->objNum, $excluded, $visited, $depth + 1);
             }
         }
+    }
+
+    /**
+     * Collect the new object numbers of every object one leaf Page node uses -
+     * its content, resources (including inherited ones), annotations and
+     * everything those reference in turn. The walk never steps into another
+     * Page or Pages node, and never follows the page's own /Parent, or every
+     * page would reach every other page's objects through the page tree.
+     *
+     * @param  Document $doc
+     * @param  array    $node
+     * @param  array    $inherited
+     * @param  array    $map
+     * @return array
+     */
+    protected static function collectPageObjNums(Document $doc, array $node, array $inherited, array $map): array
+    {
+        unset($node['Parent']);
+
+        $objNums = [];
+        $visited = [];
+        $pending = [$node, $inherited];
+
+        while (count($pending) > 0) {
+            $value = array_pop($pending);
+
+            if ($value instanceof Value\Stream) {
+                $pending[] = $value->dict;
+            } else if (is_array($value)) {
+                foreach ($value as $item) {
+                    $pending[] = $item;
+                }
+            } else if (($value instanceof Value\Reference) && !isset($visited[$value->objNum])) {
+                $visited[$value->objNum] = true;
+
+                $object = $doc->getObject($value->objNum);
+                $dict   = ($object instanceof Value\Stream) ? $object->dict : $object;
+                $type   = is_array($dict) ? ($dict['Type'] ?? null) : null;
+
+                if (($type instanceof Value\Name) && in_array($type->name, ['Page', 'Pages'], true)) {
+                    continue;
+                }
+                if (isset($map[$value->objNum])) {
+                    $objNums[] = $map[$value->objNum];
+                }
+                $pending[] = $object;
+            }
+        }
+
+        return $objNums;
     }
 
     /**

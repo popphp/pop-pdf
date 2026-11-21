@@ -359,4 +359,53 @@ class ObjectGraphReaderTest extends TestCase
         $this->assertStringNotContainsString('<<', $rendered);
     }
 
+    public function testEachPageRecordsOnlyTheObjectsItUses()
+    {
+        // Page 1 (obj 3) has its own resources: image 7, font 9, and a link
+        // annotation (11) whose /Dest and /P point at page tree nodes.
+        // Page 2 (obj 4) has no /Resources of its own and inherits object
+        // 10 from the Pages node: image 8 and the shared font 9.
+        $objs = [
+            1  => "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+            2  => "2 0 obj\n<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /Resources 10 0 R >>\nendobj\n",
+            3  => "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R " .
+                "/Resources << /XObject << /Im1 7 0 R >> /Font << /F1 9 0 R >> >> /Annots [11 0 R] >>\nendobj\n",
+            4  => "4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R >>\nendobj\n",
+            5  => "5 0 obj\n<< /Length 6 >>\nstream\nBT ET \nendstream\nendobj\n",
+            6  => "6 0 obj\n<< /Length 6 >>\nstream\nBT ET \nendstream\nendobj\n",
+            7  => "7 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /Length 1 >>\nstream\nA\nendstream\nendobj\n",
+            8  => "8 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /Length 1 >>\nstream\nB\nendstream\nendobj\n",
+            9  => "9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+            10 => "10 0 obj\n<< /Font << /F1 9 0 R >> /XObject << /Im2 8 0 R >> >>\nendobj\n",
+            11 => "11 0 obj\n<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] /P 3 0 R /Dest [4 0 R /Fit] >>\nendobj\n",
+        ];
+
+        $header  = "%PDF-1.4\n";
+        $offsets = [];
+        $cur     = $header;
+        foreach ($objs as $n => $o) {
+            $offsets[$n] = strlen($cur);
+            $cur .= $o;
+        }
+        $body    = implode('', $objs);
+        $xrefPos = strlen($header . $body);
+        $xref    = "xref\n0 12\n0000000000 65535 f \n";
+        for ($i = 1; $i <= 11; $i++) {
+            $xref .= sprintf("%010d 00000 n \n", $offsets[$i]);
+        }
+        $xref .= "trailer\n<< /Size 12 /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
+
+        $graph = ObjectGraphReader::read(new Document($header . $body . $xref), 0);
+
+        $page1 = $graph['pageObjects'][0]->getImportedObjectIndices();
+        $page2 = $graph['pageObjects'][1]->getImportedObjectIndices();
+        sort($page1);
+        sort($page2);
+
+        // The link's /Dest to page 2 must not pull in page 2's image (8) or
+        // content (6), and neither page reaches the other through /Parent
+        $this->assertEquals([5, 7, 9, 11], $page1);
+        $this->assertEquals([6, 8, 9], $page2);
+    }
+
 }

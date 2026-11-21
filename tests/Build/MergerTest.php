@@ -243,11 +243,10 @@ class MergerTest extends TestCase
         $pages    = $reparsed->resolve($root['Pages'] ?? null);
 
         $this->assertEquals($totalPages, $pages['Count']);
-        // The master Pages node's own Kids count is the SOURCE count (2),
-        // deliberately different from the total leaf page count - this is
-        // exactly the distinction the bug conflated.
-        $this->assertCount(2, $pages['Kids']);
-        $this->assertNotEquals($pages['Count'], count($pages['Kids']));
+        // The compiler writes an imported document's page tree flat, so the
+        // root Pages node's Kids are the leaf pages themselves, not one
+        // subtree per source.
+        $this->assertCount($totalPages, $pages['Kids']);
     }
 
     public function testMergeDoesNotLeaveOrphanedFormObjectsInOutput()
@@ -501,6 +500,65 @@ class MergerTest extends TestCase
             new Document(),
             [1 => 'open-me']
         );
+    }
+
+    public function testDeletingAMergedPageDropsItFromThePageTreeAndItsObjects()
+    {
+        [$data, $chunks] = $this->buildThreeImagePdf();
+
+        $merger = new Merger();
+        $doc    = $merger->mergeData([$data, $data]);
+        $doc->deletePage(1);
+        $doc->deletePage(2);
+        $doc->deletePage(3);
+
+        $output = (string)$doc;
+
+        // Only the second source's copy of the images remains - each image
+        // appears once in the output instead of twice
+        foreach ($chunks as $chunk) {
+            $this->assertEquals(1, substr_count($output, $chunk));
+        }
+
+        $reparsed = new \Pop\Pdf\Extract\Document($output);
+        $pages    = $reparsed->resolve($reparsed->getRoot()['Pages']);
+        $this->assertEquals(3, $pages['Count']);
+        $this->assertCount(3, $pages['Kids']);
+        foreach ($pages['Kids'] as $kid) {
+            $this->assertEquals('Page', $reparsed->resolve($kid)['Type']->name);
+        }
+    }
+
+    /**
+     * A 3-page PDF with a different JPEG on each page, and a chunk of each
+     * JPEG's bytes - JPEGs are embedded as-is, so a chunk being present in
+     * the output means that page's image is in the file
+     */
+    protected function buildThreeImagePdf(): array
+    {
+        $images = [
+            __DIR__ . '/../tmp/images/logo-rgb.jpg',
+            __DIR__ . '/../tmp/images/logo-gray.jpg',
+            __DIR__ . '/../tmp/pop-pdf-form.jpg',
+        ];
+
+        $doc    = new \Pop\Pdf\Document();
+        $chunks = [];
+        foreach ($images as $image) {
+            $page = new \Pop\Pdf\Document\Page(\Pop\Pdf\Document\Page::LETTER);
+            $page->addImage(\Pop\Pdf\Document\Page\Image::createImageFromFile($image), 50, 50);
+            $doc->addPage($page);
+
+            $bytes    = file_get_contents($image);
+            $chunks[] = substr($bytes, intdiv(strlen($bytes), 2), 64);
+        }
+
+        $data = (string)$doc;
+        foreach ($chunks as $chunk) {
+            $this->assertStringContainsString($chunk, $data);
+        }
+
+        return [$data, $chunks];
     }
 
 }

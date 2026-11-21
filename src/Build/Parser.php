@@ -153,7 +153,37 @@ class Parser extends AbstractParser
         $root->setParentIndex($graph['topPagesObjNum']);
         $root->setImported(true);
 
-        $objects                           = $graph['objects'];
+        $objects     = $graph['objects'];
+        $pageObjects = $graph['pageObjects'];
+
+        if ($pages !== null) {
+            $pages    = (!is_array($pages)) ? [$pages] : $pages;
+            $kept     = [];
+            $keptKids = [];
+
+            foreach ($pages as $pageNum) {
+                if (isset($pageObjects[$pageNum - 1])) {
+                    $kept[]     = $pageObjects[$pageNum - 1];
+                    $keptKids[] = $pageObjects[$pageNum - 1]->getIndex();
+                }
+            }
+
+            $pageObjects = $kept;
+            $parent->setKids($keptKids);
+            $parent->setCount(count($keptKids));
+
+            // Only carry over the objects the kept pages use - the dropped
+            // pages' content, images and fonts would otherwise still be
+            // written into the file, unreferenced but still extractable
+            $used = [];
+            foreach ($pageObjects as $pageObject) {
+                foreach ($pageObject->getImportedObjectIndices() as $index) {
+                    $used[$index] = true;
+                }
+            }
+            $objects = array_intersect_key($objects, $used);
+        }
+
         $objects[$graph['topPagesObjNum']] = $parent;
         $objects[$rootObjNum]              = $root;
 
@@ -175,25 +205,6 @@ class Parser extends AbstractParser
         $objects[$nextFree] = $info;
 
         $doc->importObjects($objects);
-
-        $pageObjects = $graph['pageObjects'];
-
-        if ($pages !== null) {
-            $pages    = (!is_array($pages)) ? [$pages] : $pages;
-            $kept     = [];
-            $keptKids = [];
-
-            foreach ($pages as $pageNum) {
-                if (isset($pageObjects[$pageNum - 1])) {
-                    $kept[]     = $pageObjects[$pageNum - 1];
-                    $keptKids[] = $pageObjects[$pageNum - 1]->getIndex();
-                }
-            }
-
-            $pageObjects = $kept;
-            $parent->setKids($keptKids);
-            $parent->setCount(count($keptKids));
-        }
 
         foreach ($pageObjects as $pageObject) {
             $pg = new \Pop\Pdf\Document\Page($pageObject->getWidth(), $pageObject->getHeight(), $pageObject->getIndex());

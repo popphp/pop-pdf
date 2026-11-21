@@ -398,4 +398,48 @@ class ParserTest extends TestCase
         }
     }
 
+    public function testImportingAPageSubsetDropsTheOtherPagesObjects()
+    {
+        [$data, $chunks] = $this->buildThreeImagePdf();
+
+        $output = (string)Pdf\Pdf::importRawData($data, 2);
+
+        $this->assertStringNotContainsString($chunks[0], $output);
+        $this->assertStringContainsString($chunks[1], $output);
+        $this->assertStringNotContainsString($chunks[2], $output);
+        $this->assertEquals(1, preg_match_all('#/Subtype\s*/Image#', $output));
+    }
+
+    /**
+     * A 3-page PDF with a different JPEG on each page, and a chunk of each
+     * JPEG's bytes - JPEGs are embedded as-is, so a chunk being present in
+     * the output means that page's image is in the file
+     */
+    protected function buildThreeImagePdf(): array
+    {
+        $images = [
+            __DIR__ . '/../tmp/images/logo-rgb.jpg',
+            __DIR__ . '/../tmp/images/logo-gray.jpg',
+            __DIR__ . '/../tmp/pop-pdf-form.jpg',
+        ];
+
+        $doc    = new \Pop\Pdf\Document();
+        $chunks = [];
+        foreach ($images as $image) {
+            $page = new \Pop\Pdf\Document\Page(\Pop\Pdf\Document\Page::LETTER);
+            $page->addImage(\Pop\Pdf\Document\Page\Image::createImageFromFile($image), 50, 50);
+            $doc->addPage($page);
+
+            $bytes    = file_get_contents($image);
+            $chunks[] = substr($bytes, intdiv(strlen($bytes), 2), 64);
+        }
+
+        $data = (string)$doc;
+        foreach ($chunks as $chunk) {
+            $this->assertStringContainsString($chunk, $data);
+        }
+
+        return [$data, $chunks];
+    }
+
 }

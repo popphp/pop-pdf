@@ -139,11 +139,17 @@ class Compiler extends AbstractCompiler
 
         $pageObjects = [];
 
+        if ($this->document->hasImportedObjects()) {
+            $this->prepareImportedObjects();
+        }
+
         foreach ($this->pages as $page) {
             if ($page->hasImportedPageObject()) {
                 $pageObject = $page->getImportedPageObject();
                 $pageObject->setCurrentContentIndex(null);
+                $pageObject->setParentIndex($this->parent->getIndex());
                 $this->addObject($pageObject->getIndex(), $pageObject);
+                $this->parent->addKid($pageObject->getIndex());
             } else {
                 $page->setIndex($this->lastIndex() + 1);
                 $pageObject = new PdfObject\PageObject($page->getWidth(), $page->getHeight(), $page->getIndex());
@@ -178,6 +184,10 @@ class Compiler extends AbstractCompiler
             }
 
             $pageObjects[$pageObject->getIndex()] = $pageObject;
+        }
+
+        if ($this->document->hasImportedObjects()) {
+            $this->parent->setCount(count($this->parent->getKids()));
         }
 
         // A merge's own source subtrees are deferred rather than included
@@ -773,6 +783,38 @@ class Compiler extends AbstractCompiler
                 $this->fontReferences[$font['name']] = $font['ref'];
             }
         }
+    }
+
+    /**
+     * Prepare an imported document's objects for the pages it has now - a
+     * page deleted after import leaves its content, images and fonts behind,
+     * and leaves it listed in the imported page tree. Every imported object
+     * no remaining page uses is dropped, and the page tree is rebuilt flat
+     * from the remaining pages, which the page loop adds back as kids. Any
+     * intermediate /Pages nodes from the source (or from a merge) are not
+     * used by any page, so they are dropped with the rest.
+     *
+     * @return void
+     */
+    protected function prepareImportedObjects(): void
+    {
+        $used = [];
+        foreach ($this->pages as $page) {
+            if ($page->hasImportedPageObject()) {
+                foreach ($page->getImportedPageObject()->getImportedObjectIndices() as $index) {
+                    $used[$index] = true;
+                }
+            }
+        }
+
+        foreach ($this->objects as $index => $object) {
+            if (($object instanceof PdfObject\StreamObject) && $object->isImported() && !isset($used[$index])) {
+                unset($this->objects[$index]);
+            }
+        }
+
+        $this->parent->setKids([]);
+        $this->parent->setDeferredKids([]);
     }
 
     /**

@@ -98,6 +98,14 @@ class PageObject extends AbstractObject
     protected string $otherResources = '';
 
     /**
+     * Indices of the imported objects this page uses - its content, resources,
+     * annotations and everything they in turn reference - so the compiler can
+     * leave out any imported object that no remaining page uses
+     * @var array
+     */
+    protected array $importedObjectIndices = [];
+
+    /**
      * Constructor
      *
      * Instantiate a PDF page object, defaults to letter size.
@@ -379,6 +387,18 @@ class PageObject extends AbstractObject
     }
 
     /**
+     * Set the indices of the imported objects this page uses
+     *
+     * @param  array $indices
+     * @return PageObject
+     */
+    public function setImportedObjectIndices(array $indices): PageObject
+    {
+        $this->importedObjectIndices = $indices;
+        return $this;
+    }
+
+    /**
      * Add annotation index
      *
      * @param  int $i
@@ -509,6 +529,16 @@ class PageObject extends AbstractObject
     public function getFonts(): array
     {
         return $this->fonts;
+    }
+
+    /**
+     * Get the indices of the imported objects this page uses
+     *
+     * @return array
+     */
+    public function getImportedObjectIndices(): array
+    {
+        return $this->importedObjectIndices;
     }
 
     /**

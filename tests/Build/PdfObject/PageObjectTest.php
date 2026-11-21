@@ -189,4 +189,13 @@ class PageObjectTest extends TestCase
         $this->assertStringContainsString('/XObject<</Im0 8 0 R>>/Font<</F1 7 0 R>>/ProcSet', $result);
     }
 
+    public function testImportedObjectIndices()
+    {
+        $page = new PageObject(612, 792, 4);
+        $this->assertEquals([], $page->getImportedObjectIndices());
+
+        $page->setImportedObjectIndices([5, 7, 9]);
+        $this->assertEquals([5, 7, 9], $page->getImportedObjectIndices());
+    }
+
 }
