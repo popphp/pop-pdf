@@ -40,16 +40,17 @@ class PageObject extends AbstractObject
     protected ?int $parent = 2;
 
     /**
-     * PDF page object width
-     * @var int
+     * PDF page object width - a float, since an imported page's
+     * /MediaBox can have fractional sizes (e.g. 614.4 x 796.8)
+     * @var float
      */
-    protected int $width = 612;
+    protected float $width = 612;
 
     /**
      * PDF page object height
-     * @var int
+     * @var float
      */
-    protected int $height = 792;
+    protected float $height = 792;
 
     /**
      * PDF page object current content object index
@@ -280,7 +281,7 @@ class PageObject extends AbstractObject
      */
     public function setWidth(mixed $width): PageObject
     {
-        $this->width = (int)$width;
+        $this->width = (float)$width;
         return $this;
     }
 
@@ -292,7 +293,7 @@ class PageObject extends AbstractObject
      */
     public function setHeight(mixed $height): PageObject
     {
-        $this->height = (int)$height;
+        $this->height = (float)$height;
         return $this;
     }
 

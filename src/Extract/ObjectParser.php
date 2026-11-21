@@ -213,7 +213,10 @@ class ObjectParser
 
         if ((($pos + 1) < strlen($data)) && ($data[$pos] === "\r") && ($data[$pos + 1] === "\n")) {
             $pos += 2;
-        } elseif (($pos < strlen($data)) && ($data[$pos] === "\n")) {
+        } elseif (($pos < strlen($data)) && (($data[$pos] === "\n") || ($data[$pos] === "\r"))) {
+            // A lone CR is not a valid end-of-line here (ISO 32000-1
+            // 7.3.8.1), but real PDFs use one - keeping it would add a
+            // stray byte to the front of the data
             $pos += 1;
         }
 

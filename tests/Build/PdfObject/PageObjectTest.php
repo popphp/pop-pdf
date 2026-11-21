@@ -198,4 +198,12 @@ class PageObjectTest extends TestCase
         $this->assertEquals([5, 7, 9], $page->getImportedObjectIndices());
     }
 
+    public function testFractionalPageSizeIsKept()
+    {
+        $page = new PageObject(614.40, '796.80', 4);
+
+        $this->assertEquals(614.4, $page->getWidth());
+        $this->assertStringContainsString('/MediaBox[0 0 614.4 796.8]', (string)$page);
+    }
+
 }

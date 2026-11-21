@@ -16,7 +16,7 @@ class ObjectGraphReaderTest extends TestCase
         $obj2 = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
         $obj3 = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] {$extraPageDictEntries}" .
             "/Resources << /Font << /F1 5 0 R >> {$extraResourceEntries} >> /Contents 4 0 R >>\nendobj\n";
-        $obj4 = "4 0 obj\n<< /Length 6 >>\nstream\nBT ET \nendstream\nendobj\n";
+        $obj4 = "4 0 obj\n<< /Length 15 >>\nstream\nBT /F1 9 Tf ET \nendstream\nendobj\n";
         $obj5 = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
         $obj6 = "6 0 obj\n<< /Type /Info /Title (Test Doc) >>\nendobj\n";
 
@@ -145,9 +145,44 @@ class ObjectGraphReaderTest extends TestCase
 
         $rendered = (string) $graph['objects'][4];
 
-        $this->assertStringContainsString('/Length 7', $rendered);
+        $this->assertStringContainsString('/Length 16', $rendered);
         $this->assertStringNotContainsString('>><<', $rendered);
-        $this->assertMatchesRegularExpression('/stream\r?\nBT ET \r?\nendstream/', $rendered);
+        $this->assertMatchesRegularExpression('/stream\r?\nBT \/F1 9 Tf ET \r?\nendstream/', $rendered);
+    }
+
+    public function testImportedImageStreamLengthIsTheLengthOfItsData()
+    {
+        // The source declares /Length 3 for a 1-byte image. StreamObject
+        // keeps an image's /Length as given, so the import must write the
+        // real length rather than the source's.
+        $objs = [
+            1 => "<< /Type /Catalog /Pages 2 0 R >>",
+            2 => "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            3 => "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " .
+                "/Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>",
+            4 => "<< /Length 7 >>\nstream\n/Im1 Do\nendstream",
+            5 => "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /Length 3 >>\nstream\nA\nendstream",
+        ];
+
+        $data    = "%PDF-1.4\n";
+        $offsets = [];
+        foreach ($objs as $n => $o) {
+            $offsets[$n] = strlen($data);
+            $data       .= "{$n} 0 obj\n{$o}\nendobj\n";
+        }
+        $xrefPos = strlen($data);
+        $data   .= "xref\n0 6\n0000000000 65535 f \n";
+        foreach ($offsets as $offset) {
+            $data .= sprintf("%010d 00000 n \n", $offset);
+        }
+        $data .= "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
+
+        $graph = ObjectGraphReader::read(new Document($data), 0);
+
+        $rendered = (string) $graph['objects'][5];
+
+        $this->assertStringContainsString('/Length 1 ', $rendered);
+        $this->assertStringNotContainsString('/Length 3', $rendered);
     }
 
     public function testRootPagesPointingDirectlyAtAPageThrowsCleanException()
@@ -181,13 +216,14 @@ class ObjectGraphReaderTest extends TestCase
         // resolved for the font to actually reach the translated page.
         $obj1 = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
         $obj2 = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
-        $obj3 = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources 4 0 R >>\nendobj\n";
+        $obj3 = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources 4 0 R /Contents 7 0 R >>\nendobj\n";
         $obj4 = "4 0 obj\n<< /ProcSet [/PDF /Text] /Font 5 0 R >>\nendobj\n";
         $obj5 = "5 0 obj\n<< /F1 6 0 R >>\nendobj\n";
         $obj6 = "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
+        $obj7 = "7 0 obj\n<< /Length 15 >>\nstream\nBT /F1 9 Tf ET \nendstream\nendobj\n";
 
         $header = "%PDF-1.4\n";
-        $objs   = [1 => $obj1, 2 => $obj2, 3 => $obj3, 4 => $obj4, 5 => $obj5, 6 => $obj6];
+        $objs   = [1 => $obj1, 2 => $obj2, 3 => $obj3, 4 => $obj4, 5 => $obj5, 6 => $obj6, 7 => $obj7];
 
         $offsets = [];
         $cur     = $header;
@@ -197,11 +233,11 @@ class ObjectGraphReaderTest extends TestCase
         }
         $body    = implode('', $objs);
         $xrefPos = strlen($header . $body);
-        $xref    = "xref\n0 7\n0000000000 65535 f \n";
-        for ($i = 1; $i <= 6; $i++) {
+        $xref    = "xref\n0 8\n0000000000 65535 f \n";
+        for ($i = 1; $i <= 7; $i++) {
             $xref .= sprintf("%010d 00000 n \n", $offsets[$i]);
         }
-        $xref .= "trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
+        $xref .= "trailer\n<< /Size 8 /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
 
         $doc   = new Document($header . $body . $xref);
         $graph = ObjectGraphReader::read($doc, 0);
@@ -371,8 +407,8 @@ class ObjectGraphReaderTest extends TestCase
             3  => "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R " .
                 "/Resources << /XObject << /Im1 7 0 R >> /Font << /F1 9 0 R >> >> /Annots [11 0 R] >>\nendobj\n",
             4  => "4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R >>\nendobj\n",
-            5  => "5 0 obj\n<< /Length 6 >>\nstream\nBT ET \nendstream\nendobj\n",
-            6  => "6 0 obj\n<< /Length 6 >>\nstream\nBT ET \nendstream\nendobj\n",
+            5  => "5 0 obj\n<< /Length 23 >>\nstream\n/Im1 Do BT /F1 9 Tf ET\nendstream\nendobj\n",
+            6  => "6 0 obj\n<< /Length 23 >>\nstream\n/Im2 Do BT /F1 9 Tf ET\nendstream\nendobj\n",
             7  => "7 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /Length 1 >>\nstream\nA\nendstream\nendobj\n",
             8  => "8 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /Length 1 >>\nstream\nB\nendstream\nendobj\n",
             9  => "9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
@@ -406,6 +442,157 @@ class ObjectGraphReaderTest extends TestCase
         // content (6), and neither page reaches the other through /Parent
         $this->assertEquals([5, 7, 9, 11], $page1);
         $this->assertEquals([6, 8, 9], $page2);
+    }
+
+    public function testContentsReferencingAnArrayObjectListsEachStream()
+    {
+        // /Contents 4 0 R points at an array object of two stream references,
+        // not at a stream - the page's content is streams 5 and 6, not 4
+        $objs = [
+            1 => "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+            2 => "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+            3 => "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>\nendobj\n",
+            4 => "4 0 obj\n[5 0 R 6 0 R]\nendobj\n",
+            5 => "5 0 obj\n<< /Length 3 >>\nstream\nBT \nendstream\nendobj\n",
+            6 => "6 0 obj\n<< /Length 3 >>\nstream\nET \nendstream\nendobj\n",
+        ];
+
+        $header  = "%PDF-1.4\n";
+        $offsets = [];
+        $cur     = $header;
+        foreach ($objs as $n => $o) {
+            $offsets[$n] = strlen($cur);
+            $cur .= $o;
+        }
+        $body    = implode('', $objs);
+        $xrefPos = strlen($header . $body);
+        $xref    = "xref\n0 7\n0000000000 65535 f \n";
+        for ($i = 1; $i <= 6; $i++) {
+            $xref .= sprintf("%010d 00000 n \n", $offsets[$i]);
+        }
+        $xref .= "trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
+
+        $graph = ObjectGraphReader::read(new Document($header . $body . $xref), 0);
+
+        $this->assertEquals([5, 6], $graph['pageObjects'][0]->getContent());
+    }
+
+    public function testAnnotsReferencingAnArrayObjectListsEachAnnotation()
+    {
+        // /Annots 4 0 R points at an array object of two annotation
+        // references - the page's annotations are 5 and 6, not 4
+        $objs = [
+            1 => "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+            2 => "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+            3 => "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Annots 4 0 R >>\nendobj\n",
+            4 => "4 0 obj\n[5 0 R 6 0 R]\nendobj\n",
+            5 => "5 0 obj\n<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] >>\nendobj\n",
+            6 => "6 0 obj\n<< /Type /Annot /Subtype /Text /Rect [0 0 10 10] >>\nendobj\n",
+        ];
+
+        $header  = "%PDF-1.4\n";
+        $offsets = [];
+        $cur     = $header;
+        foreach ($objs as $n => $o) {
+            $offsets[$n] = strlen($cur);
+            $cur .= $o;
+        }
+        $body    = implode('', $objs);
+        $xrefPos = strlen($header . $body);
+        $xref    = "xref\n0 7\n0000000000 65535 f \n";
+        for ($i = 1; $i <= 6; $i++) {
+            $xref .= sprintf("%010d 00000 n \n", $offsets[$i]);
+        }
+        $xref .= "trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
+
+        $graph = ObjectGraphReader::read(new Document($header . $body . $xref), 0);
+        $page  = $graph['pageObjects'][0];
+
+        $this->assertEquals([5, 6], $page->getAnnots());
+
+        $used = $page->getImportedObjectIndices();
+        sort($used);
+        $this->assertEquals([4, 5, 6], $used);
+    }
+
+    public function testFormsSharingOneResourceDictionaryKeepOnlyTheirOwnResources()
+    {
+        // Forms 5 and 6 share one /Resources (object 9) listing both images.
+        // The page draws only form 5, which draws only image 7.
+        $form = fn (string $content) => "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources 9 0 R " .
+            "/Length " . strlen($content) . " >>\nstream\n{$content}\nendstream";
+        $objs = [
+            1 => "<< /Type /Catalog /Pages 2 0 R >>",
+            2 => "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            3 => "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " .
+                "/Resources << /XObject << /Fm1 5 0 R /Fm2 6 0 R >> >> /Contents 4 0 R >>",
+            4 => "<< /Length 7 >>\nstream\n/Fm1 Do\nendstream",
+            5 => $form('/Im1 Do'),
+            6 => $form('/Im2 Do'),
+            7 => "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /Length 1 >>\nstream\nA\nendstream",
+            8 => "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /Length 1 >>\nstream\nB\nendstream",
+            9 => "<< /XObject << /Im1 7 0 R /Im2 8 0 R >> >>",
+        ];
+
+        $data    = "%PDF-1.4\n";
+        $offsets = [];
+        foreach ($objs as $n => $o) {
+            $offsets[$n] = strlen($data);
+            $data       .= "{$n} 0 obj\n{$o}\nendobj\n";
+        }
+        $xrefPos = strlen($data);
+        $data   .= "xref\n0 10\n0000000000 65535 f \n";
+        foreach ($offsets as $offset) {
+            $data .= sprintf("%010d 00000 n \n", $offset);
+        }
+        $data .= "trailer\n<< /Size 10 /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
+
+        $graph = ObjectGraphReader::read(new Document($data), 0);
+
+        $used = $graph['pageObjects'][0]->getImportedObjectIndices();
+        sort($used);
+        $this->assertEquals([4, 5, 7], $used);
+
+        $form1 = (string)$graph['objects'][5];
+        $this->assertStringContainsString('/Im1 7 0 R', $form1);
+        $this->assertStringNotContainsString('/Im2', $form1);
+        $this->assertStringNotContainsString('9 0 R', $form1);
+    }
+
+    public function testFormFieldTreeIsReadIntoAnImportedForm()
+    {
+        // tests/tmp/form-fields-2page.pdf: page 1 (obj 3) has text field 11
+        // (its own widget) and radio widget 13; page 2 (obj 4, /Annots via
+        // array object 22) has radio widget 14 and signed signature field 15
+        // (/V 19). Radio parent 12 lists widgets 13 and 14. The AcroForm (10)
+        // has /DR (font 20), /DA, /NeedAppearances and /XFA (21). Widget
+        // appearances are 16 (field 11), 17 (widget 13) and 18 (widget 14).
+        $doc   = Document::fromFile(__DIR__ . '/../../tmp/form-fields-2page.pdf');
+        $graph = ObjectGraphReader::read($doc, 0);
+        $form  = $graph['form'];
+
+        $this->assertNotNull($form);
+        $this->assertEquals([11, 13], $graph['pageObjects'][0]->getAnnots());
+        $this->assertEquals([14, 15], $graph['pageObjects'][1]->getAnnots());
+
+        // Field tree nodes and the AcroForm are not generic objects
+        foreach ([10, 11, 12, 13, 14, 15] as $objNum) {
+            $this->assertArrayNotHasKey($objNum, $graph['objects']);
+        }
+
+        $page1 = $form->getKeptNodes($graph['pageObjects'][0]->getAnnots());
+        $this->assertEquals([11, 12, 13], array_values(array_intersect([11, 12, 13, 14, 15], array_keys($page1))));
+        $this->assertEquals([11, 12], $form->getKeptFields($page1));
+
+        $used = $form->getUsedObjectIndices($page1);
+        sort($used);
+        $this->assertEquals([16, 17, 20], $used);
+
+        // The signature value and /XFA are not carried over
+        $all = $form->getKeptNodes([11, 13, 14, 15]);
+        $this->assertArrayNotHasKey('V', $form->getNodeDictionary(15, $all));
+        $this->assertNotContains(19, $form->getUsedObjectIndices($all));
+        $this->assertEquals(['DR', 'DA', 'NeedAppearances'], array_keys($form->getSettings()));
     }
 
 }

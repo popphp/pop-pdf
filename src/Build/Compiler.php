@@ -208,8 +208,8 @@ class Compiler extends AbstractCompiler
             }
         }
 
-        // If the document has forms
-        if ($document->hasForms()) {
+        // If the document has forms, its own or imported
+        if ($document->hasForms() || $document->hasImportedForms()) {
             $this->prepareForms();
         }
 
@@ -807,6 +807,14 @@ class Compiler extends AbstractCompiler
             }
         }
 
+        // Plus what the remaining pages' form field widgets use
+        $annots = $this->getImportedAnnotIndices();
+        foreach ($this->document->getImportedForms() as $form) {
+            foreach ($form->getUsedObjectIndices($form->getKeptNodes($annots)) as $index) {
+                $used[$index] = true;
+            }
+        }
+
         foreach ($this->objects as $index => $object) {
             if (($object instanceof PdfObject\StreamObject) && $object->isImported() && !isset($used[$index])) {
                 unset($this->objects[$index]);
@@ -815,6 +823,22 @@ class Compiler extends AbstractCompiler
 
         $this->parent->setKids([]);
         $this->parent->setDeferredKids([]);
+    }
+
+    /**
+     * Get the annotation indices of the document's remaining imported pages
+     *
+     * @return array
+     */
+    protected function getImportedAnnotIndices(): array
+    {
+        $annots = [];
+        foreach ($this->pages as $page) {
+            if ($page->hasImportedPageObject()) {
+                $annots = array_merge($annots, $page->getImportedPageObject()->getAnnots());
+            }
+        }
+        return $annots;
     }
 
     /**
@@ -1313,11 +1337,109 @@ class Compiler extends AbstractCompiler
             $fieldIndices = array_merge($fieldIndices, $form->getFieldIndices());
         }
 
+        $settings = '';
+        if ($this->document->hasImportedForms()) {
+            [$importedFields, $importedSettings] = $this->prepareImportedForms();
+            $fieldIndices = array_merge($fieldIndices, $importedFields);
+            foreach ($importedSettings as $key => $value) {
+                $settings .= '/' . $key . ' ' . Import\ObjectSerializer::serializeValue($value);
+            }
+        }
+
+        // An imported form whose widgets were all on dropped pages leaves
+        // nothing to write
+        if (!$this->document->hasForms() && (count($fieldIndices) === 0)) {
+            return;
+        }
+
         $fields = implode(' ', array_map(fn($index) => $index . ' 0 R', $fieldIndices));
 
         $i = $this->lastIndex() + 1;
-        $this->addObject($i, PdfObject\StreamObject::parse("{$i} 0 obj\n<</Fields[{$fields}]>>\nendobj\n\n"));
+        if ($settings === '') {
+            $this->addObject($i, PdfObject\StreamObject::parse("{$i} 0 obj\n<</Fields[{$fields}]>>\nendobj\n\n"));
+        } else {
+            // Not parsed from text - imported settings are arbitrary strings
+            // (e.g. /DA) that StreamObject::parse() could mistake for syntax
+            $acroForm = new PdfObject\StreamObject($i);
+            $acroForm->setDefinition("<</Fields[{$fields}]{$settings}>>");
+            $this->addObject($i, $acroForm);
+        }
         $this->root->setFormReferences($i . ' 0 R');
+    }
+
+    /**
+     * Write the imported forms' field tree nodes whose widgets are on the
+     * remaining pages, and merge the forms' document-level settings. A
+     * top-level field whose name is already taken - by one of the document's
+     * own fields, or by an earlier imported field - is renamed with a "+N"
+     * suffix, so the two don't become one field sharing a value. /DR is
+     * merged by name, the first form winning a clash; /DA, /Q and /SigFlags
+     * come from the first form that sets them; /NeedAppearances is true if
+     * any form sets it.
+     *
+     * @return array [top-level field indices, merged settings]
+     */
+    protected function prepareImportedForms(): array
+    {
+        $names = [];
+        foreach ($this->pages as $page) {
+            foreach ($page->getFields() as $field) {
+                if ($field['field']->getName() !== null) {
+                    $names[$field['field']->getName()] = true;
+                }
+            }
+        }
+
+        $annots   = $this->getImportedAnnotIndices();
+        $fields   = [];
+        $settings = [];
+
+        foreach ($this->document->getImportedForms() as $form) {
+            $kept      = $form->getKeptNodes($annots);
+            $keptTop   = $form->getKeptFields($kept);
+            $topLevel  = array_flip($keptTop);
+
+            foreach (array_keys($kept) as $index) {
+                $dict = $form->getNodeDictionary($index, $kept);
+
+                if (isset($topLevel[$index]) && isset($dict['T']) && is_string($dict['T'])) {
+                    $name   = $dict['T'];
+                    $suffix = 0;
+                    while (isset($names[$name])) {
+                        $name = $dict['T'] . '+' . (++$suffix);
+                    }
+                    $names[$name] = true;
+                    $dict['T']    = $name;
+                }
+
+                $object = new PdfObject\StreamObject($index);
+                $object->setDefinition(Import\ObjectSerializer::serializeDict($dict));
+                $object->setImported(true);
+                $this->addObject($index, $object);
+            }
+
+            $fields = array_merge($fields, $keptTop);
+
+            if (count($kept) > 0) {
+                foreach ($form->getSettings() as $key => $value) {
+                    if ($key === 'NeedAppearances') {
+                        $settings[$key] = ($settings[$key] ?? false) || ($value === true);
+                    } else if (($key === 'DR') && is_array($value) && isset($settings['DR'])) {
+                        foreach ($value as $category => $entries) {
+                            if (is_array($entries) && is_array($settings['DR'][$category] ?? null)) {
+                                $settings['DR'][$category] += $entries;
+                            } else if (!isset($settings['DR'][$category])) {
+                                $settings['DR'][$category] = $entries;
+                            }
+                        }
+                    } else if (!isset($settings[$key])) {
+                        $settings[$key] = $value;
+                    }
+                }
+            }
+        }
+
+        return [$fields, $settings];
     }
 
 }

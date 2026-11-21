@@ -669,6 +669,36 @@ class DocumentTest extends TestCase
         $this->assertEquals('Page', $page['Type']->name);
     }
 
+    public function testIsUsableRejectsXrefWhoseNumbersAreOffByOneAndFallsBackToRepair()
+    {
+        // The subsection header says "1 4" but the first entry is object 0's
+        // free entry, so every offset is listed under the next object number
+        // up - each still points at a real object, just not the one it's
+        // listed as, and /Root 3 0 R would land on the Page (object 2).
+        $obj1 = "1 0 obj\n<< /Type /Pages /Kids [2 0 R] /Count 1 >>\nendobj\n";
+        $obj2 = "2 0 obj\n<< /Type /Page /Parent 1 0 R /MediaBox [0 0 612 792] >>\nendobj\n";
+        $obj3 = "3 0 obj\n<< /Type /Catalog /Pages 1 0 R >>\nendobj\n";
+
+        $header  = "%PDF-1.4\n";
+        $body    = $obj1 . $obj2 . $obj3;
+        $xrefPos = strlen($header . $body);
+
+        $xref = "xref\n1 4\n" .
+            "0000000000 65535 f \n" .
+            sprintf("%010d 00000 n \n", strlen($header)) .
+            sprintf("%010d 00000 n \n", strlen($header . $obj1)) .
+            sprintf("%010d 00000 n \n", strlen($header . $obj1 . $obj2)) .
+            "trailer\n<< /Size 4 /Root 3 0 R >>\n" .
+            "startxref\n{$xrefPos}\n%%EOF";
+
+        $doc  = new Document($header . $body . $xref);
+        $root = $doc->getRoot();
+
+        $this->assertEquals('Catalog', $root['Type']->name);
+        $page = $doc->resolve($doc->resolve($root['Pages'])['Kids'][0]);
+        $this->assertEquals('Page', $page['Type']->name);
+    }
+
     public function testRepairSkipsObjectStreamThatFailsToExpand()
     {
         // No xref/startxref/trailer at all, forcing full repair. Object 9

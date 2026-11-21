@@ -287,35 +287,7 @@ class Interpreter
             }
         }
 
-        $data = $tokenizer->getData();
-        $pos  = $tokenizer->getPosition();
-
-        if (($pos < strlen($data)) && Tokenizer::isWhitespace($data[$pos])) {
-            $pos++;
-        }
-
-        $length = strlen($data);
-        $eiPos  = $pos;
-
-        while (true) {
-            $eiPos = strpos($data, 'EI', $eiPos);
-
-            if ($eiPos === false) {
-                $tokenizer->setPosition($length);
-                return;
-            }
-
-            $beforeOk = ($eiPos === 0) || Tokenizer::isWhitespace($data[$eiPos - 1]);
-            $afterPos = $eiPos + 2;
-            $afterOk  = ($afterPos >= $length) || Tokenizer::isWhitespace($data[$afterPos]);
-
-            if ($beforeOk && $afterOk) {
-                $tokenizer->setPosition($afterPos);
-                return;
-            }
-
-            $eiPos += 2;
-        }
+        $tokenizer->skipInlineImageData();
     }
 
     /**

@@ -76,6 +76,16 @@ class ObjectParserTest extends TestCase
         $this->assertEquals(5, $value->dict['Length']);
     }
 
+    public function testStreamAfterLoneCarriageReturn()
+    {
+        // A lone CR after the "stream" keyword is an end-of-line marker,
+        // not the first byte of the data
+        $data  = "<< /Length 5 >>\nstream\rHELLO\nendstream";
+        $value = $this->parse($data);
+        $this->assertInstanceOf(Value\Stream::class, $value);
+        $this->assertEquals('HELLO', $value->raw);
+    }
+
     public function testStreamWithoutUsableLengthScansForEndstream()
     {
         $data  = "<< /Length 999 0 R >>\nstream\nHELLO\nendstream";

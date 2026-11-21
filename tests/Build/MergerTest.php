@@ -249,14 +249,10 @@ class MergerTest extends TestCase
         $this->assertCount($totalPages, $pages['Kids']);
     }
 
-    public function testMergeDoesNotLeaveOrphanedFormObjectsInOutput()
+    public function testMergeCarriesFormFieldsOver()
     {
-        // Merging doesn't reconstruct a combined /AcroForm across sources
-        // (documented scope limitation - widgets are dropped from the
-        // page's /Annots in ObjectGraphReader::translatePage()), but the
-        // source's own AcroForm dictionary and Widget annotation objects
-        // must be omitted entirely rather than carried over as dead,
-        // unreferenced objects in the merged file.
+        // A source's AcroForm field tree is carried over into the merged
+        // file's single /AcroForm, with each widget on its page's /Annots
         $formDoc = new Document();
         $formDoc->addForm(new Form('contact_form'));
         $formPage = new Page(Page::LETTER);
@@ -272,12 +268,62 @@ class MergerTest extends TestCase
             $doc    = $merger->mergeFiles([$formFile, __DIR__ . '/../tmp/test.pdf']);
             $output = (string) $doc;
 
-            $this->assertStringNotContainsString('/AcroForm', $output);
-            $this->assertStringNotContainsString('/Widget', $output);
-            $this->assertDoesNotMatchRegularExpression('/<<\s*\/Fields\s*\[/', $output);
+            $reparsed = new \Pop\Pdf\Extract\Document($output);
+            $acroForm = $reparsed->resolve($reparsed->getRoot()['AcroForm']);
+            $this->assertCount(1, $acroForm['Fields']);
+
+            $field = $reparsed->resolve($acroForm['Fields'][0]);
+            $this->assertEquals('name', $field['T']);
+
+            $page = $reparsed->resolve($reparsed->resolve($reparsed->getRoot()['Pages'])['Kids'][0]);
+            $this->assertEquals($acroForm['Fields'][0]->objNum, $page['Annots'][0]->objNum);
         } finally {
             unlink($formFile);
         }
+    }
+
+    public function testMergeRenamesClashingFieldsAndMergesFormSettings()
+    {
+        // Two copies of tests/tmp/form-fields-2page.pdf (fields 'name',
+        // 'plan', 'sig'; /DR font /Helv; /NeedAppearances true)
+        $file   = __DIR__ . '/../tmp/form-fields-2page.pdf';
+        $merger = new Merger();
+        $output = (string)$merger->mergeFiles([$file, $file]);
+
+        $reparsed = new \Pop\Pdf\Extract\Document($output);
+        $acroForm = $reparsed->resolve($reparsed->getRoot()['AcroForm']);
+        $fields   = array_map(fn ($ref) => $reparsed->resolve($ref), $acroForm['Fields']);
+
+        $this->assertEquals(['name', 'plan', 'sig', 'name+1', 'plan+1', 'sig+1'], array_column($fields, 'T'));
+        $this->assertEquals(2, substr_count($output, '(Downstream Road)'));
+
+        // One /Helv - the first source's, since the first source wins a
+        // clash. The first source's objects are numbered below the second's.
+        $this->assertCount(1, $acroForm['DR']['Font']);
+        $this->assertLessThan(
+            $acroForm['Fields'][3]->objNum, $acroForm['DR']['Font']['Helv']->objNum
+        );
+        $this->assertTrue($acroForm['NeedAppearances']);
+    }
+
+    public function testMergeIntoADocumentWithItsOwnFieldsRenamesTheImportedOnes()
+    {
+        $target = new Document();
+        $target->addForm(new Form('own_form'));
+        $page = new Page(Page::LETTER);
+        $page->addField(new Page\Field\Text('name', 'Arial', 10), 'own_form', 50, 200);
+        $target->addFont(new Font('Arial'));
+        $target->addPage($page);
+
+        $file   = __DIR__ . '/../tmp/form-fields-2page.pdf';
+        $merger = new Merger();
+        $output = (string)$merger->mergeFiles([$file, __DIR__ . '/../tmp/test.pdf'], $target);
+
+        $reparsed = new \Pop\Pdf\Extract\Document($output);
+        $acroForm = $reparsed->resolve($reparsed->getRoot()['AcroForm']);
+        $names    = array_column(array_map(fn ($ref) => $reparsed->resolve($ref), $acroForm['Fields']), 'T');
+
+        $this->assertEquals(['name', 'name+1', 'plan', 'sig'], $names);
     }
 
     public function testMergeWrapsExtractExceptionAsBuildException()

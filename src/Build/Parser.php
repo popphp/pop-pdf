@@ -174,10 +174,18 @@ class Parser extends AbstractParser
 
             // Only carry over the objects the kept pages use - the dropped
             // pages' content, images and fonts would otherwise still be
-            // written into the file, unreferenced but still extractable
-            $used = [];
+            // written into the file, unreferenced but still extractable. That
+            // includes what the kept pages' form field widgets use.
+            $used   = [];
+            $annots = [];
             foreach ($pageObjects as $pageObject) {
                 foreach ($pageObject->getImportedObjectIndices() as $index) {
+                    $used[$index] = true;
+                }
+                $annots = array_merge($annots, $pageObject->getAnnots());
+            }
+            if ($graph['form'] !== null) {
+                foreach ($graph['form']->getUsedObjectIndices($graph['form']->getKeptNodes($annots)) as $index) {
                     $used[$index] = true;
                 }
             }
@@ -205,6 +213,9 @@ class Parser extends AbstractParser
         $objects[$nextFree] = $info;
 
         $doc->importObjects($objects);
+        if ($graph['form'] !== null) {
+            $doc->importForms([$graph['form']]);
+        }
 
         foreach ($pageObjects as $pageObject) {
             $pg = new \Pop\Pdf\Document\Page($pageObject->getWidth(), $pageObject->getHeight(), $pageObject->getIndex());

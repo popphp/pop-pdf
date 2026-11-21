@@ -410,6 +410,96 @@ class ParserTest extends TestCase
         $this->assertEquals(1, preg_match_all('#/Subtype\s*/Image#', $output));
     }
 
+    public function testImportingAPageSubsetCarriesItsFormFieldsOver()
+    {
+        // tests/tmp/form-fields-2page.pdf: page 1 has text field 'name'
+        // (value 'Downstream Road', appearance MARKER-AP-NAME) and one widget
+        // of radio group 'plan' (MARKER-AP-PLAN-A); page 2 has the group's
+        // other widget (MARKER-AP-PLAN-B) and a signed field 'sig'
+        $output = (string)Pdf\Pdf::importFromFile(__DIR__ . '/../tmp/form-fields-2page.pdf', 1);
+
+        $this->assertStringContainsString('(Downstream Road)', $output);
+        $this->assertStringContainsString('MARKER-AP-NAME', $output);
+        $this->assertStringContainsString('MARKER-AP-PLAN-A', $output);
+        $this->assertStringNotContainsString('MARKER-AP-PLAN-B', $output);
+        $this->assertStringNotContainsString('MARKER-XFA', $output);
+        $this->assertStringNotContainsString('(sig)', $output);
+
+        $reparsed = new \Pop\Pdf\Extract\Document($output);
+        $acroForm = $reparsed->resolve($reparsed->getRoot()['AcroForm']);
+        $fields   = array_map(fn ($ref) => $reparsed->resolve($ref), $acroForm['Fields']);
+
+        $this->assertEquals(['name', 'plan'], array_column($fields, 'T'));
+        $this->assertCount(1, $fields[1]['Kids']);
+        $this->assertTrue($acroForm['NeedAppearances']);
+        $this->assertArrayHasKey('Helv', $acroForm['DR']['Font']);
+        $this->assertArrayNotHasKey('XFA', $acroForm);
+
+        // Each kept widget is on the page's /Annots
+        $page   = $reparsed->resolve($reparsed->resolve($reparsed->getRoot()['Pages'])['Kids'][0]);
+        $annots = array_map(fn ($ref) => $ref->objNum, $page['Annots']);
+        $this->assertContains($acroForm['Fields'][0]->objNum, $annots);
+        $this->assertContains($fields[1]['Kids'][0]->objNum, $annots);
+    }
+
+    public function testImportingAFormClearsSignatureValues()
+    {
+        $output = (string)Pdf\Pdf::importFromFile(__DIR__ . '/../tmp/form-fields-2page.pdf');
+
+        $this->assertStringContainsString('(sig)', $output);
+        $this->assertStringNotContainsString('MARKER-SIGNER', $output);
+    }
+
+    public function testImportingAPageThatSharesOneResourceDictionaryKeepsOnlyItsOwnResources()
+    {
+        // All three pages point at one /Resources (object 6) listing every
+        // page's image, as some producers write it. Page 2's /Contents is a
+        // reference to an array object (9) of two streams.
+        $image   = fn (string $marker) => "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 " .
+            "/ColorSpace /DeviceGray /BitsPerComponent 8 /Length " . strlen($marker) . " >>\nstream\n{$marker}\nendstream";
+        $stream  = fn (string $content) => "<< /Length " . strlen($content) . " >>\nstream\n{$content}\nendstream";
+        $page    = fn (string $contents) => "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " .
+            "/Resources 6 0 R /Contents {$contents} >>";
+        $objects = [
+            1  => "<< /Type /Catalog /Pages 2 0 R >>",
+            2  => "<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R] /Count 3 >>",
+            3  => $page('10 0 R'),
+            4  => $page('9 0 R'),
+            5  => $page('13 0 R'),
+            6  => "<< /Font << /F1 7 0 R >> /XObject << /Im1 14 0 R /Im2 15 0 R /Im3 16 0 R >> >>",
+            7  => "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            8  => "null",
+            9  => "[11 0 R 12 0 R]",
+            10 => $stream("/Im1 Do BT /F1 24 Tf 72 700 Td (PAGEONE) Tj ET"),
+            11 => $stream("/Im2 Do BT /F1 24 Tf 72 700 Td"),
+            12 => $stream("(PAGETWO) Tj ET"),
+            13 => $stream("/Im3 Do BT /F1 24 Tf 72 700 Td (PAGETHREE) Tj ET"),
+            14 => $image('MARKER-IMAGE-ONE'),
+            15 => $image('MARKER-IMAGE-TWO'),
+            16 => $image('MARKER-IMAGE-THREE'),
+        ];
+
+        $data    = "%PDF-1.4\n";
+        $offsets = [];
+        foreach ($objects as $i => $body) {
+            $offsets[$i] = strlen($data);
+            $data       .= "{$i} 0 obj\n{$body}\nendobj\n";
+        }
+        $xrefPos = strlen($data);
+        $data   .= "xref\n0 17\n0000000000 65535 f \n";
+        foreach ($offsets as $offset) {
+            $data .= sprintf("%010d 00000 n \n", $offset);
+        }
+        $data .= "trailer\n<< /Size 17 /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
+
+        $output = (string)Pdf\Pdf::importRawData($data, 2);
+
+        $this->assertStringNotContainsString('MARKER-IMAGE-ONE', $output);
+        $this->assertStringContainsString('MARKER-IMAGE-TWO', $output);
+        $this->assertStringNotContainsString('MARKER-IMAGE-THREE', $output);
+        $this->assertStringContainsString('PAGETWO', Pdf\Pdf::extractTextFromData($output));
+    }
+
     /**
      * A 3-page PDF with a different JPEG on each page, and a chunk of each
      * JPEG's bytes - JPEGs are embedded as-is, so a chunk being present in

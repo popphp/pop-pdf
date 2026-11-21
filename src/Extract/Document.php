@@ -1010,9 +1010,13 @@ class Document
             return false;
         }
 
-        $sample = array_slice($offsets, 0, 5, true);
-        foreach ($sample as $location) {
-            if (isset($location['offset']) && !$this->looksLikeObjectAt($location['offset'])) {
+        // Each offset must point at the object the xref says it does, not
+        // just at some object - a table whose subsection header is off by
+        // one points every number at its neighbour, and /Root then resolves
+        // to the wrong object
+        $sample = array_slice($offsets, 0, 5, true) + [$root->objNum => $offsets[$root->objNum]];
+        foreach ($sample as $objNum => $location) {
+            if (isset($location['offset']) && !$this->looksLikeObjectAt($location['offset'], $objNum)) {
                 return false;
             }
         }
@@ -1021,12 +1025,13 @@ class Document
     }
 
     /**
-     * Determine if a byte offset looks like the start of an "N G obj" object
+     * Determine if a byte offset looks like the start of object "N G obj"
      *
      * @param  int $offset
+     * @param  int $objNum
      * @return bool
      */
-    protected function looksLikeObjectAt(int $offset): bool
+    protected function looksLikeObjectAt(int $offset, int $objNum): bool
     {
         if (($offset < 0) || ($offset >= strlen($this->data))) {
             return false;
@@ -1034,7 +1039,7 @@ class Document
 
         $chunk = substr($this->data, $offset, 32);
 
-        return (bool) preg_match('/^\s*\d+\s+\d+\s+obj\b/', $chunk);
+        return (bool) preg_match('/^\s*' . $objNum . '\s+\d+\s+obj\b/', $chunk);
     }
 
 }

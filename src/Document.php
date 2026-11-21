@@ -41,6 +41,13 @@ class Document extends AbstractDocument
     protected array $importedObjects = [];
 
     /**
+     * Imported forms - one Build\Import\ImportedForm per imported source
+     * PDF that has an AcroForm
+     * @var array
+     */
+    protected array $importedForms = [];
+
+    /**
      * Constructor
      *
      * Instantiate a PDF document
@@ -385,6 +392,38 @@ class Document extends AbstractDocument
     public function getImportObjects(): array
     {
         return $this->importedObjects;
+    }
+
+    /**
+     * Import forms into document
+     *
+     * @param  array $forms
+     * @return Document
+     */
+    public function importForms(array $forms): Document
+    {
+        $this->importedForms = $forms;
+        return $this;
+    }
+
+    /**
+     * Determine if the document has imported forms
+     *
+     * @return bool
+     */
+    public function hasImportedForms(): bool
+    {
+        return (count($this->importedForms) > 0);
+    }
+
+    /**
+     * Get the imported forms
+     *
+     * @return array
+     */
+    public function getImportedForms(): array
+    {
+        return $this->importedForms;
     }
 
     /**

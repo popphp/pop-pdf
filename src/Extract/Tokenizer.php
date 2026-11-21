@@ -92,6 +92,44 @@ class Tokenizer
     }
 
     /**
+     * Skip an inline image's binary data - from just after its ID keyword to
+     * just after the EI that ends it. The data isn't tokenized, so EI ends it
+     * only where it stands alone between whitespace.
+     *
+     * @return void
+     */
+    public function skipInlineImageData(): void
+    {
+        $pos = $this->pos;
+
+        if (($pos < $this->length) && self::isWhitespace($this->data[$pos])) {
+            $pos++;
+        }
+
+        $eiPos = $pos;
+
+        while (true) {
+            $eiPos = strpos($this->data, 'EI', $eiPos);
+
+            if ($eiPos === false) {
+                $this->pos = $this->length;
+                return;
+            }
+
+            $beforeOk = ($eiPos === 0) || self::isWhitespace($this->data[$eiPos - 1]);
+            $afterPos = $eiPos + 2;
+            $afterOk  = ($afterPos >= $this->length) || self::isWhitespace($this->data[$afterPos]);
+
+            if ($beforeOk && $afterOk) {
+                $this->pos = $afterPos;
+                return;
+            }
+
+            $eiPos += 2;
+        }
+    }
+
+    /**
      * Determine if a byte is PDF whitespace
      *
      * @param  string $c

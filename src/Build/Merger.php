@@ -181,6 +181,7 @@ class Merger
         $allObjects[$infoObjNum] = $info;
 
         $document->importObjects($allObjects);
+        $document->importForms(array_values(array_filter(array_column($graphs, 'form'))));
 
         foreach ($allPages as $pageObject) {
             $page = new \Pop\Pdf\Document\Page($pageObject->getWidth(), $pageObject->getHeight(), $pageObject->getIndex());

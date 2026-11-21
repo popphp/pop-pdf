@@ -363,4 +363,16 @@ class DocumentTest extends TestCase
         $this->assertSame($security, $doc->getSecurity());
     }
 
+    public function testImportForms()
+    {
+        $doc = new Document();
+        $this->assertFalse($doc->hasImportedForms());
+        $this->assertEquals([], $doc->getImportedForms());
+
+        $form = new \Pop\Pdf\Build\Import\ImportedForm();
+        $doc->importForms([$form]);
+        $this->assertTrue($doc->hasImportedForms());
+        $this->assertSame([$form], $doc->getImportedForms());
+    }
+
 }

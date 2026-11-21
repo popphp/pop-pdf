@@ -105,14 +105,14 @@ class ObjectGraphReader
         $infoObjNum     = ($infoRef instanceof Value\Reference) ? $infoRef->objNum : null;
         $topPagesObjNum = $pagesRef->objNum;
 
-        // Widget annotations are excluded from a page's /Annots below (no
-        // /AcroForm is carried over for them to register against), but that
-        // by itself only stops the page from *pointing at* them - the
-        // widget objects (and the source's own /AcroForm dictionary) are
-        // still other object numbers in $objectNumbers, so without this
-        // exclusion they fall through to translateGeneric() and get written
-        // into the merged output as dead, unreferenced objects.
-        $excludedFormObjNums = self::collectFormObjNums($doc, $root['AcroForm'] ?? null);
+        // The source's /AcroForm dictionary and every node of its field tree
+        // (fields and their widgets) are not translated as generic objects -
+        // the field tree is carried over as an ImportedForm instead, which
+        // the compiler writes from, keeping only the nodes whose widgets are
+        // on pages the document still has.
+        $fieldParents        = [];
+        $excludedFormObjNums = self::collectFormObjNums($doc, $root['AcroForm'] ?? null, $fieldParents);
+        $formObjects         = self::pruneFormResources($doc, $objectNumbers);
 
         $objects     = [];
         $pageObjects = [];
@@ -127,17 +127,26 @@ class ObjectGraphReader
             $newObjNum = $map[$objNum];
 
             if (isset($leafPageObjNumSet[$objNum])) {
-                $node = $doc->getObject($objNum);
+                $node      = $doc->getObject($objNum);
+                $node      = is_array($node) ? $node : [];
+                $inherited = $inheritedByPage[$objNum];
+
+                if (is_array($inherited['Resources'])) {
+                    $inherited['Resources'] = ResourceUsage::prune(
+                        $doc, self::asReferenceList($doc, $node['Contents'] ?? null), $inherited['Resources']
+                    );
+                }
+
                 $pageObjects[$newObjNum] = self::translatePage(
-                    $doc, $newObjNum, is_array($node) ? $node : [], $inheritedByPage[$objNum], $map
+                    $doc, $newObjNum, $node, $inherited, $map, $excludedFormObjNums
                 );
                 $pageObjects[$newObjNum]->setImportedObjectIndices(
-                    self::collectPageObjNums($doc, is_array($node) ? $node : [], $inheritedByPage[$objNum], $map)
+                    self::collectPageObjNums($doc, $node, $inherited, $map, $formObjects, $excludedFormObjNums)
                 );
                 continue;
             }
 
-            $rewritten           = ReferenceRewriter::rewrite($doc->getObject($objNum), $map);
+            $rewritten           = ReferenceRewriter::rewrite($formObjects[$objNum] ?? $doc->getObject($objNum), $map);
             $objects[$newObjNum] = self::translateGeneric($newObjNum, $rewritten);
         }
 
@@ -160,6 +169,9 @@ class ObjectGraphReader
             'topPagesObjNum' => $map[$topPagesObjNum],
             'topPagesDict'   => $topPagesRewritten,
             'infoDict'       => $infoDict,
+            'form'           => self::readForm(
+                $doc, $root['AcroForm'] ?? null, $fieldParents, $map, $formObjects, $excludedFormObjNums
+            ),
             'nextOffset'     => $next,
         ];
     }
@@ -222,14 +234,15 @@ class ObjectGraphReader
     /**
      * Collect the object numbers of a source PDF's /AcroForm dictionary and
      * every field/widget object reachable from its /Fields tree, so the
-     * caller can omit them entirely rather than leaving them as orphaned
-     * objects (see the exclusion built in read()).
+     * caller can keep them out of the generic objects (see the exclusion
+     * built in read()), and record each field tree node's parent.
      *
      * @param  Document $doc
      * @param  mixed    $acroFormRef
+     * @param  array    $parents
      * @return array
      */
-    protected static function collectFormObjNums(Document $doc, mixed $acroFormRef): array
+    protected static function collectFormObjNums(Document $doc, mixed $acroFormRef, array &$parents): array
     {
         if (!($acroFormRef instanceof Value\Reference)) {
             return [];
@@ -244,7 +257,7 @@ class ObjectGraphReader
             $visited = [];
             foreach ($fields as $fieldRef) {
                 if ($fieldRef instanceof Value\Reference) {
-                    self::walkFieldTree($doc, $fieldRef->objNum, $excluded, $visited, 0);
+                    self::walkFieldTree($doc, $fieldRef->objNum, null, $excluded, $parents, $visited, 0);
                 }
             }
         }
@@ -259,18 +272,23 @@ class ObjectGraphReader
      *
      * @param  Document $doc
      * @param  int      $objNum
+     * @param  ?int     $parent
      * @param  array    $excluded
+     * @param  array    $parents
      * @param  array    $visited
      * @param  int      $depth
      * @return void
      */
-    protected static function walkFieldTree(Document $doc, int $objNum, array &$excluded, array &$visited, int $depth): void
+    protected static function walkFieldTree(
+        Document $doc, int $objNum, ?int $parent, array &$excluded, array &$parents, array &$visited, int $depth
+    ): void
     {
         if (($depth > self::MAX_TREE_DEPTH) || isset($visited[$objNum])) {
             return;
         }
         $visited[$objNum]  = true;
         $excluded[$objNum] = true;
+        $parents[$objNum]  = $parent;
 
         $node = $doc->getObject($objNum);
         $kids = is_array($node) ? $doc->resolve($node['Kids'] ?? null) : null;
@@ -281,9 +299,112 @@ class ObjectGraphReader
 
         foreach ($kids as $kidRef) {
             if ($kidRef instanceof Value\Reference) {
-                self::walkFieldTree($doc, $kidRef->objNum, $excluded, $visited, $depth + 1);
+                self::walkFieldTree($doc, $kidRef->objNum, $objNum, $excluded, $parents, $visited, $depth + 1);
             }
         }
+    }
+
+    /**
+     * Read a source PDF's AcroForm into an ImportedForm - each field tree
+     * node's dictionary (renumbered, its /Kids resolved to a plain array)
+     * and the objects it uses, the top-level fields, and the document-level
+     * settings. /XFA is left out, since its XML would no longer match the
+     * fields, and a signature field's /V is cleared, since rewriting the
+     * file invalidates the signature it holds.
+     *
+     * @param  Document $doc
+     * @param  mixed    $acroFormRef
+     * @param  array    $parents
+     * @param  array    $map
+     * @param  array    $formObjects
+     * @param  array    $formObjNums
+     * @return ?ImportedForm
+     */
+    protected static function readForm(
+        Document $doc, mixed $acroFormRef, array $parents, array $map, array $formObjects, array $formObjNums
+    ): ?ImportedForm
+    {
+        $acroForm = ($acroFormRef instanceof Value\Reference) ? $doc->resolve($acroFormRef) : null;
+
+        if (!is_array($acroForm) || (count($parents) === 0)) {
+            return null;
+        }
+
+        $form = new ImportedForm();
+
+        foreach ($parents as $objNum => $parent) {
+            $dict = $doc->getObject($objNum);
+            if (!is_array($dict)) {
+                continue;
+            }
+
+            if (isset($dict['Kids'])) {
+                $dict['Kids'] = $doc->resolve($dict['Kids']);
+            }
+            if (self::fieldType($doc, $objNum, $parents) === 'Sig') {
+                unset($dict['V']);
+            }
+
+            $walk = $dict;
+            unset($walk['Kids'], $walk['Parent']);
+
+            $form->addNode(
+                $map[$objNum], ReferenceRewriter::rewrite($dict, $map), ($parent !== null) ? $map[$parent] : null,
+                self::collectObjNums($doc, [$walk], $map, $formObjects, $formObjNums)
+            );
+        }
+
+        $fields = [];
+        foreach (self::asReferenceList($doc, $acroForm['Fields'] ?? null) as $ref) {
+            if (array_key_exists($ref->objNum, $parents)) {
+                $fields[] = $map[$ref->objNum];
+            }
+        }
+        $form->setFields($fields);
+
+        $settings = [];
+        foreach (['DR', 'DA', 'Q', 'SigFlags', 'NeedAppearances'] as $key) {
+            if (isset($acroForm[$key])) {
+                $settings[$key] = $doc->resolve($acroForm[$key]);
+            }
+        }
+        // /DR's categories (/Font etc.) may be indirect too - resolved so
+        // the compiler can merge them by name across sources
+        if (isset($settings['DR']) && is_array($settings['DR'])) {
+            foreach ($settings['DR'] as $category => $value) {
+                $settings['DR'][$category] = $doc->resolve($value);
+            }
+        }
+
+        $form->setSettings(
+            ReferenceRewriter::rewrite($settings, $map), self::collectObjNums($doc, [$settings], $map, $formObjects, $formObjNums)
+        );
+
+        return $form;
+    }
+
+    /**
+     * Get a field's type, inherited from its nearest ancestor that sets /FT
+     *
+     * @param  Document $doc
+     * @param  int      $objNum
+     * @param  array    $parents
+     * @return ?string
+     */
+    protected static function fieldType(Document $doc, int $objNum, array $parents): ?string
+    {
+        $current = $objNum;
+
+        while ($current !== null) {
+            $node = $doc->getObject($current);
+            $type = is_array($node) ? ($node['FT'] ?? null) : null;
+            if ($type instanceof Value\Name) {
+                return $type->name;
+            }
+            $current = $parents[$current] ?? null;
+        }
+
+        return null;
     }
 
     /**
@@ -291,21 +412,47 @@ class ObjectGraphReader
      * its content, resources (including inherited ones), annotations and
      * everything those reference in turn. The walk never steps into another
      * Page or Pages node, and never follows the page's own /Parent, or every
-     * page would reach every other page's objects through the page tree.
+     * page would reach every other page's objects through the page tree. The
+     * page's resources come from $inherited (its own or inherited, already
+     * pruned to what it uses), not from its /Resources entry. Form field
+     * widgets are not followed either - the ImportedForm tracks what each
+     * of them uses.
      *
      * @param  Document $doc
      * @param  array    $node
      * @param  array    $inherited
      * @param  array    $map
+     * @param  array    $formObjects
+     * @param  array    $formObjNums
      * @return array
      */
-    protected static function collectPageObjNums(Document $doc, array $node, array $inherited, array $map): array
+    protected static function collectPageObjNums(
+        Document $doc, array $node, array $inherited, array $map, array $formObjects, array $formObjNums
+    ): array
     {
-        unset($node['Parent']);
+        unset($node['Parent'], $node['Resources']);
 
+        return self::collectObjNums($doc, [$node, $inherited], $map, $formObjects, $formObjNums);
+    }
+
+    /**
+     * Collect the new object numbers of every object a set of values
+     * references, directly or through other objects - never stepping into a
+     * Page or Pages node, or into a form field tree node
+     *
+     * @param  Document $doc
+     * @param  array    $pending
+     * @param  array    $map
+     * @param  array    $formObjects
+     * @param  array    $formObjNums
+     * @return array
+     */
+    protected static function collectObjNums(
+        Document $doc, array $pending, array $map, array $formObjects, array $formObjNums
+    ): array
+    {
         $objNums = [];
         $visited = [];
-        $pending = [$node, $inherited];
 
         while (count($pending) > 0) {
             $value = array_pop($pending);
@@ -316,10 +463,11 @@ class ObjectGraphReader
                 foreach ($value as $item) {
                     $pending[] = $item;
                 }
-            } else if (($value instanceof Value\Reference) && !isset($visited[$value->objNum])) {
+            } else if (($value instanceof Value\Reference) && !isset($visited[$value->objNum])
+                && !isset($formObjNums[$value->objNum])) {
                 $visited[$value->objNum] = true;
 
-                $object = $doc->getObject($value->objNum);
+                $object = $formObjects[$value->objNum] ?? $doc->getObject($value->objNum);
                 $dict   = ($object instanceof Value\Stream) ? $object->dict : $object;
                 $type   = is_array($dict) ? ($dict['Type'] ?? null) : null;
 
@@ -337,6 +485,39 @@ class ObjectGraphReader
     }
 
     /**
+     * Prune the /Resources of every form XObject that has its own to what
+     * its own content uses - some producers give all their page templates
+     * one shared resource dictionary, the same way they do for pages. Each
+     * pruned form is returned, keyed by object number, with its /Resources
+     * replaced by the pruned dictionary, to be used in place of the original.
+     *
+     * @param  Document $doc
+     * @param  array    $objectNumbers
+     * @return array
+     */
+    protected static function pruneFormResources(Document $doc, array $objectNumbers): array
+    {
+        $forms = [];
+
+        foreach ($objectNumbers as $objNum) {
+            $object  = $doc->getObject($objNum);
+            $subtype = ($object instanceof Value\Stream) ? ($object->dict['Subtype'] ?? null) : null;
+
+            if (!($subtype instanceof Value\Name) || ($subtype->name !== 'Form')) {
+                continue;
+            }
+
+            $resources = $doc->resolve($object->dict['Resources'] ?? null);
+            if (is_array($resources)) {
+                $pruned         = ResourceUsage::prune($doc, [new Value\Reference($objNum, 0)], $resources);
+                $forms[$objNum] = new Value\Stream(['Resources' => $pruned] + $object->dict, $object->raw);
+            }
+        }
+
+        return $forms;
+    }
+
+    /**
      * Translate a leaf Page node into a fully-populated PageObject
      *
      * @param  Document $doc
@@ -344,9 +525,12 @@ class ObjectGraphReader
      * @param  array    $node
      * @param  array    $inherited
      * @param  array    $map
+     * @param  array    $formObjNums
      * @return PdfObject\PageObject
      */
-    protected static function translatePage(Document $doc, int $newObjNum, array $node, array $inherited, array $map): PdfObject\PageObject
+    protected static function translatePage(
+        Document $doc, int $newObjNum, array $node, array $inherited, array $map, array $formObjNums
+    ): PdfObject\PageObject
     {
         $mediaBox  = $inherited['MediaBox'];
         $resources = $inherited['Resources'];
@@ -368,19 +552,19 @@ class ObjectGraphReader
         $pageObject->setParentIndex($parentNewNum);
         $pageObject->setImported(true);
 
-        foreach (self::asReferenceList($node['Contents'] ?? null) as $ref) {
+        foreach (self::asReferenceList($doc, $node['Contents'] ?? null) as $ref) {
             if (isset($map[$ref->objNum])) {
                 $pageObject->addContentIndex($map[$ref->objNum]);
             }
         }
 
-        foreach (self::asReferenceList($node['Annots'] ?? null) as $ref) {
+        foreach (self::asReferenceList($doc, $node['Annots'] ?? null) as $ref) {
             $target  = $doc->resolve($ref);
             $subtype = is_array($target) ? ($target['Subtype'] ?? null) : null;
 
-            if (($subtype instanceof Value\Name) && ($subtype->name === 'Widget')) {
-                // Dropped - no /AcroForm is carried over for it to register
-                // against (page/visual content only, per the design's scope).
+            if (($subtype instanceof Value\Name) && ($subtype->name === 'Widget') && !isset($formObjNums[$ref->objNum])) {
+                // Dropped - a widget outside the /AcroForm field tree has no
+                // field for it to belong to in the output's /AcroForm.
                 continue;
             }
             if (isset($map[$ref->objNum])) {
@@ -448,7 +632,12 @@ class ObjectGraphReader
         $object = new PdfObject\StreamObject($newObjNum);
 
         if ($rewritten instanceof Value\Stream) {
-            $object->setDefinition(ObjectSerializer::serializeDict($rewritten->dict));
+            // The source's /Length can be wrong, and StreamObject keeps an
+            // image's /Length as given - write the length of the data read
+            $dict           = $rewritten->dict;
+            $dict['Length'] = strlen($rewritten->raw);
+
+            $object->setDefinition(ObjectSerializer::serializeDict($dict));
             $object->appendStream("\n" . $rewritten->raw);
 
             // The leading "\n" just prepended is the mandatory
@@ -480,13 +669,22 @@ class ObjectGraphReader
     /**
      * Normalize a /Contents or /Annots value into a flat list of References
      *
-     * @param  mixed $value
+     * @param  Document $doc
+     * @param  mixed    $value
      * @return array
      */
-    protected static function asReferenceList(mixed $value): array
+    protected static function asReferenceList(Document $doc, mixed $value): array
     {
+        // The value may be a reference to an array object of references
+        // rather than to a single object - treating that array object itself
+        // as the one content stream or annotation leaves the page blank, or
+        // without its annotations
         if ($value instanceof Value\Reference) {
-            return [$value];
+            $resolved = $doc->getObject($value->objNum);
+            if (!is_array($resolved) || !array_is_list($resolved)) {
+                return [$value];
+            }
+            $value = $resolved;
         }
         if (is_array($value)) {
             return array_values(array_filter($value, static fn ($v) => $v instanceof Value\Reference));

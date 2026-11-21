@@ -156,4 +156,23 @@ class TokenizerTest extends TestCase
         $this->assertEquals(['type' => 'keyword', 'value' => 'true'], $token);
     }
 
+    public function testSkipInlineImageDataStopsAfterAStandaloneEI()
+    {
+        // "EI" inside the image data doesn't end it - only one between whitespace does
+        $data      = "ID \x00EI\xffXEIY EI Q";
+        $tokenizer = new Tokenizer($data, 2);
+        $tokenizer->skipInlineImageData();
+
+        $this->assertEquals(strpos($data, ' EI ') + 3, $tokenizer->getPosition());
+        $this->assertEquals('Q', $tokenizer->next()['value']);
+    }
+
+    public function testSkipInlineImageDataWithoutEIGoesToTheEnd()
+    {
+        $tokenizer = new Tokenizer("ID \x00\xff", 2);
+        $tokenizer->skipInlineImageData();
+
+        $this->assertEquals('eof', $tokenizer->next()['type']);
+    }
+
 }

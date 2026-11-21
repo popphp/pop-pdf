@@ -2236,6 +2236,52 @@ class CompilerTest extends TestCase
         return $decrypted;
     }
 
+    public function testDeletingAnImportedPageDropsItsFormWidgets()
+    {
+        // tests/tmp/form-fields-2page.pdf - see ParserTest's form tests.
+        // Page 2 holds one of radio group 'plan''s widgets and field 'sig'.
+        $doc = Pdf\Pdf::importFromFile(__DIR__ . '/../tmp/form-fields-2page.pdf');
+        $doc->deletePage(2);
+
+        $compiler = new Compiler();
+        $compiler->finalize($doc);
+        $output = $compiler->getOutput();
+
+        $this->assertStringContainsString('MARKER-AP-PLAN-A', $output);
+        $this->assertStringNotContainsString('MARKER-AP-PLAN-B', $output);
+        $this->assertStringNotContainsString('(sig)', $output);
+
+        $reparsed = new \Pop\Pdf\Extract\Document($output);
+        $acroForm = $reparsed->resolve($reparsed->getRoot()['AcroForm']);
+        $fields   = array_map(fn ($ref) => $reparsed->resolve($ref), $acroForm['Fields']);
+
+        $this->assertEquals(['name', 'plan'], array_column($fields, 'T'));
+        $this->assertCount(1, $fields[1]['Kids']);
+
+        if (shell_exec('which qpdf') !== null) {
+            $tmpFile = tempnam(sys_get_temp_dir(), 'pop_pdf_form_test_') . '.pdf';
+            file_put_contents($tmpFile, $output);
+            $check = (string)shell_exec('qpdf --check ' . escapeshellarg($tmpFile) . ' 2>&1');
+            unlink($tmpFile);
+
+            $this->assertStringContainsString('No syntax or stream encoding errors found', $check);
+            $this->assertStringNotContainsString('WARNING', $check);
+        }
+    }
+
+    public function testDeletingEveryPageWithAFormWidgetLeavesNoAcroForm()
+    {
+        $doc = Pdf\Pdf::importFromFile(__DIR__ . '/../tmp/form-fields-2page.pdf');
+        $doc->deletePage(1);
+        $doc->deletePage(2);
+        $doc->addPage(new Page(Page::LETTER));
+
+        $output = (string)$doc;
+
+        $this->assertStringNotContainsString('/AcroForm', $output);
+        $this->assertStringNotContainsString('MARKER-AP', $output);
+    }
+
     public function testDeletingAnImportedPageDropsItFromThePageTreeAndItsObjects()
     {
         [$data, $chunks] = $this->buildThreeImagePdf();
